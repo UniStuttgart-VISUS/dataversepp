@@ -29,11 +29,14 @@ void visus::dataverse::detail::io_context::operator delete(_In_opt_ void *ptr) {
 /*
  * visus::dataverse::detail::io_context::io_context
  */
-visus::dataverse::detail::io_context::io_context(void) noexcept
-        : connection(nullptr), on_failed(nullptr),
-        operation(io_operation::unknown), size(0), user_data(nullptr) {
-    this->buffer.buf = nullptr;
-    this->buffer.len = 0;
+visus::dataverse::detail::io_context::io_context(
+        _In_ const std::size_t size) noexcept
+    : connection(nullptr), on_failed(nullptr),
+        operation(io_operation::unknown), size(size), user_data(nullptr) {
+#if defined(_WIN32)
+    this->buffer.buf = reinterpret_cast<CHAR *>(this->payload());
+    this->buffer.len = static_cast<ULONG>(this->size);
+#endif /* defined(_WIN32) */
     this->on_succeded.received = nullptr;
     std::memset(&this->overlapped, 0, sizeof(this->overlapped));
 }

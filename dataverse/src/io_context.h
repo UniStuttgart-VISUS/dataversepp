@@ -95,7 +95,7 @@ namespace detail {
         /// <summary>
         /// Initialises a new instance.
         /// </summary>
-        io_context(void) noexcept;
+        io_context(_In_ const std::size_t size = 0) noexcept;
 
         /// <summary>
         /// Invoke <see cref="on_failed" /> if it is set.

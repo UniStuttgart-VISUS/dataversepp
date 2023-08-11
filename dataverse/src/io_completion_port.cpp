@@ -138,7 +138,8 @@ visus::dataverse::detail::io_completion_port::context(
 
     // If we are here, there is no suitable context to reuse, so we create a new
     // one.
-    auto retval = context_type(new (size) io_context);
+    auto retval = context_type(new (size) io_context(size));
+    assert(retval->size >= size);
 #if defined(_WIN32)
     retval->buffer.buf = reinterpret_cast<CHAR *>(retval->payload());
     retval->buffer.len = static_cast<ULONG>(size);
