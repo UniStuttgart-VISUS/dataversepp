@@ -4,19 +4,22 @@
 // <author>Christoph Müller</author>
 
 #include "dataverse/dataverse_connection.h"
+#include "dataverse/winsock_scope.h"
+
+#include <iostream>
 
 
 int main() {
+    try {
+        visus::dataverse::winsock_scope w;
 
-    visus::dataverse::dataverse_connection c;
-    sockaddr_in a;
-    ::ZeroMemory(&a, sizeof(a));
-    a.sin_family = AF_INET;
-    a.sin_port = ::htons(80);
-    a.sin_addr.S_un.S_addr = INADDR_LOOPBACK;
-    //c.connect(reinterpret_cast<sockaddr *>(&a), sizeof(a));
+        visus::dataverse::dataverse_connection c;
+        c.connect(u"darus.uni-stuttgart.de", 443, true);
 
-    c.__hack();
 
-    return 0;
+        return 0;
+    } catch (std::exception& ex) {
+        std::cout << ex.what() << std::endl << std::endl;
+        return -1;
+    }
 }

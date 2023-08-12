@@ -15,8 +15,21 @@ namespace detail {
     /// <see cref="io_completion_port" />.
     /// </summary>
     enum class io_operation {
+
+        /// <summary>
+        /// The kind of operation is unknown, which will yield an error in the
+        /// I/O completion port.
+        /// </summary>
         unknown,
+
+        /// <summary>
+        /// A asynchronous socket send.
+        /// </summary>
         send,
+
+        /// <summary>
+        /// An asyncrhonous socket receive.
+        /// </summary>
         receive
     };
 

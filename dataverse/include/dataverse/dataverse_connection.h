@@ -49,22 +49,33 @@ namespace dataverse {
 
     public:
 
+        dataverse_connection(void) = default;
+
+        dataverse_connection(const dataverse_connection&) = delete;
+
+        dataverse_connection(dataverse_connection&&) = delete;
+
         void __hack(void);
 
+        void connect(_In_reads_bytes_(length) const sockaddr *address,
+            _In_ const std::size_t length,
+            _In_ const bool tls = true);
 
-        void connect(_In_reads_bytes_(length) sockaddr *address,
-            _In_ const std::size_t length);
+        void connect(_In_z_ const char_type *host,
+            _In_ const std::uint16_t port,
+            _In_ const bool tls = true);
 
         void disconnect(void);
 
+        dataverse_connection& operator =(const dataverse_connection&) = delete;
+
+        dataverse_connection& operator =(dataverse_connection&&) = delete;
+
     private:
-
-        void receive(_In_ detail::io_context *context);
-
-        void send(_In_ detail::io_context *context);
 
         visus::dataverse::detail::socket _socket;
 
+        // Allow the completion port access to the socket.
         friend class visus::dataverse::detail::io_completion_port;
 
     };

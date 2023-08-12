@@ -15,7 +15,7 @@
 #include <wil/resource.h>
 #endif /* defined(_WIN32) */
 
-#include "dataverse/socket.h"
+#include "dataverse/dataverse_connection.h"
 
 #include "io_context.h"
 #include "io_operation.h"
@@ -34,6 +34,11 @@ namespace detail {
     public:
 
         /// <summary>
+        /// The type of the context used for asynchronous requests.
+        /// </summary>
+        typedef std::unique_ptr<io_context> context_type;
+
+        /// <summary>
         /// Gets the only instance of the I/O completion port.
         /// </summary>
         /// <returns></returns>
@@ -45,12 +50,13 @@ namespace detail {
         ~io_completion_port(void);
 
         /// <summary>
-        /// Associates the given socket with the I/O completion port, which
-        /// causes all asynchronous I/O operations of the port to feed into
-        /// one of the pool threads of the I/O completion port.
+        /// Associates the socket of the given
+        /// <see cref="dataverse_connection" /> with the I/O completion port,
+        /// which causes all asynchronous I/O operations of the port to feed
+        /// into one of the pool threads of the I/O completion port.
         /// </summary>
-        /// <param name="socket"></param>
-        void associate(_In_ socket& socket);
+        /// <param name="connection"></param>
+        void associate(_In_ dataverse_connection& connection);
 
         /// <summary>
         /// Allocates or reuses an I/O context for the specified operation.
@@ -65,12 +71,16 @@ namespace detail {
         /// <param name="on_failed"></param>
         /// <param name="context"></param>
         /// <returns></returns>
-        std::unique_ptr<io_context> context(
+        context_type context(
             _In_ const io_operation operation,
             _In_ dataverse_connection *connection,
             _In_ const std::size_t size,
             _In_ const network_failed_handler on_failed,
             _In_opt_ void *context);
+
+        void receive(_In_ socket& socket, _Inout_ context_type&& context);
+
+        void send(_In_ socket& socket, _Inout_ context_type&& context);
 
     private:
 
@@ -78,7 +88,7 @@ namespace detail {
         /// <summary>
         /// Extracts our custom context from the given overlapped structure.
         /// </summary>
-        static std::unique_ptr<io_context> context(_In_ OVERLAPPED *overlapped);
+        static context_type context(_In_ OVERLAPPED *overlapped);
 #endif /* defined(_WIN32) */
 
         /// <summary>
@@ -90,7 +100,7 @@ namespace detail {
         /// Retrieve or create an <see cref="io_context" /> for at least the
         /// specified amount of payload.
         /// </summary>
-        std::unique_ptr<io_context> context(_In_ const std::size_t size);
+        context_type context(_In_ const std::size_t size);
 
         /// <summary>
         /// Performs the work of a pool thread processing I/O completions.
@@ -100,7 +110,7 @@ namespace detail {
         /// <summary>
         /// Recycle the given <see cref="io_context" /> in the pool.
         /// </summary>
-        void recycle(_Inout_ std::unique_ptr<io_context>&& context);
+        void recycle(_Inout_ context_type&& context);
 
 #if defined(_WIN32)
         /// <summary>

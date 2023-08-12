@@ -22,7 +22,7 @@ namespace dataverse {
     /// <summary>
     /// The type of a character.
     /// </summary>
-    typedef wchar_t char_type;
+    typedef char16_t char_type;
 
     /// <summary>
     /// The type of a native API error code.
@@ -30,7 +30,7 @@ namespace dataverse {
     typedef DWORD system_error_code;
 
 #else /* defined(_WIN32) */
-    typedef char char_type;
+    typedef char8_t char_type;
     typedef int system_error_code;
 #endif /* defined(_WIN32) */
 

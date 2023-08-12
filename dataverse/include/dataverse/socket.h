@@ -56,7 +56,7 @@ namespace detail {
         /// </summary>
         /// <param name="address"></param>
         /// <param name="length"></param>
-        void connect(_In_reads_bytes_(length) sockaddr *address,
+        void connect(_In_reads_bytes_(length) const sockaddr *address,
             _In_ const std::size_t length);
 
         /// <summary>

@@ -6,12 +6,17 @@
 #include "dataverse/socket.h"
 
 #include <memory>
-#include <system_error>
+#include <string>
 
 #if defined(_WIN32)
 #include <WinSock2.h>
 #include <Windows.h>
+#else /* defined(_WIN32) */
+#include <sys/socket.h>
 #endif /* defined(_WIN32) */
+
+#include "errors.h"
+
 
 #if !defined(_WIN32)
 #define INVALID_SOCKET (-1)
@@ -89,7 +94,7 @@ visus::dataverse::detail::socket::~socket(void) noexcept {
  * visus::dataverse::detail::socket::connect
  */
 void visus::dataverse::detail::socket::connect(
-        _In_reads_bytes_(length) sockaddr *address,
+        _In_reads_bytes_(length) const sockaddr *address,
         _In_ const std::size_t length) {
 #if defined(_WIN32)
     if (::WSAConnect(this->_handle,

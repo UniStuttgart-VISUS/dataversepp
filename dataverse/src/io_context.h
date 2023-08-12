@@ -31,7 +31,7 @@ namespace detail {
         /// <param name="body_size"></param>
         /// <returns></returns>
         static _Ret_ void *operator new(_In_ const std::size_t header_size,
-            _In_ const std::size_t body_size);
+            _In_ const std::size_t body_size = 0);
 
         /// <summary>
         /// Release the memory of a context.
@@ -57,11 +57,6 @@ namespace detail {
         /// </remarks>
         WSABUF buffer;
 #endif /* defined(_WIN32) */
-
-        /// <summary>
-        /// Holds the connection the I/O operation originated from.
-        /// </summary>
-        dataverse_connection *connection;
 
         /// <summary>
         /// The user-defined handler to be invoked in case of an I/O error.
@@ -100,24 +95,27 @@ namespace detail {
         /// <summary>
         /// Invoke <see cref="on_failed" /> if it is set.
         /// </summary>
-        void invoke_on_failed(_In_ const system_error_code error);
+        void invoke_on_failed(_In_ dataverse_connection *connection,
+            _In_ const system_error_code error);
 
         /// <summary>
         /// Invoke <see cref="on_failed" /> if it is set.
         /// </summary>
-        inline void invoke_on_failed(_In_ const std::system_error& ex) {
-            this->invoke_on_failed(ex.code().value());
+        inline void invoke_on_failed(_In_ dataverse_connection *connection,
+                _In_ const std::system_error& ex) {
+            this->invoke_on_failed(connection, ex.code().value());
         }
 
         /// <summary>
         /// Invoke <see cref="on_succeeded::received" /> if it is set.
         /// </summary>
-        void invoke_on_received(_In_ const std::size_t cnt);
+        void invoke_on_received(_In_ dataverse_connection *connection,
+            _In_ const std::size_t cnt);
 
         /// <summary>
         /// Invoke <see cref="on_succeeded::sent" /> if it is set.
         /// </summary>
-        void invoke_on_sent(void);
+        void invoke_on_sent(_In_ dataverse_connection *connection);
 
         /// <summary>
         /// Answer a pointer to the begin of the payload after the object.

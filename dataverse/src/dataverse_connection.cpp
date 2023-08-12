@@ -5,8 +5,15 @@
 
 #include "dataverse/dataverse_connection.h"
 
+#include <string>
+
+#if defined(_WIN32)
+#include <ws2ipdef.h>
+#endif /* defined(_WIN32) */
+
 #include "errors.h"
 #include "io_completion_port.h"
+#include "resolve.h"
 
 
 void visus::dataverse::dataverse_connection::__hack(void) {
@@ -19,8 +26,9 @@ void visus::dataverse::dataverse_connection::__hack(void) {
  * visus::dataverse::dataverse_connection::connect
  */
 void visus::dataverse::dataverse_connection::connect(
-        _In_reads_bytes_(length) sockaddr *address,
-        _In_ const std::size_t length) {
+        _In_reads_bytes_(length) const sockaddr *address,
+        _In_ const std::size_t length,
+        _In_ const bool tls) {
     if (address == nullptr) {
         throw std::invalid_argument("The socket address to connect to must not "
             "be null.");
@@ -31,7 +39,59 @@ void visus::dataverse::dataverse_connection::connect(
     this->_socket.connect(address, length);
 
     // Associate the socket with our I/O completion port.
-    detail::io_completion_port::instance().associate(this->_socket);
+    detail::io_completion_port::instance().associate(*this);
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::connect
+ */
+void visus::dataverse::dataverse_connection::connect(
+        _In_z_ const char_type *host,
+        _In_ const std::uint16_t port,
+        _In_ const bool tls) {
+    const auto addresses = detail::resolve(host, port);
+
+    if (addresses.empty()) {
+        throw std::invalid_argument("The specified host could not be "
+            "resolved.");
+    }
+
+    // Remember the error in the last iteration of the following loop such that
+    // we know why the connection eventually failed.
+    std::exception_ptr last_error;
+
+    for (auto& a : addresses) {
+        try {
+            switch (a.ss_family) {
+                case AF_INET:
+                    this->connect(reinterpret_cast<const sockaddr *>(&a),
+                        sizeof(sockaddr_in),
+                        tls);
+                    break;
+
+                case AF_INET6:
+                    this->connect(reinterpret_cast<const sockaddr *>(&a),
+                        sizeof(sockaddr_in6),
+                        tls);
+                    break;
+
+                default:
+                    throw std::invalid_argument("The specified address family "
+                        "is not supported");
+            }
+
+            last_error = std::exception_ptr();
+            break;
+        } catch (...) {
+            last_error = std::current_exception();
+        }
+    }
+
+    if (last_error) {
+        // If the last iteration of the loop failed, rethrow the error.
+        std::rethrow_exception(last_error);
+    }
 }
 
 
@@ -40,56 +100,6 @@ void visus::dataverse::dataverse_connection::connect(
  */
 void visus::dataverse::dataverse_connection::disconnect(void) {
     this->_socket.close();
-}
-
-
-/*
- * visus::dataverse::dataverse_connection::receive
- */
-void visus::dataverse::dataverse_connection::receive(
-        _In_ detail::io_context *context) {
-#if defined(_WIN32)
-    DWORD received = 0;
-    if (::WSARecv(this->_socket,
-            &context->buffer, 1,
-            &received,
-            0,
-            &context->overlapped,
-            nullptr)
-            == SOCKET_ERROR) {
-        const auto error = ::WSAGetLastError();
-        if (error != WSA_IO_PENDING) {
-            throw std::system_error(error, std::system_category());
-        }
-    }
-#else /* defined(_WIN32) */
-    throw "TODO: implement send on linux"
-#endif /* defined(_WIN32) */
-}
-
-
-/*
- * visus::dataverse::dataverse_connection::send
- */
-void visus::dataverse::dataverse_connection::send(
-        _In_ detail::io_context *context) {
-#if defined(_WIN32)
-    DWORD sent = 0;
-    if (::WSASend(this->_socket,
-            &context->buffer, 1,
-            &sent,
-            0,
-            &context->overlapped,
-            nullptr)
-            == SOCKET_ERROR) {
-        const auto error = ::WSAGetLastError();
-        if (error != WSA_IO_PENDING) {
-            throw std::system_error(error, std::system_category());
-        }
-    }
-#else /* defined(_WIN32) */
-    throw "TODO: implement send on linux"
-#endif /* defined(_WIN32) */
 }
 
 

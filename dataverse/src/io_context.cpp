@@ -31,8 +31,8 @@ void visus::dataverse::detail::io_context::operator delete(_In_opt_ void *ptr) {
  */
 visus::dataverse::detail::io_context::io_context(
         _In_ const std::size_t size) noexcept
-    : connection(nullptr), on_failed(nullptr),
-        operation(io_operation::unknown), size(size), user_data(nullptr) {
+    : on_failed(nullptr), operation(io_operation::unknown), size(size),
+        user_data(nullptr) {
 #if defined(_WIN32)
     this->buffer.buf = reinterpret_cast<CHAR *>(this->payload());
     this->buffer.len = static_cast<ULONG>(this->size);
@@ -46,9 +46,10 @@ visus::dataverse::detail::io_context::io_context(
  * visus::dataverse::detail::io_context::invoke_on_failed
  */
 void visus::dataverse::detail::io_context::invoke_on_failed(
+        _In_ dataverse_connection *connection,
         _In_ const system_error_code error) {
     if (this->on_failed != nullptr) {
-        this->on_failed(this->connection, error, this->user_data);
+        this->on_failed(connection, error, this->user_data);
     }
 }
 
@@ -57,9 +58,10 @@ void visus::dataverse::detail::io_context::invoke_on_failed(
  * visus::dataverse::detail::io_context::invoke_on_received
  */
 void visus::dataverse::detail::io_context::invoke_on_received(
+        _In_ dataverse_connection *connection,
         _In_ const std::size_t cnt) {
     if (this->on_succeded.received) {
-        this->on_succeded.received(this->connection, this->payload(), cnt,
+        this->on_succeded.received(connection, this->payload(), cnt,
             this->user_data);
     }
 }
@@ -68,9 +70,10 @@ void visus::dataverse::detail::io_context::invoke_on_received(
 /*
  * visus::dataverse::detail::io_context::invoke_on_sent
  */
-void visus::dataverse::detail::io_context::invoke_on_sent(void) {
+void visus::dataverse::detail::io_context::invoke_on_sent(
+        _In_ dataverse_connection *connection) {
     if (this->on_succeded.sent) {
-        this->on_succeded.sent(this->connection, this->user_data);
+        this->on_succeded.sent(connection, this->user_data);
     }
 }
 
