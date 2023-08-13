@@ -113,11 +113,11 @@ std::vector<sockaddr_storage> visus::dataverse::detail::resolve(
         _In_ const std::uint16_t port,
         _In_ const int address_family) {
 #if defined(_WIN32)
-    auto service = std::to_wstring(port);
+    auto service0 = std::to_wstring(port);
+    auto service = reinterpret_cast<const char_type *>(service0.c_str());
 #else /* defined(_WIN32) */
-    auto service = std::to_string(port);
+    auto service0 = std::to_string(port);
+    auto service = reinterpret_cast<const char_type *>(service0.c_str());
 #endif /* defined(_WIN32) */
-    return resolve(host,
-        reinterpret_cast<const char_type *>(service.c_str()),
-        address_family);
+    return resolve(host, service, address_family);
 }

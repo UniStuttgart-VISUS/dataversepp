@@ -18,6 +18,13 @@
 namespace visus {
 namespace dataverse {
 
+#if (!defined(__cplusplus) || (__cplusplus < 202000))
+    /// <summary>
+    /// The character type for UTF-8 strings.
+    /// </summary>
+    typedef char char8_t;
+#endif /* (!defined(__cplusplus) || (__cplusplus < 202000)) */
+
 #if defined(_WIN32)
     /// <summary>
     /// The type of a character.
@@ -31,8 +38,35 @@ namespace dataverse {
 
 #else /* defined(_WIN32) */
     typedef char8_t char_type;
+
     typedef int system_error_code;
 #endif /* defined(_WIN32) */
 
 } /* namespace dataverse */
 } /* namespace visus */
+
+
+#if (defined(__cplusplus) && (__cplusplus >= 202000))
+/// <summary>
+/// Defines a UTF-8 string literal.
+/// </summary>
+#define DATAVERSE_UTF8_LITERAL(s) u8##s
+#else /* (defined(__cplusplus) && (__cplusplus >= 202000)) */
+#define DATAVERSE_UTF8_LITERAL(s) s
+#endif /* (defined(__cplusplus) && (__cplusplus >= 202000)) */
+
+
+#if defined(_WIN32)
+/// <summary>
+/// Defines a string literal expected by the library's API.
+/// </summary>
+#define DATAVERSE_STRING_LITERAL(s) u##s
+#else /* defined(_WIN32) */
+#define DATAVERSE_STRING_LITERAL(s) DATAVERSE_UTF8_LITERAL(s)
+#endif /* defined(_WIN32) */
+
+
+/// <summary>
+/// Defines a string literal expected by the library's API.
+/// </summary>
+#define DVSL(s) DATAVERSE_STRING_LITERAL(s)

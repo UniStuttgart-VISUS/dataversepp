@@ -63,7 +63,7 @@ namespace detail {
         /// Closes the socket if it is open.
         /// </summary>
         /// <returns></returns>
-        system_error_code close(_In_ std::nothrow_t) noexcept;
+        _Check_return_ system_error_code close(_In_ std::nothrow_t) noexcept;
 
         /// <summary>
         /// Closes the socket if it is open.

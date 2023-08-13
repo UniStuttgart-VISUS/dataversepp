@@ -29,3 +29,23 @@ mark_as_advanced(FORCE
     FAST_BUILD
     WIL_BUILD_PACKAGING
     WIL_BUILD_TESTS)
+
+
+# JSON library
+FetchContent_Declare(nlohmann_json
+    URL "https://github.com/nlohmann/json/archive/v3.11.2.tar.gz"
+)
+FetchContent_MakeAvailable(nlohmann_json)
+mark_as_advanced(FORCE
+    FETCHCONTENT_SOURCE_DIR_NLOHMANN_JSON
+    FETCHCONTENT_UPDATES_DISCONNECTED_NLOHMANN_JSON
+    JSON_BuildTests
+    JSON_CI
+    JSON_Diagnostics
+    JSON_DisableEnumSerialization
+    JSON_GlobalUDLs
+    JSON_ImplicitConversions
+    JSON_Install
+    JSON_LegacyDiscardedValueComparison
+    JSON_MultipleHeaders
+    JSON_SystemInclude)

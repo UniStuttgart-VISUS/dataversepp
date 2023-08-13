@@ -8,13 +8,17 @@
 
 #include <iostream>
 
+#include <map>
+#include <vector>
+#include <nlohmann/json.hpp>
+
 
 int main() {
     try {
         visus::dataverse::winsock_scope w;
 
         visus::dataverse::dataverse_connection c;
-        c.connect(u"darus.uni-stuttgart.de", 443, true);
+        c.connect(DVSL("darus.uni-stuttgart.de"), 443, true);
 
 
         return 0;

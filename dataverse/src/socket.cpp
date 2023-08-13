@@ -121,14 +121,22 @@ void visus::dataverse::detail::socket::connect(
 /*
  * visus::dataverse::detail::socket::close
  */
-visus::dataverse::system_error_code visus::dataverse::detail::socket::close(
-        _In_ std::nothrow_t) noexcept {
+_Check_return_ visus::dataverse::system_error_code
+visus::dataverse::detail::socket::close(_In_ std::nothrow_t) noexcept {
     if (*this) {
 #if defined(_WIN32)
+        if (::shutdown(this->_handle, SD_BOTH) == SOCKET_ERROR) {
+            return ::WSAGetLastError();
+        }
+
         if (::closesocket(this->_handle) == SOCKET_ERROR) {
             return ::WSAGetLastError();
         }
 #else /* defined(_WIN32) */
+        if (::shutdown(this->_handle, SHUT_RDWR) == SOCKET_ERROR) {
+            return ::WSAGetLastError();
+        }
+
         if (::close(this->_handle) == SOCKET_ERROR) {
             return errno;
         }
@@ -173,4 +181,3 @@ visus::dataverse::detail::socket& visus::dataverse::detail::socket::operator =(
 visus::dataverse::detail::socket::operator bool(void) const noexcept {
     return (this->_handle != INVALID_SOCKET);
 }
-

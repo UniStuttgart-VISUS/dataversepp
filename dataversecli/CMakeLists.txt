@@ -23,7 +23,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
 
 
 # Configure the linker.
-target_link_libraries(${PROJECT_NAME} dataverse)
+target_link_libraries(${PROJECT_NAME} dataverse nlohmann_json)
 
 
 # Installation
