@@ -30,6 +30,8 @@ namespace detail {
 
     public:
 
+        tls_handshake(void);
+
         std::future<tls_context> operator ()(
             _In_ dataverse_connection *connection);
 
@@ -50,16 +52,30 @@ namespace detail {
         static void on_network_sent(_In_ dataverse_connection *connection,
             _In_opt_ void *context);
 
-        void initialise(_In_ dataverse_connection *connection,
-            _In_ const bool first);
+        static constexpr const std::size_t max_packet_size = (16384 + 512);
+
+#if defined(_WIN32)
+        SECURITY_STATUS create_client_context(
+            _In_opt_ const void *input = nullptr,
+            _In_ const std::size_t cnt = 0);
+
+        void handshake(_In_ dataverse_connection *connection,
+            _In_opt_ const void *input = nullptr,
+            _In_ const std::size_t cnt = 0);
+#endif /* defined(_WIN32) */
+
+#if defined(_WIN32)
+        void free_output_buffer(void);
+#endif /* defined(_WIN32) */
 
 #if defined(_WIN32)
         tls_context::security_context_type _context;
         DWORD _flags;
         tls_context::credentials_handle_type _handle;
         std::wstring _hostname;
-        std::vector<std::uint8_t> _input_buffer;
-        std::vector<std::uint8_t> _output_buffer;
+        std::vector<io_context::byte_type> _input_buffer;
+        SecBuffer _output_buffer;
+        SecBufferDesc _output_desc;
 #else /* defined(_WIN32) */
 #endif /* defined(_WIN32) */
 

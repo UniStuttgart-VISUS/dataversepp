@@ -103,6 +103,8 @@ namespace detail {
             _In_ const decltype(io_context::on_disconnected) on_disconnected,
             _In_opt_ void *context);
 
+        void stop(void);
+
     private:
 
 #if defined(_WIN32)

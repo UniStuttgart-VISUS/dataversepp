@@ -10,6 +10,7 @@
 #include <string>
 
 #include "errors.h"
+#include "thread_name.h"
 
 
 /*
@@ -26,16 +27,7 @@ visus::dataverse::detail::io_completion_port::instance(void) {
  * visus::dataverse::detail::io_completion_port::~io_completion_port
  */
 visus::dataverse::detail::io_completion_port::~io_completion_port(void) {
-    this->post_status(0, 0, nullptr);
-
-    ::OutputDebugString(_T("The I/O completion helper waits for its threads ")
-        _T("to exit.\r\n"));
-    for (auto& t : this->_threads) {
-        if (t.joinable()) {
-            t.join();
-        }
-    }
-    ::OutputDebugString(_T("All I/O completion threads have exited.\r\n"));
+    this->stop();
 }
 
 
@@ -87,10 +79,11 @@ void visus::dataverse::detail::io_completion_port::receive(
     assert(context->operation == io_operation::receive);
 
 #if defined(_WIN32)
+    DWORD flags = 0;
     if (::WSARecv(socket,
             &context->buffer, 1,
             nullptr,
-            0,
+            &flags,
             &context->overlapped,
             nullptr)
             != SOCKET_ERROR) {
@@ -141,7 +134,7 @@ void visus::dataverse::detail::io_completion_port::receive(
         _In_ const decltype(io_context::on_disconnected) on_disconnected,
         _In_opt_ void *context) {
     assert(connection != nullptr);
-    auto ctx = this->context(io_operation::receive,
+   auto ctx = this->context(io_operation::receive,
         size,
         on_failed,
         on_disconnected,
@@ -225,6 +218,27 @@ void visus::dataverse::detail::io_completion_port::send(
 }
 
 
+/*
+ * visus::dataverse::detail::io_completion_port::stop
+ */
+void visus::dataverse::detail::io_completion_port::stop(void) {
+    ::OutputDebugString(_T("Signal the first I/O completion worker to ")
+        _T("exit.\r\n"));
+    this->post_status(0, 0, nullptr);
+
+    ::OutputDebugString(_T("The I/O completion helper waits for its threads ")
+        _T("to exit.\r\n"));
+    for (auto &t : this->_threads) {
+        if (t.joinable()) {
+            t.join();
+        }
+    }
+    ::OutputDebugString(_T("All I/O completion threads have exited.\r\n"));
+
+    this->_threads.clear();
+}
+
+
 #if defined(_WIN32)
 /*
  * visus::dataverse::detail::io_completion_port::context
@@ -280,6 +294,16 @@ visus::dataverse::detail::io_completion_port::context(
             retval->buffer.len = static_cast<ULONG>(size);
 #endif /* defined(_WIN32) */
             this->_contexts.erase(it);
+
+#if (defined(DEBUG) || defined(_DEBUG))
+            {
+                std::wstring msg(L"Reusing io_context ");
+                msg += std::to_wstring(reinterpret_cast<UINT_PTR>(retval.get()));
+                msg += L".\r\n";
+                ::OutputDebugStringW(msg.c_str());
+            }
+#endif /* (defined(DEBUG) || defined(_DEBUG)) */
+
             return retval;
         }
     }
@@ -306,6 +330,7 @@ void visus::dataverse::detail::io_completion_port::pool_thread(void) {
     bool running = true;
     DWORD transferred = 0lu;
 
+    set_thread_name("I/O Completion Worker");
     ::OutputDebugString(_T("An I/O completion pool thread has started.\r\n"));
 
     while (running) {

@@ -49,15 +49,15 @@ std::size_t visus::dataverse::convert(
     }
 
 #if defined(_WIN32)
-    _try{
-        // Determine the size of the buffer in bytes we need for the UTF-16
-        // string.
+    _try {
+        auto s = (cnt_src > 0) ? static_cast<int>(cnt_src) : -1;
         auto retval = ::MultiByteToWideChar(code_page, 0,
-            src, static_cast<int>(cnt_src),
+            src, s,
             reinterpret_cast<wchar_t *>(dst), static_cast<int>(cnt_dst));
 
         if (retval <= 0) {
-            throw std::system_error(::GetLastError(), std::system_category());
+            auto error = ::GetLastError();
+            throw std::system_error(error, std::system_category());
         }
 
         return retval;
@@ -93,14 +93,16 @@ std::size_t visus::dataverse::convert(
         auto r = ((code_page != CP_UTF7) && (code_page != CP_UTF8))
             ? &replacement
             : nullptr;
+        auto s = (cnt_src > 0) ? static_cast<int>(cnt_src) : -1;
 
         auto retval = ::WideCharToMultiByte(code_page, 0,
-            reinterpret_cast<const wchar_t *>(src), static_cast<int>(cnt_src),
+            reinterpret_cast<const wchar_t *>(src), s,
             dst, static_cast<int>(cnt_dst),
             nullptr, r);
 
         if (retval <= 0) {
-            throw std::system_error(::GetLastError(), std::system_category());
+            auto error = ::GetLastError();
+            throw std::system_error(error, std::system_category());
         }
 
         if (replacement) {

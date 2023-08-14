@@ -38,7 +38,7 @@ std::string visus::dataverse::detail::com_error_category::message(
 
 #if (defined(UNICODE) || defined(_UNICODE))
     return convert<char>(reinterpret_cast<const char16_t *>(e.ErrorMessage()),
-        CP_OEMCP);
+        0, CP_OEMCP);
 #else /* (defined(UNICODE) || defined(_UNICODE)) */
     return e.ErrorMessage();
 #endif /* (defined(UNICODE) || defined(_UNICODE)) */
