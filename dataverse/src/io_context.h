@@ -25,6 +25,11 @@ namespace detail {
     struct DATAVERSE_API io_context final {
 
         /// <summary>
+        /// The type used to represent a single byte.
+        /// </summary>
+        typedef std::uint8_t byte_type;
+
+       /// <summary>
         /// Allocates the memory for a context including its payload.
         /// </summary>
         /// <param name="header_size"></param>
@@ -59,16 +64,28 @@ namespace detail {
 #endif /* defined(_WIN32) */
 
         /// <summary>
+        /// The handler to be invoked if a graceful disconnect was detected.
+        /// </summary>
+        void (*on_disconnected)(_In_ dataverse_connection *,
+            _In_opt_ void *);
+
+        /// <summary>
         /// The user-defined handler to be invoked in case of an I/O error.
         /// </summary>
-        network_failed_handler on_failed;
+        void (*on_failed)(_In_ dataverse_connection *,
+            _In_ const std::system_error&,
+            _In_opt_ void *);
 
         /// <summary>
         /// The opration-specific handler for a successful operation.
         /// </summary>
         union {
-            network_received_handler received;
-            network_sent_handler sent;
+            void (*received)(_In_ dataverse_connection *,
+                _In_reads_bytes_(cnt) const byte_type *,
+                _In_ const std::size_t cnt,
+                _In_opt_ void *) ;
+            void (*sent)(_In_ dataverse_connection *,
+                _In_opt_ void *);
         } on_succeded;
 
         /// <summary>
@@ -93,18 +110,15 @@ namespace detail {
         io_context(_In_ const std::size_t size = 0) noexcept;
 
         /// <summary>
-        /// Invoke <see cref="on_failed" /> if it is set.
+        /// Invoke <see cref="on_disconnected" /> if it is set.
         /// </summary>
-        void invoke_on_failed(_In_ dataverse_connection *connection,
-            _In_ const system_error_code error);
+        void invoke_on_disconnected(_In_ dataverse_connection *connection);
 
         /// <summary>
         /// Invoke <see cref="on_failed" /> if it is set.
         /// </summary>
-        inline void invoke_on_failed(_In_ dataverse_connection *connection,
-                _In_ const std::system_error& ex) {
-            this->invoke_on_failed(connection, ex.code().value());
-        }
+        void invoke_on_failed(_In_ dataverse_connection *connection,
+            _In_ const std::system_error& ex);
 
         /// <summary>
         /// Invoke <see cref="on_succeeded::received" /> if it is set.

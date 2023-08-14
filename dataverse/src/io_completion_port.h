@@ -66,21 +66,42 @@ namespace detail {
         /// handler matching <paramref name="operation" />.</para>
         /// </remarks>
         /// <param name="operation"></param>
-        /// <param name="connection"></param>
         /// <param name="size"></param>
         /// <param name="on_failed"></param>
+        /// <param name="on_disconnected"></param>
         /// <param name="context"></param>
         /// <returns></returns>
         context_type context(
             _In_ const io_operation operation,
-            _In_ dataverse_connection *connection,
             _In_ const std::size_t size,
-            _In_ const network_failed_handler on_failed,
+            _In_ const decltype(io_context::on_failed) on_failed,
+            _In_ const decltype(io_context::on_disconnected) on_disconnected,
             _In_opt_ void *context);
 
         void receive(_In_ socket& socket, _Inout_ context_type&& context);
 
+        void receive(_In_ dataverse_connection *connection,
+            _Inout_ context_type&& context);
+
+        void receive(_In_ dataverse_connection *connection,
+            _In_ const std::size_t size,
+            _In_ const decltype(io_context::on_succeded.received) on_received,
+            _In_ const decltype(io_context::on_failed) on_failed,
+            _In_ const decltype(io_context::on_disconnected) on_disconnected,
+            _In_opt_ void *context);
+
         void send(_In_ socket& socket, _Inout_ context_type&& context);
+
+        void send(_In_ dataverse_connection *connection,
+            _Inout_ context_type&& context);
+
+        void send(_In_ dataverse_connection *connection,
+            _In_reads_bytes_(size) const void *data,
+            _In_ const std::size_t size,
+            _In_ const decltype(io_context::on_succeded.sent) on_sent,
+            _In_ const decltype(io_context::on_failed) on_failed,
+            _In_ const decltype(io_context::on_disconnected) on_disconnected,
+            _In_opt_ void *context);
 
     private:
 

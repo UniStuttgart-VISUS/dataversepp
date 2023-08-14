@@ -7,7 +7,8 @@
 
 #include <system_error>
 
-//#include <openssl/err.h>
+#if defined(OpenSSL_FOUND)
+#include <openssl/err.h>
 
 #include "dataverse/api.h"
 
@@ -82,3 +83,5 @@ namespace std {
             visus::dataverse::detail::openssl_category());
     }
 }
+
+#endif /* defined(OpenSSL_FOUND) */

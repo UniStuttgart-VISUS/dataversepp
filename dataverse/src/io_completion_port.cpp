@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <string>
 
 #include "errors.h"
 
@@ -50,7 +51,6 @@ void visus::dataverse::detail::io_completion_port::associate(
     if (handle == NULL) {
         throw std::system_error(::GetLastError(), std::system_category());
     }
-
 #else /* defined(_WIN32) */
 
 #endif /* defined(_WIN32) */
@@ -63,18 +63,18 @@ void visus::dataverse::detail::io_completion_port::associate(
 visus::dataverse::detail::io_completion_port::context_type
 visus::dataverse::detail::io_completion_port::context(
         _In_ const io_operation operation,
-        _In_ dataverse_connection *connection,
         _In_ const std::size_t size,
-        _In_ const network_failed_handler on_failed,
+        _In_ const decltype(io_context::on_failed) on_failed,
+        _In_ const decltype(io_context::on_disconnected) on_disconnected,
         _In_opt_ void *context) {
     auto retval = this->context(size);
     assert(retval->size >= size);
     retval->operation = operation;
     retval->on_failed = on_failed;
+    retval->on_disconnected = on_disconnected;
     retval->user_data = context;
     return retval;
 }
-
 
 
 /*
@@ -83,17 +83,19 @@ visus::dataverse::detail::io_completion_port::context(
 void visus::dataverse::detail::io_completion_port::receive(
         _In_ socket& socket,
         _Inout_ context_type&& context) {
+    assert(context != nullptr);
+    assert(context->operation == io_operation::receive);
+
 #if defined(_WIN32)
-    DWORD received = 0;
     if (::WSARecv(socket,
             &context->buffer, 1,
-            &received,
+            nullptr,
             0,
             &context->overlapped,
             nullptr)
             != SOCKET_ERROR) {
-        // The operation completed synchronously, so we can recycle the context.
-        this->recycle(std::move(context));
+        // The operation completed, so the port own the context now.
+        context.release();
 
     } else {
         // Check whether we have a failure or the operation is just pending.
@@ -109,6 +111,78 @@ void visus::dataverse::detail::io_completion_port::receive(
         }
     }
 
+#else /* defined(_WIN32) */
+    throw "TODO: implement send on linux"
+#endif /* defined(_WIN32) */
+}
+
+
+/*
+ * visus::dataverse::detail::io_completion_port::receive
+ */
+void visus::dataverse::detail::io_completion_port::receive(
+        _In_ dataverse_connection *connection,
+        _Inout_ context_type&& context) {
+    assert(connection != nullptr);
+    if (connection != nullptr) {
+        this->receive(connection->_socket, std::move(context));
+    }
+}
+
+
+/*
+ * visus::dataverse::detail::io_completion_port::receive
+ */
+void visus::dataverse::detail::io_completion_port::receive(
+        _In_ dataverse_connection *connection,
+        _In_ const std::size_t size,
+        _In_ const decltype(io_context::on_succeded.received) on_received,
+        _In_ const decltype(io_context::on_failed) on_failed,
+        _In_ const decltype(io_context::on_disconnected) on_disconnected,
+        _In_opt_ void *context) {
+    assert(connection != nullptr);
+    auto ctx = this->context(io_operation::receive,
+        size,
+        on_failed,
+        on_disconnected,
+        context);
+    ctx->on_succeded.received = on_received;
+    this->receive(connection, std::move(ctx));
+}
+
+
+/*
+ * visus::dataverse::detail::io_completion_port::send
+ */
+void visus::dataverse::detail::io_completion_port::send(
+        _In_ socket& socket,
+        _Inout_ context_type&& context) {
+    assert(context != nullptr);
+    assert(context->operation == io_operation::send);
+
+#if defined(_WIN32)
+    if (::WSASend(socket,
+            &context->buffer, 1,
+            nullptr,
+            0,
+            &context->overlapped,
+            nullptr)
+            != SOCKET_ERROR) {
+        // The operation completed, so the port own the context now.
+        context.release();
+    } else {
+        // Check whether we have a failure or the operation is just pending.
+        const auto error = ::WSAGetLastError();
+        if (error == WSA_IO_PENDING) {
+            // Release the context as it is now owned by the port.
+            context.release();
+
+        } else {
+            // In case of failure, we do not touch the context and leave it with
+            // the caller.
+            throw std::system_error(error, std::system_category());
+        }
+    }
 #else /* defined(_WIN32) */
     throw "TODO: implement send on linux"
 #endif /* defined(_WIN32) */
@@ -119,36 +193,35 @@ void visus::dataverse::detail::io_completion_port::receive(
  * visus::dataverse::detail::io_completion_port::send
  */
 void visus::dataverse::detail::io_completion_port::send(
-        _In_ socket& socket,
+        _In_ dataverse_connection *connection,
         _Inout_ context_type&& context) {
-#if defined(_WIN32)
-    DWORD sent = 0;
-    if (::WSASend(socket,
-            &context->buffer, 1,
-            &sent,
-            0,
-            &context->overlapped,
-            nullptr)
-            != SOCKET_ERROR) {
-        // The operation completed synchronously, so we can recycle the context.
-        this->recycle(std::move(context));
-
-    } else {
-        // Check whether we have a failure or the operation is just pending.
-        const auto error = ::WSAGetLastError();
-        if (error == WSA_IO_PENDING) {
-            // Release the context as it is now owned by the port.
-            context.release();
-
-        } else {
-            // In case of failure, we do not touch the context and leave it with
-            // the caller.
-            throw std::system_error(error, std::system_category());
-        }
+    assert(connection != nullptr);
+    if (connection != nullptr) {
+        this->send(connection->_socket, std::move(context));
     }
-#else /* defined(_WIN32) */
-    throw "TODO: implement send on linux"
-#endif /* defined(_WIN32) */
+}
+
+
+/*
+ * visus::dataverse::detail::io_completion_port::send
+ */
+void visus::dataverse::detail::io_completion_port::send(
+        _In_ dataverse_connection *connection,
+        _In_reads_bytes_(size) const void *data,
+        _In_ const std::size_t size,
+        _In_ const decltype(io_context::on_succeded.sent) on_sent,
+        _In_ const decltype(io_context::on_failed) on_failed,
+        _In_ const decltype(io_context::on_disconnected) on_disconnected,
+        _In_opt_ void *context) {
+    assert(connection != nullptr);
+    auto ctx = this->context(io_operation::send,
+        size,
+        on_failed,
+        on_disconnected,
+        context);
+    ctx->on_succeded.sent = on_sent;
+    ::memcpy(ctx->payload(), data, size);
+    this->send(connection, std::move(ctx));
 }
 
 
@@ -216,8 +289,8 @@ visus::dataverse::detail::io_completion_port::context(
     auto retval = context_type(new (size) io_context(size));
     assert(retval->size >= size);
 #if defined(_WIN32)
-    retval->buffer.buf = reinterpret_cast<CHAR *>(retval->payload());
-    retval->buffer.len = static_cast<ULONG>(size);
+    assert(retval->buffer.buf == reinterpret_cast<CHAR *>(retval->payload()));
+    assert(retval->buffer.len == size);
 #endif /* defined(_WIN32) */
     return retval;
 }
@@ -244,6 +317,11 @@ void visus::dataverse::detail::io_completion_port::pool_thread(void) {
                 INFINITE)) {
             auto connection = reinterpret_cast<dataverse_connection *>(
                 completion_key);
+            // Note: it is important to retrieve the context from the overlapped
+            // and make it a unique_ptr in order to avoid memory leaks. It is
+            // safe to call the conversion method even if the overlapped is
+            // nullptr.
+            auto context = io_completion_port::context(overlapped);
 
             if ((transferred == 0)
                     && (completion_key == 0)
@@ -261,11 +339,15 @@ void visus::dataverse::detail::io_completion_port::pool_thread(void) {
                 // operation based on the type.
                 ::OutputDebugString(_T("An I/O completion worker processes a ")
                     _T("completed operation.\r\n"));
-                auto context = io_completion_port::context(overlapped);
 
                 switch (context->operation) {
                     case io_operation::receive:
-                        context->invoke_on_received(connection, transferred);
+                        if (transferred == 0) {
+                            context->invoke_on_disconnected(connection);
+                        } else {
+                            context->invoke_on_received(connection,
+                                transferred);
+                        }
                         break;
 
                     case io_operation::send:
@@ -308,7 +390,8 @@ void visus::dataverse::detail::io_completion_port::pool_thread(void) {
             // been dequeued and we need to report the I/O error.
             ::OutputDebugString(_T("An I/O completion worker processes an ")
                 _T("error.\r\n"));
-            const auto error = ::GetLastError();
+            const auto error = std::system_error(::GetLastError(),
+                std::system_category());
             const auto packet_dequeued = (overlapped != nullptr);
 
             // Free the context, if necessary.
@@ -326,16 +409,16 @@ void visus::dataverse::detail::io_completion_port::pool_thread(void) {
                     default:
                         // This is an invalid operation, so do not notify anyone
                         // and fail it.
-                        throw std::system_error(error, std::system_category());
+                        throw error;
                 }
 
                 // In case the user has handled the error, recycle the context
                 // for future use.
                 this->recycle(std::move(context));
 
-            } else if (error == ERROR_ABANDONED_WAIT_0) {
+            } else if (error.code().value() == ERROR_ABANDONED_WAIT_0) {
                 // The handle was closed while I/O was pending.
-                throw std::system_error(error, std::system_category());
+                throw error;
             }
         }
     } /* while (running) */
@@ -354,6 +437,14 @@ void visus::dataverse::detail::io_completion_port::recycle(
         _Inout_ context_type&& context) {
     if (context != nullptr) {
         std::lock_guard<decltype(this->_contexts_lock)> l(this->_contexts_lock);
+#if (defined(DEBUG) || defined(_DEBUG))
+        {
+            std::wstring msg(L"Recycle io_context ");
+            msg += std::to_wstring(reinterpret_cast<UINT_PTR>(context.get()));
+            msg += L".\r\n";
+            ::OutputDebugStringW(msg.c_str());
+        }
+#endif /* (defined(DEBUG) || defined(_DEBUG)) */
         this->_contexts.push_back(std::move(context));
     }
 }

@@ -5,6 +5,7 @@
 
 #include "openssl_error_category.h"
 
+#if defined(OpenSSL_FOUND)
 #include <array>
 
 
@@ -24,8 +25,7 @@ visus::dataverse::detail::openssl_error_category::default_error_condition(
 std::string visus::dataverse::detail::openssl_error_category::message(
         _In_ int error) const {
     std::array<char, 256> msg;
-    throw "TODO";
-    //ERR_error_string_n(error, msg.data(), msg.size());
+    ERR_error_string_n(error, msg.data(), msg.size());
     return msg.data();
 }
 
@@ -38,3 +38,4 @@ visus::dataverse::detail::openssl_category(void) noexcept {
     static const openssl_error_category retval;
     return retval;
 }
+#endif /* if defined(OpenSSL_FOUND) */

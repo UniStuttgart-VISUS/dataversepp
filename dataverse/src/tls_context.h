@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <functional>
+
 #if defined(_WIN32)
 #include <WinSock2.h>
 #include <Windows.h>
@@ -24,30 +26,42 @@ namespace visus {
 namespace dataverse {
 namespace detail {
 
+
     /// <summary>
-    /// A RAII container for OpenSSL.
+    /// A RAII container for a TLS connection.
     /// </summary>
     class tls_context final {
 
     public:
 
+#if defined(_WIN32)
         /// <summary>
-        /// Initialises a new instance.
+        /// The type to store an SChannel credentials handle.
         /// </summary>
-        tls_context(void);
+        typedef wil::unique_struct<CredHandle,
+            decltype(&::FreeCredentialsHandle),
+            ::FreeCredentialsHandle> credentials_handle_type;
 
         /// <summary>
-        /// Finalises the method.
+        /// The type to store an SChannel security context.
         /// </summary>
-        ~tls_context(void);
+        typedef wil::unique_struct<CtxtHandle,
+            decltype(&::DeleteSecurityContext),
+            ::DeleteSecurityContext> security_context_type;
+#else /* defined(_WIN32) */
+        //SSL_CTX *_context;
+#endif /* defined(_WIN32) */
+
+        tls_context(void) = default;
+
+        tls_context(_Inout_ credentials_handle_type&& handle,
+            _Inout_ security_context_type&& context);
 
     private:
 
 #if defined(_WIN32)
-        wil::unique_struct<CtxtHandle, decltype(&::DeleteSecurityContext),
-            ::DeleteSecurityContext> _context;
-        wil::unique_struct<CredHandle, decltype(&::FreeCredentialsHandle),
-            ::FreeCredentialsHandle> _handle;
+        security_context_type _context;
+        credentials_handle_type _handle;
 #else /* defined(_WIN32) */
         //SSL_CTX *_context;
 #endif /* defined(_WIN32) */

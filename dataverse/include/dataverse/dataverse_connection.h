@@ -17,10 +17,16 @@ namespace dataverse {
     class dataverse_connection;
 
     /// <summary>
+    /// The handler to be invoked if a graceful disconnect was detected.
+    /// </summary>
+    typedef void (*network_disconnected_handler)(_In_ dataverse_connection *,
+        _In_opt_ void *);
+
+    /// <summary>
     /// The callback to be invoked if an asynchronous network operation failed.
     /// </summary>
     typedef void (*network_failed_handler)(_In_ dataverse_connection *,
-        _In_ const system_error_code, _In_ void *);
+        _In_ const char_type *, _In_opt_ void *);
 
     /// <summary>
     /// The callback to be invoked if an asynchronous receive operation
@@ -28,14 +34,14 @@ namespace dataverse {
     /// </summary>
     typedef void (*network_received_handler)(_In_ dataverse_connection *,
         _In_reads_bytes_(cnt) const std::uint8_t *, _In_ const std::size_t cnt,
-        _In_ void *);
+        _In_opt_ void *);
 
     /// <summary>
     /// The callback to be invoked if an asynchronous send operation completed
     /// sucessfully.
     /// </summary>
     typedef void (*network_sent_handler)(_In_ dataverse_connection *,
-        _In_ void *);
+        _In_opt_ void *);
 
 
     /// <summary>

@@ -5,7 +5,8 @@
 
 #include "io_context.h"
 
-#include <cstring>
+#include "dataverse/convert.h"
+
 
 
 /*
@@ -43,13 +44,24 @@ visus::dataverse::detail::io_context::io_context(
 
 
 /*
+ * visus::dataverse::detail::io_context::invoke_on_disconnected
+ */
+void visus::dataverse::detail::io_context::invoke_on_disconnected(
+        _In_ dataverse_connection *connection) {
+    if (this->on_disconnected != nullptr) {
+        this->on_disconnected(connection, this->user_data);
+    }
+}
+
+
+/*
  * visus::dataverse::detail::io_context::invoke_on_failed
  */
 void visus::dataverse::detail::io_context::invoke_on_failed(
         _In_ dataverse_connection *connection,
-        _In_ const system_error_code error) {
+        _In_ const std::system_error& ex) {
     if (this->on_failed != nullptr) {
-        this->on_failed(connection, error, this->user_data);
+        this->on_failed(connection, ex, this->user_data);
     }
 }
 

@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -238,13 +239,15 @@ namespace dataverse {
     /// </summary>
     /// <typeparam name="TDstChar"></typeparam>
     /// <typeparam name="TSrcChar"></typeparam>
-    /// <param name="src"></param>
-    /// <param name="cnt_src"></param>
+    /// <param name="src">The source string.</param>
+    /// <param name="cnt_src">The length of the source string, which can be zero
+    /// if <paramref name="src" /> is null-terminated. This parameter defaults
+    /// to zero.</param>
     /// <returns></returns>
     template<class TDstChar, class TSrcChar>
     inline std::basic_string<TDstChar> convert(
             _In_reads_or_z_(cnt_src) const TSrcChar *src,
-            _In_ const std::size_t cnt_src) {
+            _In_ const std::size_t cnt_src = 0) {
         return convert<TDstChar>(src, cnt_src, default_code_page);
     }
 

@@ -50,3 +50,7 @@ mark_as_advanced(FORCE
     JSON_LegacyDiscardedValueComparison
     JSON_MultipleHeaders
     JSON_SystemInclude)
+
+if (NOT WIN32)
+    find_package(OpenSSL REQUIRED)
+endif ()
