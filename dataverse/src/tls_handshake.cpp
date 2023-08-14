@@ -185,8 +185,10 @@ const std::size_t visus::dataverse::detail::tls_handshake::max_packet_size;
  */
 SECURITY_STATUS visus::dataverse::detail::tls_handshake::create_client_context(
         _In_opt_ const void *input, _In_ const std::size_t cnt) {
-    ::ZeroMemory(&this->_output_buffer, sizeof(this->_output_buffer));
+    // Reset the output buffer.
     this->_output_buffer.BufferType = SECBUFFER_TOKEN;
+    this->_output_buffer.pvBuffer = nullptr;
+    this->_output_buffer.cbBuffer = 0;
 
     auto hostname = this->_hostname.empty()
         ? nullptr

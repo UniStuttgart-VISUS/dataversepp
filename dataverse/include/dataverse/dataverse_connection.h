@@ -14,6 +14,7 @@ namespace dataverse {
     /* Forward declarations. */
     namespace detail { class io_completion_port; }
     namespace detail { class io_context; }
+    namespace detail { class tls_context; }
     class dataverse_connection;
 
     /// <summary>
@@ -55,13 +56,13 @@ namespace dataverse {
 
     public:
 
-        dataverse_connection(void) = default;
+        dataverse_connection(void);
 
         dataverse_connection(const dataverse_connection&) = delete;
 
         dataverse_connection(dataverse_connection&&) = delete;
 
-        void __hack(void);
+        ~dataverse_connection(void);
 
         void connect(_In_reads_bytes_(length) const sockaddr *address,
             _In_ const std::size_t length,
@@ -79,7 +80,8 @@ namespace dataverse {
 
     private:
 
-        visus::dataverse::detail::socket _socket;
+        detail::socket _socket;
+        detail::tls_context *_tls;
 
         // Allow the completion port access to the socket.
         friend class visus::dataverse::detail::io_completion_port;

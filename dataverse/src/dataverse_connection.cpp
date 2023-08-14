@@ -14,12 +14,22 @@
 #include "errors.h"
 #include "io_completion_port.h"
 #include "resolve.h"
+#include "tls_context.h"
 #include "tls_handshake.h"
 
 
-void visus::dataverse::dataverse_connection::__hack(void) {
-//    auto ctx = detail::io_completion_port::instance().context(detail::io_operation::receive, this, 42, nullptr, nullptr);
-//    ::ZeroMemory(ctx->payload(), 42);
+/*
+ * visus::dataverse::dataverse_connection::dataverse_connection
+ */
+visus::dataverse::dataverse_connection::dataverse_connection(void)
+    : _tls(nullptr) { }
+
+
+/*
+ * visus::dataverse::dataverse_connection::~dataverse_connection
+ */
+visus::dataverse::dataverse_connection::~dataverse_connection(void) {
+    delete this->_tls;
 }
 
 
@@ -94,11 +104,15 @@ void visus::dataverse::dataverse_connection::connect(
         std::rethrow_exception(last_error);
     }
 
+    // If we succeeded, the TLS context of any previous connection.
+    delete this->_tls;
+    this->_tls = nullptr;
+
     if (tls) {
-        std::unique_ptr<detail::tls_handshake> h(new detail::tls_handshake());
-        auto future = (*h)(this);
-        future.wait();
-        auto context = std::move(future.get());
+        detail::tls_handshake handshake;
+        auto f_context = handshake(this);
+        f_context.wait();
+        this->_tls = new detail::tls_context(std::move(f_context.get()));
     }
 }
 

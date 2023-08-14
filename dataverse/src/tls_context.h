@@ -19,7 +19,9 @@
 #endif /* defined(_WIN32) */
 
 #include "dataverse/convert.h"
+#include "dataverse/dataverse_connection.h"
 #include "dataverse/types.h"
+
 
 
 namespace visus {
@@ -56,6 +58,8 @@ namespace detail {
 
         tls_context(_Inout_ credentials_handle_type&& handle,
             _Inout_ security_context_type&& context);
+
+        void shutdown(_In_ dataverse_connection *connection);
 
     private:
 

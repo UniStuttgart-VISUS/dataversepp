@@ -268,7 +268,8 @@ visus::dataverse::detail::io_completion_port::io_completion_port(void) {
 
     // Fill the thread pool.
     this->_threads.reserve(std::thread::hardware_concurrency());
-    for (std::size_t i = 0; i < std::thread::hardware_concurrency(); ++i) {
+    //for (std::size_t i = 0; i < std::thread::hardware_concurrency(); ++i) {
+    for (std::size_t i = 0; i < 2; ++i) {
         this->_threads.emplace_back(&io_completion_port::pool_thread, this);
     }
 }
