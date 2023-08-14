@@ -3,10 +3,10 @@
 
 cmake_minimum_required(VERSION 3.15)
 
-project(dataverse++)
-
 include(CMakeDependentOption)
 
+
+project(dataverse++)
 
 # User-configurable options.
 #option(PWROWG_BuildDemo "Build demo programme" OFF)

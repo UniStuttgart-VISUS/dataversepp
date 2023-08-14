@@ -10,6 +10,7 @@ mark_as_advanced(FORCE
     FETCHCONTENT_QUIET
     FETCHCONTENT_UPDATES_DISCONNECTED)
 
+#find_package(openssl CONFIG REQUIRED)
 
 # Windows Implementation Library
 FetchContent_Declare(wil

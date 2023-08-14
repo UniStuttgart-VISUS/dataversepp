@@ -5,9 +5,19 @@
 
 #pragma once
 
+#if defined(_WIN32)
+#include <WinSock2.h>
+#include <Windows.h>
+#include <schannel.h>
+#define SECURITY_WIN32
+#include <sspi.h>
+
+#include <wil/resource.h>
+#else /* defined(_WIN32) */
+#endif /* defined(_WIN32) */
+
 #include "dataverse/convert.h"
 #include "dataverse/types.h"
-
 
 
 namespace visus {
@@ -33,7 +43,15 @@ namespace detail {
 
     private:
 
+#if defined(_WIN32)
+        wil::unique_struct<CtxtHandle, decltype(&::DeleteSecurityContext),
+            ::DeleteSecurityContext> _context;
+        wil::unique_struct<CredHandle, decltype(&::FreeCredentialsHandle),
+            ::FreeCredentialsHandle> _handle;
+#else /* defined(_WIN32) */
         //SSL_CTX *_context;
+#endif /* defined(_WIN32) */
+
     };
 
 } /* namespace detail */
