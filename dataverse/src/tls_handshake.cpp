@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iterator>
+#include <sstream>
 
 #include "com_error_category.h"
 #include "io_completion_port.h"
@@ -21,9 +22,23 @@
  */
 visus::dataverse::detail::tls_handshake::tls_handshake(void) {
 #if defined(_WIN32)
+    ::ZeroMemory(&this->_output_buffer, sizeof(this->_output_buffer));
     this->_output_desc.ulVersion = SECBUFFER_VERSION;
     this->_output_desc.cBuffers = 1;
     this->_output_desc.pBuffers = &this->_output_buffer;
+#endif /* defined(_WIN32) */
+}
+
+
+/*
+ * visus::dataverse::detail::tls_handshake::~tls_handshake
+ */
+visus::dataverse::detail::tls_handshake::~tls_handshake(void) {
+#if defined(_WIN32)
+    // Note: the output buffer should have been cleaned directly after it was
+    // used.
+    assert(this->_output_buffer.pvBuffer == nullptr);
+    this->free_output_buffer();
 #endif /* defined(_WIN32) */
 }
 
@@ -34,16 +49,13 @@ visus::dataverse::detail::tls_handshake::tls_handshake(void) {
 std::future<visus::dataverse::detail::tls_context>
 visus::dataverse::detail::tls_handshake::operator ()(
         _In_ dataverse_connection *connection) {
+    assert(connection != nullptr);
+
 #if defined(_WIN32)
     std::lock_guard<decltype(this->_lock)> l(this->_lock);
 
     this->_context.reset();
-    this->_flags = ISC_REQ_USE_SUPPLIED_CREDS
-        | ISC_REQ_ALLOCATE_MEMORY
-        | ISC_REQ_CONFIDENTIALITY
-        | ISC_REQ_REPLAY_DETECT
-        | ISC_REQ_SEQUENCE_DETECT
-        | ISC_REQ_STREAM;
+    this->_flags = default_flags;
     this->_handle.reset();
 
     {
@@ -74,7 +86,32 @@ visus::dataverse::detail::tls_handshake::operator ()(
     }
 
     this->handshake(connection);
+#else /* defined(_WIN32) */
+#endif /* defined(_WIN32) */
 
+    return this->_promise.get_future();
+}
+
+
+/*
+ * visus::dataverse::detail::tls_handshake::operator ()
+ */
+std::future<visus::dataverse::detail::tls_context>
+visus::dataverse::detail::tls_handshake::operator ()(
+        _Inout_ tls_context&& context,
+        _In_ dataverse_connection *connection,
+        _In_reads_(cnt) const void *data,
+        _In_ const std::size_t cnt) {
+    assert(connection != nullptr);
+
+#if defined(_WIN32)
+    std::lock_guard<decltype(this->_lock)> l(this->_lock);
+
+    this->_context = std::move(context._context);
+    this->_flags = default_flags;
+    this->_handle = std::move(context._handle);
+
+    this->handshake(connection, data, cnt);
 #else /* defined(_WIN32) */
 #endif /* defined(_WIN32) */
 
@@ -127,7 +164,7 @@ void visus::dataverse::detail::tls_handshake::on_network_failed(
  */
 void visus::dataverse::detail::tls_handshake::on_network_received(
         _In_ dataverse_connection *connection,
-        _In_reads_bytes_(cnt) const io_context::byte_type *data,
+        _In_reads_bytes_(cnt) const byte_type *data,
         _In_ const std::size_t cnt,
         _In_opt_ void *context) {
     auto that = static_cast<tls_handshake *>(context);
@@ -171,6 +208,20 @@ void visus::dataverse::detail::tls_handshake::on_network_sent(
         that->_promise.set_exception(std::current_exception());
     }
 }
+
+
+#if defined(_WIN32)
+/*
+ * visus::dataverse::detail::tls_handshake::default_flags
+ */
+const DWORD visus::dataverse::detail::tls_handshake::default_flags
+    = ISC_REQ_USE_SUPPLIED_CREDS
+    | ISC_REQ_ALLOCATE_MEMORY
+    | ISC_REQ_CONFIDENTIALITY
+    | ISC_REQ_REPLAY_DETECT
+    | ISC_REQ_SEQUENCE_DETECT
+    | ISC_REQ_STREAM;
+#endif /* defined(_WIN32) */
 
 
 /*
@@ -233,6 +284,16 @@ SECURITY_STATUS visus::dataverse::detail::tls_handshake::create_client_context(
         in_desc.cBuffers = ARRAYSIZE(in_buffers);
         in_desc.pBuffers = in_buffers;
 
+#if (defined(DEBUG) || defined(_DEBUG))
+        {
+            std::wstringstream str;
+            str << L"Processing " << in_buffers[0].cbBuffer << L" bytes "
+                << L"of TLS input." << std::endl;
+            auto msg = str.str();
+            ::OutputDebugStringW(msg.c_str());
+        }
+#endif /* (defined(DEBUG) || defined(_DEBUG)) */
+
         status = ::InitializeSecurityContextW(
             this->_handle.addressof(),
             this->_context.addressof(),
@@ -246,7 +307,51 @@ SECURITY_STATUS visus::dataverse::detail::tls_handshake::create_client_context(
             &this->_output_desc,
             &this->_flags,
             nullptr);
+
+        if (in_buffers[1].BufferType == SECBUFFER_EXTRA) {
+            // This looks weird, but it seems to be the way things work, albeit
+            // the documentation on MSDN does not say so. If Schannel did not
+            // consume all of the input, it returns the remaining data in
+            // in_buffers[1], but only the offsets, not the actual data.
+            // Therefore, we need to use the size of in_buffers[1] to preserve
+            // the data from in_buffers[0] for a future call to the API.
+#if (defined(DEBUG) || defined(_DEBUG))
+            {
+                std::wstringstream str;
+                str << L"Preserving " << in_buffers[1].cbBuffer << L" bytes "
+                    << L"of unused TLS input." << std::endl;
+                auto msg = str.str();
+                ::OutputDebugStringW(msg.c_str());
+            }
+#endif /* (defined(DEBUG) || defined(_DEBUG)) */
+            const auto cnt = in_buffers[1].cbBuffer;
+            const auto off = in_buffers[0].cbBuffer - cnt;
+            const auto beg = static_cast<const byte_type *>(input) + off;
+
+            if (status != SEC_E_INCOMPLETE_MESSAGE) {
+                this->_input_buffer.clear();
+            }
+
+            this->_input_buffer.reserve(this->_input_buffer.size() + cnt);
+            std::copy(beg, beg + cnt, std::back_inserter(this->_input_buffer));
+
+        } else if (status != SEC_E_INCOMPLETE_MESSAGE) {
+            // Everything has been consumed.
+#if (defined(DEBUG) || defined(_DEBUG))
+            ::OutputDebugString(_T("Clearing processed TLS input.\r\n"));
+#endif /* (defined(DEBUG) || defined(_DEBUG)) */
+            this->_input_buffer.clear();
+        }
     }
+
+#if (defined(DEBUG) || defined(_DEBUG))
+    {
+        std::wstringstream str;
+        str << L"TLS API call result 0x" << std::hex << status << std::endl;
+        auto msg = str.str();
+        ::OutputDebugStringW(msg.c_str());
+    }
+#endif /* (defined(DEBUG) || defined(_DEBUG)) */
 
     switch (status) {
         case SEC_I_COMPLETE_NEEDED:
@@ -283,15 +388,30 @@ SECURITY_STATUS visus::dataverse::detail::tls_handshake::create_client_context(
             // improve performance by avoiding multiple calls to this function.
             return status;
 
-        case SEC_E_OK:
+        case SEC_E_OK: {
             // The security context was successfully initialized. There is no
             // need for another InitializeSecurityContext call. If the function
             // returns an output token, that is, if the SECBUFFER_TOKEN in
             // pOutput is of nonzero length, that token must be sent to the
             // server.
             ::OutputDebugStringW(L"TLS handshake complete.\r\n");
-            this->_promise.set_value(tls_context(std::move(this->_handle),
-                std::move(this->_context)));
+            tls_context retval;
+            retval._context = std::move(this->_context);
+            retval._flags = this->_flags & ~ISC_REQ_USE_SUPPLIED_CREDS;
+            retval._handle = std::move(this->_handle);
+
+            {
+                auto status = ::QueryContextAttributes(
+                    retval._context.addressof(),
+                    SECPKG_ATTR_STREAM_SIZES,
+                    &retval._sizes);
+                if (status < 0) {
+                    throw std::system_error(status, com_category());
+                }
+            }
+
+            this->_promise.set_value(std::move(retval));
+            }
             return status;
 
         default:
@@ -313,46 +433,59 @@ void visus::dataverse::detail::tls_handshake::handshake(
         this->free_output_buffer();
     });
 
-    auto i = input;
-    auto c = cnt;
-    this->_input_buffer.reserve(this->_input_buffer.size() + cnt);
-    std::copy(static_cast<const io_context::byte_type *>(input),
-        static_cast<const io_context::byte_type *>(input) + cnt,
-        std::back_inserter(this->_input_buffer));
-
-    const auto status = this->create_client_context(i, c);
-
-    if (status != SEC_E_INCOMPLETE_MESSAGE) {
-        this->_input_buffer.clear();
+    if (input != nullptr) {
+        this->_input_buffer.reserve(this->_input_buffer.size() + cnt);
+        std::copy(static_cast<const byte_type *>(input),
+            static_cast<const byte_type *>(input) + cnt,
+            std::back_inserter(this->_input_buffer));
     }
 
-    if ((this->_output_buffer.pvBuffer != nullptr)
+    auto have_input = true;
+    auto need_input = false;
+
+    while (have_input) {
+        // Note: We need to make sure that the first call (if 'input' is null)
+        // to create_client_context also passes null, not an empty array.
+        auto i = ((input == nullptr) && this->_input_buffer.empty())
+            ? nullptr
+            : this->_input_buffer.data();
+        const auto status = this->create_client_context(i,
+            this->_input_buffer.size());
+
+        if ((this->_output_buffer.pvBuffer != nullptr)
             && (this->_output_buffer.cbBuffer > 0)) {
-        // In any case, if there is an output buffer, we must first send
-        // this to the server and then potentially wait for the answer.
-        ::OutputDebugStringW(L"Sending TLS handshake message.\r\n");
-        io_completion_port::instance().send(connection,
-            this->_output_buffer.pvBuffer,
-            this->_output_buffer.cbBuffer,
-            &on_network_sent,
-            &on_network_failed,
-            &on_network_disconnected,
-            this);
-    }
-
-    switch (status) {
-        case SEC_I_CONTINUE_NEEDED:
-            __fallthrough;
-        case SEC_I_COMPLETE_AND_CONTINUE:
-            __fallthrough;
-        case SEC_E_INCOMPLETE_MESSAGE:
-            ::OutputDebugStringW(L"Waiting for TLS handshake message.\r\n");
-            io_completion_port::instance().receive(connection,
-                max_packet_size,
-                &on_network_received,
+            // In any case, if there is an output buffer, we must first send
+            // this to the server and then potentially wait for the answer.
+            ::OutputDebugStringW(L"Sending TLS handshake message.\r\n");
+            io_completion_port::instance().send(connection,
+                this->_output_buffer.pvBuffer,
+                this->_output_buffer.cbBuffer,
+                &on_network_sent,
                 &on_network_failed,
                 &on_network_disconnected,
                 this);
+        }
+
+        // Determine whether we need more input.
+        need_input = (status == SEC_E_INCOMPLETE_MESSAGE)
+            || (status == SEC_I_CONTINUE_NEEDED)
+            || (status == SEC_I_COMPLETE_AND_CONTINUE);
+
+        // If the message is incomplete, we need to receive again regarless
+        // of the buffer state. Otherwise, we request only additional data
+        // if we do not have anything left.
+        have_input = (status != SEC_E_INCOMPLETE_MESSAGE)
+            && !this->_input_buffer.empty();
+    } /* while (have_input) */
+
+    if (need_input) {
+        ::OutputDebugStringW(L"Waiting for TLS handshake message.\r\n");
+        io_completion_port::instance().receive(connection,
+            max_packet_size,
+            &on_network_received,
+            &on_network_failed,
+            &on_network_disconnected,
+            this);
     }
 }
 #endif /* defined(_WIN32) */

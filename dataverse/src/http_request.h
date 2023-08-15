@@ -25,8 +25,30 @@ namespace detail {
     public:
 
         typedef http_headers::ascii_type ascii_type;
-        typedef std::uint8_t byte_type;
+        typedef http_headers::byte_type byte_type;
         typedef http_headers::string_type string_type;
+
+
+        /// <summary>
+        /// Writes the request to the specified buffer.
+        /// </summary>
+        /// <param name="dst">The pointer to the begin oft he range that can be
+        /// written.</param>
+        /// <param name="end">A pointer past the last element that can be
+        /// written.</param>
+        /// <param name="request">The request to be written.</param>
+        /// <returns>A pointer past the last header in <paramref name="dst" />
+        /// or <c>nullptr</c> if not all headers could be written.</returns>
+        static _Ret_maybenull_ byte_type *write(
+            _Out_writes_bytes_(end - dst) byte_type *dst,
+            _In_ const byte_type *end,
+            _In_ const http_request& request);
+
+        /// <summary>
+        /// Convert the request into a byte array.
+        /// </summary>
+        /// <returns></returns>
+        std::vector<byte_type> as_octets(void) const;
 
         /// <summary>
         /// Gets the request body.
@@ -134,7 +156,7 @@ namespace detail {
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        inline http_request&path(_In_ const string_type& path) {
+        inline http_request& path(_In_ const string_type& path) {
             this->_path = to_ascii(path);
             return *this;
         }
@@ -149,36 +171,50 @@ namespace detail {
             return *this;
         }
 
+
+        /// <summary>
+        /// Gets the HTTP version string of the request, if any.
+        /// </summary>
+        /// <returns></returns>
+        inline const ascii_type& protocol(void) const noexcept {
+            return this->_protocol;
+        }
+
+        /// <summary>
+        /// Sets the HTTP version.
+        /// </summary>
+        /// <param name="protocol"></param>
+        /// <returns></returns>
+        inline http_request& version(_In_ ascii_type& protocol) {
+            this->_protocol = protocol;
+            return *this;
+        }
+
+        /// <summary>
+        /// Sets the HTTP version.
+        /// </summary>
+        /// <param name="version"></param>
+        /// <returns></returns>
+        inline http_request& version(_Inout_ ascii_type&& protocol) noexcept {
+            this->_protocol = std::move(protocol);
+            return *this;
+        }
+
         /// <summary>
         /// Answer the overall size of the request in bytes.
         /// </summary>
         /// <returns></returns>
         std::size_t size(void) const noexcept;
 
-        /// <summary>
-        /// Writes the request to the specified buffer.
-        /// </summary>
-        /// <param name="dst">The pointer to the begin oft he range that can be
-        /// written.</param>
-        /// <param name="end">A pointer past the last element that can be
-        /// written.</param>
-        /// <returns>A pointer past the last header in <paramref name="dst" />
-        /// or <c>nullptr</c> if not all headers could be written.</returns>
-        _Ret_maybenull_ char *write(_Out_writes_bytes_(cnt) char *dst,
-            _In_ const char *end) const;
-
     private:
 
-        _Ret_maybenull_ static char *write(_Out_writes_bytes_(cnt) char *dst,
-            _In_ const char *end, _In_ const ascii_type& str);
-
         static const ascii_type delimiter;
-        static const ascii_type protocol;
 
         std::vector<byte_type> _body;
         http_headers _headers;
         ascii_type _method;
         ascii_type _path;
+        ascii_type _protocol;
     };
 
 } /* namespace detail */

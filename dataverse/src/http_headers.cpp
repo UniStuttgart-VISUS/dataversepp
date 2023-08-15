@@ -5,6 +5,8 @@
 
 #include "http_headers.h"
 
+#include <cassert>
+
 #include "dataverse/convert.h"
 
 
@@ -13,6 +15,59 @@
  */
 const visus::dataverse::detail::http_headers::ascii_type
 visus::dataverse::detail::http_headers::line_break("\r\n");
+
+
+/*
+ * visus::dataverse::detail::http_headers::write
+ */
+_Ret_maybenull_ visus::dataverse::detail::http_headers::byte_type *
+visus::dataverse::detail::http_headers::write(
+        _Out_writes_opt_(end - dst) byte_type *dst,
+        _In_ const byte_type *end,
+        _In_ const ascii_type& str) {
+    if (dst == nullptr) {
+        return nullptr;
+    }
+
+    if (dst + str.size() > end) {
+        return nullptr;
+    }
+
+    return std::copy(str.begin(), str.end(), dst);
+}
+
+
+/*
+ * visus::dataverse::detail::http_headers::write
+ */
+_Ret_maybenull_ visus::dataverse::detail::http_headers::byte_type *
+visus::dataverse::detail::http_headers::write(
+        _Out_writes_opt_(end - dst) byte_type *dst,
+        _In_ const byte_type *end,
+        _In_ const http_headers& headers) {
+    if ((dst == nullptr) || (end <= dst)) {
+        return nullptr;
+    }
+
+    auto retval = dst;
+
+    for (auto &v : headers._values) {
+        const auto required = v.first.size()
+            + delimiter.size()
+            + v.second.size()
+            + line_break.size();
+        if (retval + required >= end) {
+            return nullptr;
+        }
+
+        retval = write(retval, end, v.first);
+        retval = write(retval, end, delimiter);
+        retval = write(retval, end, v.second);
+        retval = write(retval, end, line_break);
+    }
+
+    return retval;
+}
 
 
 /*
@@ -54,34 +109,6 @@ std::size_t visus::dataverse::detail::http_headers::size(void) const noexcept {
     }
 
     retval += this->_values.size() * line_break.size();
-
-    return retval;
-}
-
-
-/*
- * visus::dataverse::detail::http_headers::write
- */
-_Ret_maybenull_ char *visus::dataverse::detail::http_headers::write(
-        _Out_writes_bytes_(cnt) char *dst, _In_ const char *end) const {
-    if ((dst == nullptr) || (end <= dst)) {
-        return nullptr;
-    }
-
-    auto retval = dst;
-
-    for (auto& v : this->_values) {
-        const auto required = v.first.size() + delimiter.size()
-            + v.second.size() + line_break.size();
-        if (retval + required >= end) {
-            return nullptr;
-        }
-
-        retval = ::strncat(retval, v.first.c_str(), v.first.size());
-        retval = ::strncat(retval, delimiter.c_str(), delimiter.size());
-        retval = ::strncat(retval, v.second.c_str(), v.second.size());
-        retval = ::strncat(retval, line_break.c_str(), line_break.size());
-    }
 
     return retval;
 }

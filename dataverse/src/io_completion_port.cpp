@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <mutex>
+#include <sstream>
 #include <string>
 
 #include "errors.h"
@@ -18,6 +20,7 @@
  */
 visus::dataverse::detail::io_completion_port&
 visus::dataverse::detail::io_completion_port::instance(void) {
+    //std::call_once()
     static io_completion_port retval;
     return retval;
 }
@@ -134,7 +137,7 @@ void visus::dataverse::detail::io_completion_port::receive(
         _In_ const decltype(io_context::on_disconnected) on_disconnected,
         _In_opt_ void *context) {
     assert(connection != nullptr);
-   auto ctx = this->context(io_operation::receive,
+    auto ctx = this->context(io_operation::receive,
         size,
         on_failed,
         on_disconnected,
@@ -298,9 +301,10 @@ visus::dataverse::detail::io_completion_port::context(
 
 #if (defined(DEBUG) || defined(_DEBUG))
             {
-                std::wstring msg(L"Reusing io_context ");
-                msg += std::to_wstring(reinterpret_cast<UINT_PTR>(retval.get()));
-                msg += L".\r\n";
+                std::wstringstream str;
+                str << L"Reusing io_context 0x" << std::hex << retval.get()
+                    << std::endl;
+                auto msg = str.str();
                 ::OutputDebugStringW(msg.c_str());
             }
 #endif /* (defined(DEBUG) || defined(_DEBUG)) */
@@ -368,6 +372,7 @@ void visus::dataverse::detail::io_completion_port::pool_thread(void) {
 
                 switch (context->operation) {
                     case io_operation::receive:
+                        ::OutputDebugString(_T("Completed receive.\r\n"));
                         if (transferred == 0) {
                             context->invoke_on_disconnected(connection);
                         } else {
@@ -377,6 +382,7 @@ void visus::dataverse::detail::io_completion_port::pool_thread(void) {
                         break;
 
                     case io_operation::send:
+                        ::OutputDebugString(_T("Completed send.\r\n"));
                         if (context->buffer.len > transferred) {
                             // We were unable to send everything at once, so
                             // continue sending.
@@ -465,9 +471,9 @@ void visus::dataverse::detail::io_completion_port::recycle(
         std::lock_guard<decltype(this->_contexts_lock)> l(this->_contexts_lock);
 #if (defined(DEBUG) || defined(_DEBUG))
         {
-            std::wstring msg(L"Recycle io_context ");
-            msg += std::to_wstring(reinterpret_cast<UINT_PTR>(context.get()));
-            msg += L".\r\n";
+            std::wstringstream str;
+            str << L"Recycle io_context 0x" << std::hex << context.get() << std::endl;
+            auto msg = str.str();
             ::OutputDebugStringW(msg.c_str());
         }
 #endif /* (defined(DEBUG) || defined(_DEBUG)) */

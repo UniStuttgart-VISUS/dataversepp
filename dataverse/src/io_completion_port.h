@@ -78,31 +78,75 @@ namespace detail {
             _In_ const decltype(io_context::on_disconnected) on_disconnected,
             _In_opt_ void *context);
 
+        /// <summary>
+        /// Asynchronously receives data into the payload buffer of the given
+        /// context.
+        /// </summary>
+        /// <param name="socket"></param>
+        /// <param name="context"></param>
         void receive(_In_ socket& socket, _Inout_ context_type&& context);
 
+        /// <summary>
+        /// Asynchronously receives data into the payload buffer of the given
+        /// context.
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="context"></param>
         void receive(_In_ dataverse_connection *connection,
             _Inout_ context_type&& context);
 
+        /// <summary>
+        /// Asynchronously receives data from the given connection.
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="size"></param>
+        /// <param name="on_received"></param>
+        /// <param name="on_failed"></param>
+        /// <param name="on_disconnected"></param>
+        /// <param name="context"></param>
         void receive(_In_ dataverse_connection *connection,
             _In_ const std::size_t size,
             _In_ const decltype(io_context::on_succeded.received) on_received,
             _In_ const decltype(io_context::on_failed) on_failed,
             _In_ const decltype(io_context::on_disconnected) on_disconnected,
-            _In_opt_ void *context);
+            _In_opt_ void *context = nullptr);
 
+        /// <summary>
+        /// Asynchronously sends the data in the given context.
+        /// </summary>
+        /// <param name="socket"></param>
+        /// <param name="context"></param>
         void send(_In_ socket& socket, _Inout_ context_type&& context);
 
+        /// <summary>
+        /// Asynchronously sends the data in the given context.
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="context"></param>
         void send(_In_ dataverse_connection *connection,
             _Inout_ context_type&& context);
 
+        /// <summary>
+        /// Asynchronously sends the given data via the given connection.
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="data"></param>
+        /// <param name="size"></param>
+        /// <param name="on_sent"></param>
+        /// <param name="on_failed"></param>
+        /// <param name="on_disconnected"></param>
+        /// <param name="context"></param>
         void send(_In_ dataverse_connection *connection,
             _In_reads_bytes_(size) const void *data,
             _In_ const std::size_t size,
             _In_ const decltype(io_context::on_succeded.sent) on_sent,
             _In_ const decltype(io_context::on_failed) on_failed,
             _In_ const decltype(io_context::on_disconnected) on_disconnected,
-            _In_opt_ void *context);
+            _In_opt_ void *context = nullptr);
 
+        /// <summary>
+        /// Stops all I/O worker threads.
+        /// </summary>
         void stop(void);
 
     private:

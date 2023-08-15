@@ -5,19 +5,58 @@
 
 #include "http_request.h"
 
+#include <stdexcept>
 
-/*
- * visus::dataverse::detail::http_request::delimiter
- */
-const visus::dataverse::detail::http_request::ascii_type
-visus::dataverse::detail::http_request::delimiter(" ");
 
 
 /*
- * visus::dataverse::detail::http_request::protocol
+ * visus::dataverse::detail::http_request::write
  */
-const visus::dataverse::detail::http_request::ascii_type
-visus::dataverse::detail::http_request::protocol("HTTP/1.1");
+_Ret_maybenull_ visus::dataverse::detail::http_request::byte_type *
+visus::dataverse::detail::http_request::write(
+        _Out_writes_bytes_(end - dst) byte_type *dst,
+        _In_ const byte_type *end,
+        _In_ const http_request& request) {
+    if ((dst == nullptr) || (end <= dst)) {
+        return nullptr;
+    }
+
+    auto retval = dst;
+
+    retval = http_headers::write(retval, end, request._method + delimiter);
+    retval = http_headers::write(retval, end, request._path + delimiter);
+    retval = http_headers::write(retval, end, request._protocol
+        + http_headers::line_break);
+    retval = http_headers::write(retval, end, request._headers);
+
+    if (!request._body.empty()) {
+        if (retval + request._body.size() > end) {
+            return nullptr;
+        }
+
+        retval = std::copy(request._body.begin(), request._body.end(), retval);
+    }
+
+    retval = http_headers::write(retval, end, http_headers::line_break);
+
+    return retval;
+}
+
+
+/*
+ * visus::dataverse::detail::http_request::as_octets
+ */
+std::vector<visus::dataverse::detail::http_request::byte_type>
+visus::dataverse::detail::http_request::as_octets(void) const {
+    std::vector<byte_type> retval(this->size());
+
+    if (write(retval.data(), retval.data() + retval.size(), *this) == nullptr) {
+        throw std::logic_error("This should never happen unless the HTTP "
+            "request is manipulated concurrently, which is not supported.");
+    }
+
+    return retval;
+}
 
 
 /*
@@ -29,7 +68,7 @@ std::size_t visus::dataverse::detail::http_request::size(void) const noexcept {
     // METHOD path HTTP/1.1\r\n
     retval += this->_method.size() + delimiter.size();
     retval += this->_path.size() + delimiter.size();
-    retval += protocol.size() + http_headers::line_break.size();
+    retval += this->_protocol.size() + http_headers::line_break.size();
 
     // Headers
     retval += this->_headers.size();
@@ -40,60 +79,16 @@ std::size_t visus::dataverse::detail::http_request::size(void) const noexcept {
         retval += http_headers::line_break.size();
     }
 
-    return retval;
-}
-
-
-/*
- * visus::dataverse::detail::http_request::write
- */
-_Ret_maybenull_ char *visus::dataverse::detail::http_request::write(
-        _Out_writes_bytes_(cnt) char *dst, _In_ const char *end) const {
-    if ((dst == nullptr) || (end <= dst)) {
-        return nullptr;
-    }
-
-    auto retval = dst;
-
-    if ((retval = write(retval, end, this->_method + delimiter)) == nullptr) {
-        return nullptr;
-    }
-
-    if ((retval = write(retval, end, this->_path + delimiter)) == nullptr) {
-        return nullptr;
-    }
-
-    if ((retval = write(retval, end, protocol + http_headers::line_break))
-            == nullptr) {
-        return nullptr;
-    }
-
-    if ((retval = this->_headers.write(retval, end)) == nullptr) {
-        return nullptr;
-    }
-
-    if (!this->_body.empty()) {
-
-    }
+    // Empty line at the end.
+    retval += http_headers::line_break.size();
 
     return retval;
 }
 
 
 /*
- * visus::dataverse::detail::http_request::write
+ * visus::dataverse::detail::http_request::delimiter
  */
-_Ret_maybenull_ char *visus::dataverse::detail::http_request::write(
-        _Out_writes_bytes_(cnt) char *dst,
-        _In_ const char *end,
-        _In_ const ascii_type& str) {
-    if (dst == nullptr) {
-        return nullptr;
-    }
+const visus::dataverse::detail::http_request::ascii_type
+visus::dataverse::detail::http_request::delimiter(" ");
 
-    if (dst + str.size() >= end) {
-        return nullptr;
-    }
-
-    return ::strncat(dst, str.c_str(), str.size());
-}

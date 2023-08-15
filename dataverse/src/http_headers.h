@@ -26,9 +26,30 @@ namespace detail {
     public:
 
         typedef std::string ascii_type;
+        typedef std::uint8_t byte_type;
         typedef less_ci<ascii_type> compare_type;
         typedef std::basic_string<char_type> string_type;
         typedef std::multimap<ascii_type, ascii_type, compare_type> value_type;
+
+        /// <summary>
+        /// Appends, if there is sufficient space, <paramref name="dst" /> to
+        /// <paramref name="str" /> and returns the pointer past the appended
+        /// text in <paramref name="dst" />.
+        /// </summary>
+        _Ret_maybenull_ static byte_type *write(
+            _Out_writes_opt_(end - dst) byte_type *dst,
+            _In_ const byte_type *end,
+            _In_ const ascii_type& str);
+
+        /// <summary>
+        /// Appends, if there is sufficient space, <paramref name="headers" />
+        /// to <paramref name="str" /> and returns the pointer past the appended
+        /// text in <paramref name="dst" />.
+        /// </summary>
+        _Ret_maybenull_ static byte_type *write(
+            _Out_writes_opt_(end - dst) byte_type *dst,
+            _In_ const byte_type *end,
+            _In_ const http_headers& headers);
 
         /// <summary>
         /// The line breaks used in HTTP.
@@ -62,18 +83,6 @@ namespace detail {
         /// </summary>
         /// <returns></returns>
         std::size_t size(void) const noexcept;
-
-        /// <summary>
-        /// Writes the headers to the specified buffer.
-        /// </summary>
-        /// <param name="dst">The pointer to the begin oft he range that can be
-        /// written.</param>
-        /// <param name="end">A pointer past the last element that can be
-        /// written.</param>
-        /// <returns>A pointer past the last header in <paramref name="dst" />
-        /// or <c>nullptr</c> if not all headers could be written.</returns>
-        _Ret_maybenull_ char *write(_Out_writes_bytes_(cnt) char *dst,
-            _In_ const char *end) const;
 
     private:
 

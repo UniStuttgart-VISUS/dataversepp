@@ -11,7 +11,10 @@
 #include <ws2ipdef.h>
 #endif /* defined(_WIN32) */
 
+#include "dataverse/event.h"
+
 #include "errors.h"
+#include "http_request.h"
 #include "io_completion_port.h"
 #include "resolve.h"
 #include "tls_context.h"
@@ -111,8 +114,41 @@ void visus::dataverse::dataverse_connection::connect(
     if (tls) {
         detail::tls_handshake handshake;
         auto f_context = handshake(this);
+        // Note: we can place the handshake on the stack here, because we wait
+        // for the future thus keeping the stack frame alive.
         f_context.wait();
         this->_tls = new detail::tls_context(std::move(f_context.get()));
+
+
+        auto request = detail::http_request().method("GET").path("/").as_octets();
+
+        this->_tls->send(this, request.data(), request.size(),
+            [](dataverse_connection *, void *) {
+            ::OutputDebugString(_T("sent\r\n"));
+        }, [](dataverse_connection *, const std::system_error& ex, void *) {
+            ::OutputDebugStringA(ex.what());
+        }, nullptr, nullptr);
+
+        auto evt = create_event();
+        detail::io_completion_port::instance().receive(this,
+            819200, [](dataverse_connection *c, const detail::io_context::byte_type *d, const std::size_t s, void *e) {
+            auto xx = c->_tls->decrypt(d, s);
+            std::string yy((const char *) xx.decrypted.data(), xx.decrypted.size());
+            ::OutputDebugStringA(yy.c_str());
+            if (xx.renegotiate) {
+                detail::tls_handshake handshake;
+                auto f_context = handshake(std::move(*xx.renegotiate), c, xx.remainder.data(), xx.remainder.size());
+                f_context.wait();
+                delete xx.renegotiate;
+                *xx.renegotiate = std::move(f_context.get());
+                //this->_tls = new detail::tls_context(std::move(f_context.get()));
+            }
+
+            set_event(*static_cast<event_type *>(e));
+        }, nullptr, nullptr, &evt);
+
+        wait_event(evt);
+        destroy_event(evt);
     }
 }
 
