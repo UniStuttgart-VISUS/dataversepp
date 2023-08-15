@@ -64,18 +64,18 @@ namespace detail {
 
         static void on_network_disconnected(
             _In_ dataverse_connection *connection,
-            _In_opt_ void *context);
+            _In_opt_ io_context *context);
 
         static void on_network_failed(_In_ dataverse_connection *connection,
-            _In_ const std::system_error& error, _In_opt_ void *context);
+            _In_ const std::system_error& error,
+            _In_opt_ io_context *context);
 
         static void on_network_received(_In_ dataverse_connection *connection,
-            _In_reads_bytes_(cnt) const byte_type *data,
             _In_ const std::size_t cnt,
-            _In_opt_ void *context);
+            _In_opt_ io_context *context);
 
         static void on_network_sent(_In_ dataverse_connection *connection,
-            _In_opt_ void *context);
+            _In_opt_ io_context *context);
 
 #if defined(_WIN32)
         static const DWORD default_flags;

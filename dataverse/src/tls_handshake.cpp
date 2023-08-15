@@ -124,8 +124,8 @@ visus::dataverse::detail::tls_handshake::operator ()(
  */
 void visus::dataverse::detail::tls_handshake::on_network_disconnected(
         _In_ dataverse_connection *connection,
-        _In_opt_ void *context) {
-    auto that = static_cast<tls_handshake *>(context);
+        _In_ io_context *context) {
+    auto that = static_cast<tls_handshake *>(context->library_data);
     try {
         // TODO: linux
 #if (defined(_WIN32) && (defined(DEBUG) || defined(_DEBUG)))
@@ -145,8 +145,8 @@ void visus::dataverse::detail::tls_handshake::on_network_disconnected(
 void visus::dataverse::detail::tls_handshake::on_network_failed(
         _In_ dataverse_connection *connection,
         _In_ const std::system_error& error,
-        _In_opt_ void *context) {
-    auto that = static_cast<tls_handshake *>(context);
+        _In_opt_ io_context *context) {
+    auto that = static_cast<tls_handshake *>(context->library_data);
     try {
 #if (defined(_WIN32) && (defined(DEBUG) || defined(_DEBUG)))
         ::OutputDebugStringW(L"Communication error during TLS handshake.\r\n");
@@ -164,17 +164,16 @@ void visus::dataverse::detail::tls_handshake::on_network_failed(
  */
 void visus::dataverse::detail::tls_handshake::on_network_received(
         _In_ dataverse_connection *connection,
-        _In_reads_bytes_(cnt) const byte_type *data,
         _In_ const std::size_t cnt,
-        _In_opt_ void *context) {
-    auto that = static_cast<tls_handshake *>(context);
+        _In_opt_ io_context *context) {
+    auto that = static_cast<tls_handshake *>(context->library_data);
     try {
 #if defined(_WIN32)
 #if (defined(DEBUG) || defined(_DEBUG))
         ::OutputDebugStringW(L"Received data for TLS handshake.\r\n");
 #endif /* (defined(DEBUG) || defined(_DEBUG)) */
         std::lock_guard<decltype(that->_lock)> l(that->_lock);
-        that->handshake(connection, data, cnt);
+        that->handshake(connection, context->payload(), cnt);
 #endif /* defined(_WIN32) */
     } catch (...) {
         that->_promise.set_exception(std::current_exception());
@@ -187,26 +186,12 @@ void visus::dataverse::detail::tls_handshake::on_network_received(
  */
 void visus::dataverse::detail::tls_handshake::on_network_sent(
         _In_ dataverse_connection *connection,
-        _In_opt_ void *context) {
-    auto that = static_cast<tls_handshake *>(context);
-    try {
+        _In_opt_ io_context *context) {
 #if defined(_WIN32)
 #if (defined(DEBUG) || defined(_DEBUG))
-        ::OutputDebugStringW(L"Sent data for TLS handshake.\r\n");
+    ::OutputDebugStringW(L"Sent data for TLS handshake.\r\n");
 #endif /* (defined(DEBUG) || defined(_DEBUG)) */
-        //std::lock_guard<decltype(that->_lock)> l(that->_lock);
-        //::OutputDebugStringW(L"Waiting for subsequent TLS message.\r\n");
-        //io_completion_port::instance().receive(connection,
-        //    max_packet_size,
-        //    &on_network_received,
-        //    &on_network_failed,
-        //    &on_network_disconnected,
-        //    that);
 #endif /* defined(_WIN32) */
-
-    } catch (...) {
-        that->_promise.set_exception(std::current_exception());
-    }
 }
 
 

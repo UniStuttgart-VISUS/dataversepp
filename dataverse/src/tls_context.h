@@ -125,7 +125,8 @@ namespace detail {
             _In_ const decltype(io_context::on_succeded.sent) on_sent,
             _In_ const decltype(io_context::on_failed) on_failed,
             _In_ const decltype(io_context::on_disconnected) on_disconnected,
-            _In_opt_ void *context);
+            _In_opt_ void *library_context,
+            _In_opt_ void *client_context);
 
         /// <summary>
         /// Send a TLS shudown notification via the given connection.

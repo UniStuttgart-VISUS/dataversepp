@@ -5,6 +5,7 @@
 
 #include "dataverse/dataverse_connection.h"
 
+#include <regex>
 #include <string>
 
 #if defined(_WIN32)
@@ -13,6 +14,7 @@
 
 #include "dataverse/event.h"
 
+#include "char_collapse.h"
 #include "errors.h"
 #include "http_request.h"
 #include "io_completion_port.h"
@@ -21,11 +23,50 @@
 #include "tls_handshake.h"
 
 
+namespace visus {
+namespace dataverse {
+namespace detail {
+
+    static void disconnect_adapter(_In_ dataverse_connection *connection,
+            _In_ io_context *context) {
+        if (context->library_data != nullptr) {
+            auto h = static_cast<dataverse_connection::disconnect_handler>(
+                context->library_data);
+            h(connection, context->client_data);
+        }
+    }
+
+    static void error_adapter(_In_ dataverse_connection *connection,
+            _In_ const std::system_error& error,
+            _In_ io_context *context) {
+        if (context->library_data != nullptr) {
+            auto h = static_cast<dataverse_connection::error_handler>(
+                context->library_data);
+            h(connection, error.code().value(), error.what(),
+                context->client_data);
+        }
+    }
+
+    static void response_adapter(_In_ dataverse_connection *connection,
+            _In_ const std::size_t cnt,
+            _In_ io_context *context) {
+        if (context->library_data != nullptr) {
+            auto h = static_cast<dataverse_connection::response_handler>(
+                context->library_data);
+            h(connection, context->payload(), cnt, context->client_data);
+        }
+    }
+
+} /* namespace detail */
+} /* namespace dataverse */
+} /* namespace visus */
+
+
 /*
  * visus::dataverse::dataverse_connection::dataverse_connection
  */
 visus::dataverse::dataverse_connection::dataverse_connection(void)
-    : _tls(nullptr) { }
+    : _buffer_size(1024 * 1024), _tls(nullptr) { }
 
 
 /*
@@ -118,38 +159,90 @@ void visus::dataverse::dataverse_connection::connect(
         // for the future thus keeping the stack frame alive.
         f_context.wait();
         this->_tls = new detail::tls_context(std::move(f_context.get()));
-
-
-        auto request = detail::http_request().method("GET").path("/").as_octets();
-
-        this->_tls->send(this, request.data(), request.size(),
-            [](dataverse_connection *, void *) {
-            ::OutputDebugString(_T("sent\r\n"));
-        }, [](dataverse_connection *, const std::system_error& ex, void *) {
-            ::OutputDebugStringA(ex.what());
-        }, nullptr, nullptr);
-
-        auto evt = create_event();
-        detail::io_completion_port::instance().receive(this,
-            819200, [](dataverse_connection *c, const detail::io_context::byte_type *d, const std::size_t s, void *e) {
-            auto xx = c->_tls->decrypt(d, s);
-            std::string yy((const char *) xx.decrypted.data(), xx.decrypted.size());
-            ::OutputDebugStringA(yy.c_str());
-            if (xx.renegotiate) {
-                detail::tls_handshake handshake;
-                auto f_context = handshake(std::move(*xx.renegotiate), c, xx.remainder.data(), xx.remainder.size());
-                f_context.wait();
-                delete xx.renegotiate;
-                *xx.renegotiate = std::move(f_context.get());
-                //this->_tls = new detail::tls_context(std::move(f_context.get()));
-            }
-
-            set_event(*static_cast<event_type *>(e));
-        }, nullptr, nullptr, &evt);
-
-        wait_event(evt);
-        destroy_event(evt);
     }
+}
+
+
+///*
+// * visus::dataverse::dataverse_connection::connect
+// */
+//void visus::dataverse::dataverse_connection::connect(
+//        _In_z_ const char_type *url) {
+//    typedef std::basic_string<char_type> string_type;
+//
+//    if (url == nullptr) {
+//        throw std::invalid_argument("The URL to connect to must not be null.");
+//    }
+//
+//    const string_type u(url);
+//    const auto end_proto = u.find(DVSL("://"), 0);
+//    if (end_proto == string_type::npos) {
+//        throw std::invalid_argument("The URL must begin with a protocol.");
+//    }
+//
+//    const auto begin_port = u.find(DVSL(":"))
+//
+//}
+
+
+/*
+ * visus::dataverse::dataverse_connection::get
+ */
+void visus::dataverse::dataverse_connection::get(_In_z_ const char *request,
+        _In_ response_handler on_response,
+        _In_opt_ error_handler on_error,
+        _In_opt_ disconnect_handler on_disconnected,
+        _In_opt_ void *context) {
+    if (request == nullptr) {
+        throw std::invalid_argument("The request string must not be null.");
+    }
+    if (on_response == nullptr) {
+        throw std::invalid_argument("The response callback must not be null.");
+    }
+
+    detail::http_headers headers;
+    headers.add(DVSL("Connection"), DVSL("Keep-Alive"));
+
+    auto r = detail::http_request()
+        .headers(std::move(headers))
+        .method("GET")
+        .path(request)
+        .as_octets();
+
+    if (this->_tls == nullptr) {
+        /*detail::io_completion_port::instance().send(this, r.data(), r.size(),
+            nullptr, detail::error_adapter, detail::disconnect_adapter, );*/
+
+    } else {
+        //this->_tls->send(this, r.data(), r.size(),
+        //    [](dataverse_connection *, void *) {
+        //    ::OutputDebugString(_T("sent\r\n"));
+        //}, [](dataverse_connection *, const std::system_error &ex, void *) {
+        //    ::OutputDebugStringA(ex.what());
+        //}, nullptr, nullptr);
+
+    }
+
+    //auto evt = create_event();
+    //detail::io_completion_port::instance().receive(this,
+    //    819200, [](dataverse_connection *c, const detail::io_context::byte_type *d, const std::size_t s, void *e) {
+    //    auto xx = c->_tls->decrypt(d, s);
+    //    std::string yy((const char *)xx.decrypted.data(), xx.decrypted.size());
+    //    ::OutputDebugStringA(yy.c_str());
+    //    if (xx.renegotiate) {
+    //        detail::tls_handshake handshake;
+    //        auto f_context = handshake(std::move(*xx.renegotiate), c, xx.remainder.data(), xx.remainder.size());
+    //        f_context.wait();
+    //        delete xx.renegotiate;
+    //        *xx.renegotiate = std::move(f_context.get());
+    //        //this->_tls = new detail::tls_context(std::move(f_context.get()));
+    //    }
+
+    //    set_event(*static_cast<event_type *>(e));
+    //}, nullptr, nullptr, &evt);
+
+    //wait_event(evt);
+    //destroy_event(evt);
 }
 
 

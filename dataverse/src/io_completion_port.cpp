@@ -61,13 +61,15 @@ visus::dataverse::detail::io_completion_port::context(
         _In_ const std::size_t size,
         _In_ const decltype(io_context::on_failed) on_failed,
         _In_ const decltype(io_context::on_disconnected) on_disconnected,
-        _In_opt_ void *context) {
+        _In_opt_ void *library_context,
+        _In_opt_ void *client_context) {
     auto retval = this->context(size);
     assert(retval->size >= size);
     retval->operation = operation;
     retval->on_failed = on_failed;
     retval->on_disconnected = on_disconnected;
-    retval->user_data = context;
+    retval->client_data = client_context;
+    retval->library_data = library_context;
     return retval;
 }
 
@@ -135,13 +137,15 @@ void visus::dataverse::detail::io_completion_port::receive(
         _In_ const decltype(io_context::on_succeded.received) on_received,
         _In_ const decltype(io_context::on_failed) on_failed,
         _In_ const decltype(io_context::on_disconnected) on_disconnected,
-        _In_opt_ void *context) {
+        _In_opt_ void *library_context,
+        _In_opt_ void *client_context) {
     assert(connection != nullptr);
     auto ctx = this->context(io_operation::receive,
         size,
         on_failed,
         on_disconnected,
-        context);
+        library_context,
+        client_context);
     ctx->on_succeded.received = on_received;
     this->receive(connection, std::move(ctx));
 }
@@ -208,13 +212,15 @@ void visus::dataverse::detail::io_completion_port::send(
         _In_ const decltype(io_context::on_succeded.sent) on_sent,
         _In_ const decltype(io_context::on_failed) on_failed,
         _In_ const decltype(io_context::on_disconnected) on_disconnected,
-        _In_opt_ void *context) {
+        _In_opt_ void *library_context,
+        _In_opt_ void *client_context) {
     assert(connection != nullptr);
     auto ctx = this->context(io_operation::send,
         size,
         on_failed,
         on_disconnected,
-        context);
+        library_context,
+        client_context);
     ctx->on_succeded.sent = on_sent;
     ::memcpy(ctx->payload(), data, size);
     this->send(connection, std::move(ctx));

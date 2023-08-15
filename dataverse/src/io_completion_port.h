@@ -69,14 +69,16 @@ namespace detail {
         /// <param name="size"></param>
         /// <param name="on_failed"></param>
         /// <param name="on_disconnected"></param>
-        /// <param name="context"></param>
+        /// <param name="library_context"></param>
+        /// <param name="client_context"></param>
         /// <returns></returns>
         context_type context(
             _In_ const io_operation operation,
             _In_ const std::size_t size,
             _In_ const decltype(io_context::on_failed) on_failed,
             _In_ const decltype(io_context::on_disconnected) on_disconnected,
-            _In_opt_ void *context);
+            _In_opt_ void *library_context,
+            _In_opt_ void *client_context);
 
         /// <summary>
         /// Asynchronously receives data into the payload buffer of the given
@@ -103,13 +105,15 @@ namespace detail {
         /// <param name="on_received"></param>
         /// <param name="on_failed"></param>
         /// <param name="on_disconnected"></param>
-        /// <param name="context"></param>
+        /// <param name="library_context"></param>
+        /// <param name="client_context"></param>
         void receive(_In_ dataverse_connection *connection,
             _In_ const std::size_t size,
             _In_ const decltype(io_context::on_succeded.received) on_received,
             _In_ const decltype(io_context::on_failed) on_failed,
             _In_ const decltype(io_context::on_disconnected) on_disconnected,
-            _In_opt_ void *context = nullptr);
+            _In_opt_ void *library_context = nullptr,
+            _In_opt_ void *client_context = nullptr);
 
         /// <summary>
         /// Asynchronously sends the data in the given context.
@@ -135,14 +139,16 @@ namespace detail {
         /// <param name="on_sent"></param>
         /// <param name="on_failed"></param>
         /// <param name="on_disconnected"></param>
-        /// <param name="context"></param>
+        /// <param name="library_context"></param>
+        /// <param name="client_context"></param>
         void send(_In_ dataverse_connection *connection,
             _In_reads_bytes_(size) const void *data,
             _In_ const std::size_t size,
             _In_ const decltype(io_context::on_succeded.sent) on_sent,
             _In_ const decltype(io_context::on_failed) on_failed,
             _In_ const decltype(io_context::on_disconnected) on_disconnected,
-            _In_opt_ void *context = nullptr);
+            _In_opt_ void *library_context = nullptr,
+            _In_opt_ void *client_context = nullptr);
 
         /// <summary>
         /// Stops all I/O worker threads.

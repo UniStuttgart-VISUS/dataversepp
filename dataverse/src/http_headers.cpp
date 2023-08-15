@@ -73,26 +73,31 @@ visus::dataverse::detail::http_headers::write(
 /*
  * visus::dataverse::detail::http_headers::add
  */
-void visus::dataverse::detail::http_headers::add(_In_ const string_type& name,
+visus::dataverse::detail::http_headers&
+visus::dataverse::detail::http_headers::add(_In_ const string_type& name,
         _In_ const string_type& value) {
     this->_values.insert(std::make_pair(to_ascii(name), to_ascii(value)));
+    return *this;
 }
 
 
 /*
  * visus::dataverse::detail::http_headers::clear
  */
-void visus::dataverse::detail::http_headers::clear(void) {
+visus::dataverse::detail::http_headers&
+visus::dataverse::detail::http_headers::clear(void) {
     this->_values.clear();
+    return *this;
 }
 
 
 /*
  * visus::dataverse::detail::http_headers::remove
  */
-void visus::dataverse::detail::http_headers::remove(
-        _In_ const string_type& name) {
+visus::dataverse::detail::http_headers&
+visus::dataverse::detail::http_headers::remove(_In_ const string_type& name) {
     this->_values.erase(to_ascii(name));
+    return *this;
 }
 
 

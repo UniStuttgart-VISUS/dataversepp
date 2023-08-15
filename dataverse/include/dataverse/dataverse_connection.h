@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 #include "dataverse/socket.h"
 
 
@@ -18,34 +20,6 @@ namespace dataverse {
     class dataverse_connection;
 
     /// <summary>
-    /// The handler to be invoked if a graceful disconnect was detected.
-    /// </summary>
-    typedef void (*network_disconnected_handler)(_In_ dataverse_connection *,
-        _In_opt_ void *);
-
-    /// <summary>
-    /// The callback to be invoked if an asynchronous network operation failed.
-    /// </summary>
-    typedef void (*network_failed_handler)(_In_ dataverse_connection *,
-        _In_ const char_type *, _In_opt_ void *);
-
-    /// <summary>
-    /// The callback to be invoked if an asynchronous receive operation
-    /// completed successfully.
-    /// </summary>
-    typedef void (*network_received_handler)(_In_ dataverse_connection *,
-        _In_reads_bytes_(cnt) const std::uint8_t *, _In_ const std::size_t cnt,
-        _In_opt_ void *);
-
-    /// <summary>
-    /// The callback to be invoked if an asynchronous send operation completed
-    /// sucessfully.
-    /// </summary>
-    typedef void (*network_sent_handler)(_In_ dataverse_connection *,
-        _In_opt_ void *);
-
-
-    /// <summary>
     /// Represents a TCP/IP connection to the DataVerse API, which is basically a
     /// RAII wrapper around a TCP/IP socket.
     /// </summary>
@@ -56,6 +30,27 @@ namespace dataverse {
 
     public:
 
+        /// <summary>
+        /// The handler to be invoked if a graceful disconnect was detected.
+        /// </summary>
+        typedef void (*disconnect_handler)(_In_ dataverse_connection *,
+            _In_opt_ void *);
+
+        /// <summary>
+        /// The callback to be invoked if an asynchronous network operation
+        /// failed.
+        /// </summary>
+        typedef void (*error_handler)(_In_ dataverse_connection *,
+            _In_ const int, _In_ const char *, _In_opt_ void *);
+
+        /// <summary>
+        /// The callback to be invoked if an asynchronous receive operation
+        /// completed successfully.
+        /// </summary>
+        typedef void (*response_handler)(_In_ dataverse_connection *,
+            _In_reads_bytes_(cnt) const std::uint8_t *,
+            _In_ const std::size_t cnt, _In_opt_ void *);
+
         dataverse_connection(void);
 
         dataverse_connection(const dataverse_connection&) = delete;
@@ -63,6 +58,27 @@ namespace dataverse {
         dataverse_connection(dataverse_connection&&) = delete;
 
         ~dataverse_connection(void);
+
+        /// <summary>
+        /// Gets the size of the receive buffer.
+        /// </summary>
+        /// <param name=""></param>
+        /// <returns></returns>
+        inline std::size_t buffer_size(void) const noexcept {
+            return this->_buffer_size;
+        }
+
+        /// <summary>
+        /// Sets the size of the receive buffer in bytes.
+        /// </summary>
+        /// <param name="buffer_size"></param>
+        /// <returns><c>*this</c>.</returns>
+        inline dataverse_connection& buffer_size(
+                _In_ const std::size_t buffer_size) noexcept {
+            constexpr auto min_buffer = static_cast<std::size_t>(512);
+            this->_buffer_size = (std::max)(buffer_size, min_buffer);
+            return *this;
+        }
 
         void connect(_In_reads_bytes_(length) const sockaddr *address,
             _In_ const std::size_t length,
@@ -72,6 +88,14 @@ namespace dataverse {
             _In_ const std::uint16_t port,
             _In_ const bool tls = true);
 
+        //void connect(_In_z_ const char_type *url);
+
+        void get(_In_z_ const char *request,
+            _In_ response_handler on_response,
+            _In_opt_ error_handler on_error = nullptr,
+            _In_opt_ disconnect_handler on_disconnected = nullptr,
+            _In_opt_ void *context = nullptr);
+
         void disconnect(void);
 
         dataverse_connection& operator =(const dataverse_connection&) = delete;
@@ -80,6 +104,7 @@ namespace dataverse {
 
     private:
 
+        std::size_t _buffer_size;
         detail::socket _socket;
         detail::tls_context *_tls;
 

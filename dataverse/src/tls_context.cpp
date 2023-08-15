@@ -89,7 +89,8 @@ void visus::dataverse::detail::tls_context::send(
         _In_ const decltype(io_context::on_succeded.sent) on_sent,
         _In_ const decltype(io_context::on_failed) on_failed,
         _In_ const decltype(io_context::on_disconnected) on_disconnected,
-        _In_opt_ void *context) {
+        _In_opt_ void *library_context,
+        _In_opt_ void *client_context) {
     assert(connection != nullptr);
     assert(data != nullptr);
     assert(size <= ULONG_MAX);
@@ -103,7 +104,8 @@ void visus::dataverse::detail::tls_context::send(
             this->_sizes.cbHeader + payload + this->_sizes.cbTrailer,
             on_failed,
             on_disconnected,
-            context);
+            library_context,
+            client_context);
         packet->on_succeded.sent = on_sent;
 
         // Cf. https://gist.github.com/mmozeiko/c0dfcc8fec527a90a02145d2cc0bfb6d

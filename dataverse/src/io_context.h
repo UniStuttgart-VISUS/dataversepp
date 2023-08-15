@@ -46,9 +46,11 @@ namespace detail {
 
 #if defined(_WIN32)
         /// <summary>
-        /// The overlapped structure, which must be the first in the context
-        /// on Windows.
+        /// The overlapped structure.
         /// </summary>
+        /// <remarks>
+        /// <b>This must be the first member of the structure on Windows!</b>
+        /// </remarks>
         OVERLAPPED overlapped;
 #endif /* defined(_WIN32) */
 
@@ -64,28 +66,38 @@ namespace detail {
 #endif /* defined(_WIN32) */
 
         /// <summary>
+        /// The user data to be passed to the final callback.
+        /// </summary>
+        void *client_data;
+
+        /// <summary>
+        /// An additional context pointer that the library can use to store
+        /// data beside the client context.
+        /// </summary>
+        void *library_data;
+
+        /// <summary>
         /// The handler to be invoked if a graceful disconnect was detected.
         /// </summary>
         void (*on_disconnected)(_In_ dataverse_connection *,
-            _In_opt_ void *);
+            _In_ io_context *);
 
         /// <summary>
         /// The user-defined handler to be invoked in case of an I/O error.
         /// </summary>
         void (*on_failed)(_In_ dataverse_connection *,
             _In_ const std::system_error&,
-            _In_opt_ void *);
+            _In_ io_context *);
 
         /// <summary>
         /// The opration-specific handler for a successful operation.
         /// </summary>
         union {
             void (*received)(_In_ dataverse_connection *,
-                _In_reads_bytes_(cnt) const byte_type *,
                 _In_ const std::size_t cnt,
-                _In_opt_ void *) ;
+                _In_ io_context *);
             void (*sent)(_In_ dataverse_connection *,
-                _In_opt_ void *);
+                _In_ io_context *);
         } on_succeded;
 
         /// <summary>
@@ -98,11 +110,6 @@ namespace detail {
         /// structure, in bytes.
         /// </summary>
         std::size_t size;
-
-        /// <summary>
-        /// The user data to be passed to any callback.
-        /// </summary>
-        void *user_data;
 
         /// <summary>
         /// Initialises a new instance.

@@ -61,14 +61,17 @@ namespace detail {
         /// </summary>
         /// <param name="name"></param>
         /// <param name="value"></param>
+        /// <returns><c>*this</c>.</returns>
         /// <exception cref="system_error">If the header name or value contains
         /// any non-ASCII characters.</exception>
-        void add(_In_ const string_type& name, _In_ const string_type& value);
+        http_headers& add(_In_ const string_type& name,
+            _In_ const string_type& value);
 
         /// <summary>
         /// Clears all headers.
         /// </summary>
-        void clear(void);
+        /// <returns><c>*this</c>.</returns>
+        http_headers& clear(void);
 
         /// <summary>
         /// Removes all headers with the specified name.
@@ -76,7 +79,8 @@ namespace detail {
         /// <param name="name"></param>
         /// <exception cref="system_error">If the name contains any non-ASCII
         /// characters.</exception>
-        void remove(_In_ const string_type& name);
+        /// <returns><c>*this</c>.</returns>
+        http_headers& remove(_In_ const string_type& name);
 
         /// <summary>
         /// Answer the number of bytes used to format all headers.
