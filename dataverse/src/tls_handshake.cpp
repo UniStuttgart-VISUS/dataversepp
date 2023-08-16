@@ -389,10 +389,7 @@ void visus::dataverse::detail::tls_handshake::handshake(
                 std::bind(&tls_handshake::on_network_failed, this,
                     std::placeholders::_1,
                     std::placeholders::_2,
-                    std::placeholders::_3),
-                std::bind(&tls_handshake::on_network_disconnected, this,
-                    std::placeholders::_1,
-                    std::placeholders::_2));
+                    std::placeholders::_3));
         }
 
         // Determine whether we need more input.
@@ -418,35 +415,10 @@ void visus::dataverse::detail::tls_handshake::handshake(
             std::bind(&tls_handshake::on_network_failed, this,
                 std::placeholders::_1,
                 std::placeholders::_2,
-                std::placeholders::_3),
-            std::bind(&tls_handshake::on_network_disconnected, this,
-                std::placeholders::_1,
-                std::placeholders::_2));
+                std::placeholders::_3));
     }
 }
 #endif /* defined(_WIN32) */
-
-
-
-/*
- * visus::dataverse::detail::tls_handshake::on_network_disconnected
- */
-void visus::dataverse::detail::tls_handshake::on_network_disconnected(
-        _In_ dataverse_connection *connection,
-        _In_ io_context *context) {
-    try {
-        // TODO: linux
-#if defined(_WIN32)
-        ::OutputDebugStringW(L"Server disconnected during TLS handshake.\r\n");
-        throw std::system_error(WSAEDISCON, std::system_category());
-#else /* defined(_WIN32) */
-        throw std::system_error(ECONNABORTED, std::system_category());
-#endif /* defined(_WIN32) */
-    } catch (...) {
-        std::lock_guard<decltype(this->_lock)> l(this->_lock);
-        this->_promise.set_exception(std::current_exception());
-    }
-}
 
 
 /*

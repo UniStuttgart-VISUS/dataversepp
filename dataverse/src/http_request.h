@@ -8,9 +8,9 @@
 #include <vector>
 
 #include "dataverse/convert.h"
+#include "dataverse/http_headers.h"
 #include "dataverse/types.h"
 
-#include "http_headers.h"
 
 
 namespace visus {
@@ -24,9 +24,9 @@ namespace detail {
 
     public:
 
-        typedef http_headers::ascii_type ascii_type;
+        typedef std::basic_string<http_headers::ascii_type> ascii_type;
         typedef http_headers::byte_type byte_type;
-        typedef http_headers::string_type string_type;
+        typedef std::basic_string<char_type> string_type;
 
 
         /// <summary>
@@ -93,16 +93,6 @@ namespace detail {
         /// <returns>The header collection of the request.</returns>
         inline http_headers& headers(void) noexcept {
             return this->_headers;
-        }
-
-        /// <summary>
-        /// Sets the HTTP headers.
-        /// </summary>
-        /// <param name="headers"></param>
-        /// <returns></returns>
-        inline http_request& headers(_In_ const http_headers& headers) {
-            this->_headers = headers;
-            return *this;
         }
 
         /// <summary>
@@ -208,7 +198,7 @@ namespace detail {
 
     private:
 
-        static const ascii_type delimiter;
+        static const ascii_type space;
 
         std::vector<byte_type> _body;
         http_headers _headers;

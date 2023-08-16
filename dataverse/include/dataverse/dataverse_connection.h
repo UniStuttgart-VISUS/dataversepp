@@ -6,9 +6,11 @@
 #pragma once
 
 #include <algorithm>
-#include <functional>
+#include <future>
 
 #include "dataverse/socket.h"
+#include "dataverse/http_response.h"
+#include "dataverse/event.h"
 
 
 namespace visus {
@@ -49,8 +51,7 @@ namespace dataverse {
         /// completed successfully.
         /// </summary>
         typedef void (*response_handler)(_In_ dataverse_connection *,
-            _In_reads_bytes_(cnt) const std::uint8_t *,
-            _In_ const std::size_t cnt, _In_opt_ void *);
+            _In_ const http_response&, _In_opt_ void *);
 
         dataverse_connection(void);
 
@@ -96,6 +97,10 @@ namespace dataverse {
             _In_opt_ error_handler on_error = nullptr,
             _In_opt_ disconnect_handler on_disconnected = nullptr,
             _In_opt_ void *context = nullptr);
+
+        //inline std::future<http_response> get(_In_z_ const char *request) {
+        //    this->get(request, [])
+        //}
 
         void disconnect(void);
 

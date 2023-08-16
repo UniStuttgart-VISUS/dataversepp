@@ -14,17 +14,24 @@
 
 
 int main() {
+    using namespace visus::dataverse;
 #if (defined(DEBUG) || defined(_DEBUG))
     ::_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     //::_CrtSetBreakAlloc(190);
 #endif /* (defined(DEBUG) || defined(_DEBUG)) */
 
     try {
-        visus::dataverse::winsock_scope w;
+        winsock_scope w;
 
-        visus::dataverse::dataverse_connection c;
-        c.connect(DVSL("darus.uni-stuttgart.de"), 443, true);
+        auto e = create_event();
 
+        dataverse_connection c;
+        c.connect(DVSL("www.visus.uni-stuttgart.de"), 443, true);
+        c.get("/", [](_In_ dataverse_connection *, _In_ const http_response&, _In_opt_ void *e) {
+            set_event(*reinterpret_cast<event_type *>(e));
+        }, nullptr, nullptr, &e);
+
+        wait_event(e);
 
         return 0;
     } catch (std::exception& ex) {

@@ -59,12 +59,10 @@ visus::dataverse::detail::io_completion_port::context_type
 visus::dataverse::detail::io_completion_port::context(
         _In_ const std::size_t size,
         _In_ const decltype(io_context::on_failed) on_failed,
-        _In_ const decltype(io_context::on_disconnected) on_disconnected,
         _In_opt_ void *client_data) {
     auto retval = this->context(size);
     assert(retval->size >= size);
     retval->on_failed = on_failed;
-    retval->on_disconnected = on_disconnected;
     retval->client_data = client_data;
     return retval;
 }
@@ -132,15 +130,31 @@ void visus::dataverse::detail::io_completion_port::receive(
         _In_ const std::size_t size,
         _In_ const decltype(io_context::on_received) on_received,
         _In_ const decltype(io_context::on_failed) on_failed,
-        _In_ const decltype(io_context::on_disconnected) on_disconnected,
         _In_opt_ void *client_data) {
     assert(connection != nullptr);
-    auto ctx = this->context(size,
-        on_failed,
-        on_disconnected,
-        client_data);
+    auto ctx = this->context(size, on_failed, client_data);
     ctx->operation_receive(on_received);
     this->receive(connection, std::move(ctx));
+}
+
+
+/*
+ * visus::dataverse::detail::io_completion_port::recycle
+ */
+void visus::dataverse::detail::io_completion_port::recycle(
+        _Inout_ context_type&& context) {
+    if (context != nullptr) {
+        std::lock_guard<decltype(this->_contexts_lock)> l(this->_contexts_lock);
+#if (defined(DEBUG) || defined(_DEBUG))
+        {
+            std::wstringstream str;
+            str << L"Recycle io_context 0x" << std::hex << context.get() << std::endl;
+            auto msg = str.str();
+            ::OutputDebugStringW(msg.c_str());
+        }
+#endif /* (defined(DEBUG) || defined(_DEBUG)) */
+        this->_contexts.push_back(std::move(context));
+    }
 }
 
 
@@ -204,13 +218,9 @@ void visus::dataverse::detail::io_completion_port::send(
         _In_ const std::size_t size,
         _In_ const decltype(io_context::on_sent) on_sent,
         _In_ const decltype(io_context::on_failed) on_failed,
-        _In_ const decltype(io_context::on_disconnected) on_disconnected,
         _In_opt_ void *client_data) {
     assert(connection != nullptr);
-    auto ctx = this->context(size,
-        on_failed,
-        on_disconnected,
-        client_data);
+    auto ctx = this->context(size, on_failed, client_data);
     ctx->operation_send(on_sent);
     ::memcpy(ctx->payload(), data, size);
     this->send(connection, std::move(ctx));
@@ -367,28 +377,22 @@ void visus::dataverse::detail::io_completion_port::pool_thread(void) {
                     _T("completed operation.\r\n"));
 
                 switch (context->operation) {
-                    case io_operation::receive:
+                    case io_operation::receive: {
                         ::OutputDebugString(_T("Completed receive.\r\n"));
-                        if (transferred == 0) {
-                            context->invoke_on_disconnected(connection);
-                        } else {
-                            auto cnt = context->invoke_on_received(connection,
-                                transferred);
-                            if (cnt > 0) {
-                                // The callback requested a follow-up receive.
-                                try {
-                                    this->receive(connection,
-                                        cnt,
-                                        context->on_received,
-                                        context->on_failed,
-                                        context->on_disconnected,
-                                        context->client_data);
-                                } catch (std::system_error ex) {
-                                    context->invoke_on_failed(connection, ex);
+                        auto cnt = context->invoke_on_received(connection,
+                            transferred);
+                        if (cnt > 0) {
+                            // The callback requested a follow-up receive.
+                            try {
+                                if (context->buffer.len > cnt) {
+                                    context->buffer.len = cnt;
                                 }
+                                this->receive(connection, std::move(context));
+                            } catch (std::system_error ex) {
+                                context->invoke_on_failed(connection, ex);
                             }
                         }
-                        break;
+                        } break;
 
                     case io_operation::send:
                         ::OutputDebugString(_T("Completed send.\r\n"));
@@ -398,8 +402,7 @@ void visus::dataverse::detail::io_completion_port::pool_thread(void) {
                             context->buffer.buf += transferred;
                             context->buffer.len -= transferred;
                             try {
-                                this->send(connection->_socket,
-                                    std::move(context));
+                                this->send(connection, std::move(context));
                                 assert(context == nullptr);
                             } catch (std::system_error ex) {
                                 // If the continuation failed, consider the
@@ -431,8 +434,8 @@ void visus::dataverse::detail::io_completion_port::pool_thread(void) {
             // been dequeued and we need to report the I/O error.
             ::OutputDebugString(_T("An I/O completion worker processes an ")
                 _T("error.\r\n"));
-            const auto error = std::system_error(::GetLastError(),
-                std::system_category());
+            const auto code = ::GetLastError();
+            const auto error = std::system_error(code, std::system_category());
             const auto packet_dequeued = (overlapped != nullptr);
 
             // Free the context, if necessary.
@@ -468,26 +471,6 @@ void visus::dataverse::detail::io_completion_port::pool_thread(void) {
     throw "TODO: implement linux I/O worker."
 
 #endif /* defined(_WIN32) */
-}
-
-
-/*
- * visus::dataverse::detail::io_completion_port::recycle
- */
-void visus::dataverse::detail::io_completion_port::recycle(
-        _Inout_ context_type&& context) {
-    if (context != nullptr) {
-        std::lock_guard<decltype(this->_contexts_lock)> l(this->_contexts_lock);
-#if (defined(DEBUG) || defined(_DEBUG))
-        {
-            std::wstringstream str;
-            str << L"Recycle io_context 0x" << std::hex << context.get() << std::endl;
-            auto msg = str.str();
-            ::OutputDebugStringW(msg.c_str());
-        }
-#endif /* (defined(DEBUG) || defined(_DEBUG)) */
-        this->_contexts.push_back(std::move(context));
-    }
 }
 
 

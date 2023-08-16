@@ -73,7 +73,6 @@ namespace detail {
         context_type context(
             _In_ const std::size_t size,
             _In_ const decltype(io_context::on_failed) on_failed,
-            _In_ const decltype(io_context::on_disconnected) on_disconnected,
             _In_opt_ void *client_data);
 
         /// <summary>
@@ -100,14 +99,18 @@ namespace detail {
         /// <param name="size"></param>
         /// <param name="on_received"></param>
         /// <param name="on_failed"></param>
-        /// <param name="on_disconnected"></param>
         /// <param name="client_data"></param>
         void receive(_In_ dataverse_connection *connection,
             _In_ const std::size_t size,
             _In_ const decltype(io_context::on_received) on_received,
             _In_ const decltype(io_context::on_failed) on_failed,
-            _In_ const decltype(io_context::on_disconnected) on_disconnected,
             _In_opt_ void *client_data = nullptr);
+
+        /// <summary>
+        /// Recycle the given <see cref="io_context" /> in the pool.
+        /// </summary>
+        /// <param name="context"></param>
+        void recycle(_Inout_ context_type&& context);
 
         /// <summary>
         /// Asynchronously sends the data in the given context.
@@ -132,14 +135,12 @@ namespace detail {
         /// <param name="size"></param>
         /// <param name="on_sent"></param>
         /// <param name="on_failed"></param>
-        /// <param name="on_disconnected"></param>
         /// <param name="client_data"></param>
         void send(_In_ dataverse_connection *connection,
             _In_reads_bytes_(size) const void *data,
             _In_ const std::size_t size,
             _In_ const decltype(io_context::on_sent) on_sent,
             _In_ const decltype(io_context::on_failed) on_failed,
-            _In_ const decltype(io_context::on_disconnected) on_disconnected,
             _In_opt_ void *client_data = nullptr);
 
         /// <summary>
@@ -171,11 +172,6 @@ namespace detail {
         /// Performs the work of a pool thread processing I/O completions.
         /// </summary>
         void pool_thread(void);
-
-        /// <summary>
-        /// Recycle the given <see cref="io_context" /> in the pool.
-        /// </summary>
-        void recycle(_Inout_ context_type&& context);
 
 #if defined(_WIN32)
         /// <summary>

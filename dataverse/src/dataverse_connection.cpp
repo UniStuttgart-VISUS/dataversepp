@@ -14,7 +14,6 @@
 
 #include "dataverse/event.h"
 
-#include "char_collapse.h"
 #include "errors.h"
 #include "http_request.h"
 #include "io_completion_port.h"
@@ -161,8 +160,48 @@ void visus::dataverse::dataverse_connection::get(_In_z_ const char *request,
         throw std::invalid_argument("The response callback must not be null.");
     }
 
-    detail::http_headers headers;
-    headers.add(DVSL("Connection"), DVSL("Keep-Alive"));
+    http_response response;
+
+    auto error_handler = [on_error](_In_ dataverse_connection *c,
+            _In_ const std::system_error& e, _In_ detail::io_context *i) {
+        if (on_error) {
+            on_error(c, e.code().value(), e.what(), i->client_data);
+        }
+    };
+
+    auto response_handler = [on_response, &response](
+            _In_ dataverse_connection *c, _In_ const std::size_t cnt,
+            _In_ detail::io_context *i) {
+        response.append(i->payload(), cnt);
+
+        if (on_response) {
+            on_response(c, response, i->client_data);
+        }
+
+        return c->_buffer_size;
+    };
+
+    auto sent_handler = [&response_handler, &error_handler](
+            _In_ dataverse_connection *c,
+            _In_ detail::io_context *i) {
+        if (c->_tls == nullptr) {
+            detail::io_completion_port::instance().receive(c,
+                c->_buffer_size,
+                response_handler,
+                error_handler,
+                i->client_data);
+        } else {
+            c->_tls->receive(c,
+                c->_buffer_size,
+                response_handler,
+                error_handler,
+                i->client_data);
+        }
+    };
+
+    http_headers headers;
+    headers.add(DVSL("Connection"), DVSL("keep-alive"));
+    headers.add(DVSL("Dnt"), DVSL("1"));
 
     auto r = detail::http_request()
         .headers(std::move(headers))
@@ -171,39 +210,12 @@ void visus::dataverse::dataverse_connection::get(_In_z_ const char *request,
         .as_octets();
 
     if (this->_tls == nullptr) {
-        /*detail::io_completion_port::instance().send(this, r.data(), r.size(),
-            nullptr, detail::error_adapter, detail::disconnect_adapter, );*/
-
+        detail::io_completion_port::instance().send(this, r.data(), r.size(),
+            sent_handler, error_handler, context);
     } else {
-        //this->_tls->send(this, r.data(), r.size(),
-        //    [](dataverse_connection *, void *) {
-        //    ::OutputDebugString(_T("sent\r\n"));
-        //}, [](dataverse_connection *, const std::system_error &ex, void *) {
-        //    ::OutputDebugStringA(ex.what());
-        //}, nullptr, nullptr);
-
+        this->_tls->send(this, r.data(), r.size(), sent_handler, error_handler,
+            context);
     }
-
-    //auto evt = create_event();
-    //detail::io_completion_port::instance().receive(this,
-    //    819200, [](dataverse_connection *c, const detail::io_context::byte_type *d, const std::size_t s, void *e) {
-    //    auto xx = c->_tls->decrypt(d, s);
-    //    std::string yy((const char *)xx.decrypted.data(), xx.decrypted.size());
-    //    ::OutputDebugStringA(yy.c_str());
-    //    if (xx.renegotiate) {
-    //        detail::tls_handshake handshake;
-    //        auto f_context = handshake(std::move(*xx.renegotiate), c, xx.remainder.data(), xx.remainder.size());
-    //        f_context.wait();
-    //        delete xx.renegotiate;
-    //        *xx.renegotiate = std::move(f_context.get());
-    //        //this->_tls = new detail::tls_context(std::move(f_context.get()));
-    //    }
-
-    //    set_event(*static_cast<event_type *>(e));
-    //}, nullptr, nullptr, &evt);
-
-    //wait_event(evt);
-    //destroy_event(evt);
 }
 
 

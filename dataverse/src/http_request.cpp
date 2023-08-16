@@ -8,7 +8,6 @@
 #include <stdexcept>
 
 
-
 /*
  * visus::dataverse::detail::http_request::write
  */
@@ -23,10 +22,10 @@ visus::dataverse::detail::http_request::write(
 
     auto retval = dst;
 
-    retval = http_headers::write(retval, end, request._method + delimiter);
-    retval = http_headers::write(retval, end, request._path + delimiter);
-    retval = http_headers::write(retval, end, request._protocol
-        + http_headers::line_break);
+    retval = http_headers::write(retval, end, (request._method + space));
+    retval = http_headers::write(retval, end, (request._path + space));
+    retval = http_headers::write( retval, end, (request._protocol
+        + http_headers::line_break));
     retval = http_headers::write(retval, end, request._headers);
 
     if (!request._body.empty()) {
@@ -66,9 +65,9 @@ std::size_t visus::dataverse::detail::http_request::size(void) const noexcept {
     std::size_t retval = 0;
 
     // METHOD path HTTP/1.1\r\n
-    retval += this->_method.size() + delimiter.size();
-    retval += this->_path.size() + delimiter.size();
-    retval += this->_protocol.size() + http_headers::line_break.size();
+    retval += this->_method.size() + space.size();
+    retval += this->_path.size() + space.size();
+    retval += this->_protocol.size() + ::strlen(http_headers::line_break);
 
     // Headers
     retval += this->_headers.size();
@@ -76,19 +75,18 @@ std::size_t visus::dataverse::detail::http_request::size(void) const noexcept {
     // Body
     if (!this->_body.empty()) {
         retval += this->_body.size();
-        retval += http_headers::line_break.size();
+        retval += ::strlen(http_headers::line_break);
     }
 
     // Empty line at the end.
-    retval += http_headers::line_break.size();
+    retval += ::strlen(http_headers::line_break);
 
     return retval;
 }
 
 
 /*
- * visus::dataverse::detail::http_request::delimiter
+ * visus::dataverse::detail::http_request::space
  */
 const visus::dataverse::detail::http_request::ascii_type
-visus::dataverse::detail::http_request::delimiter(" ");
-
+visus::dataverse::detail::http_request::space(" ");

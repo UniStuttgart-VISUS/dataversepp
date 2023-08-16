@@ -92,10 +92,6 @@ namespace detail {
             _In_ const std::size_t cnt = 0);
 #endif /* defined(_WIN32) */
 
-        void on_network_disconnected(
-            _In_ dataverse_connection *connection,
-            _In_opt_ io_context *context);
-
         void on_network_failed(_In_ dataverse_connection *connection,
             _In_ const std::system_error &error,
             _In_opt_ io_context *context);

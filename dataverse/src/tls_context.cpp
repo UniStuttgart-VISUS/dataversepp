@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <iterator>
 
 #include "com_error_category.h"
 #include "io_completion_port.h"
@@ -26,56 +27,64 @@ visus::dataverse::detail::tls_context::tls_context(void) {
 
 
 /*
- * visus::dataverse::detail::tls_context::decrypt
+ * visus::dataverse::detail::tls_context::message_size
  */
-visus::dataverse::detail::tls_context::decrypted_type
-visus::dataverse::detail::tls_context::decrypt(
-        _In_reads_bytes_(size) const void *data,
-        _In_ const std::size_t size) {
-    assert(data != nullptr);
+std::size_t visus::dataverse::detail::tls_context::message_size(void) const {
+#if defined(_WIN32)
+    return this->_sizes.cbMaximumMessage;
+#else /* defined(_WIN32) */
+    throw "TODO";
+#endif /* defined(_WIN32) */
+}
 
-    // Cf. https://gist.github.com/mmozeiko/c0dfcc8fec527a90a02145d2cc0bfb6d
-    SecBuffer buffers[4] = { 0 };
-    buffers[0].BufferType = SECBUFFER_DATA;
-    buffers[0].pvBuffer = const_cast<void *>(data);
-    buffers[0].cbBuffer = static_cast<unsigned long>(size);
-    buffers[1].BufferType = SECBUFFER_EMPTY;
-    buffers[2].BufferType = SECBUFFER_EMPTY;
-    buffers[3].BufferType = SECBUFFER_EMPTY;
 
-    SecBufferDesc desc;
-    desc.ulVersion = SECBUFFER_VERSION;
-    desc.cBuffers = ARRAYSIZE(buffers);
-    desc.pBuffers = buffers;
-    assert(this->_sizes.cBuffers == desc.cBuffers);
+/*
+ * visus::dataverse::detail::tls_context::receive
+ */
+void visus::dataverse::detail::tls_context::receive(
+        _In_ dataverse_connection *connection,
+        _In_ const std::size_t size,
+        _In_ const decltype(io_context::on_received) on_received,
+        _In_ const decltype(io_context::on_failed) on_failed,
+        _In_opt_ void *client_data) {
+    assert(connection != nullptr);
 
-    auto status = ::DecryptMessage(this->_context.addressof(), &desc, 0,
-        nullptr);
-    switch (status) {
-        case SEC_E_OK:
-            assert(buffers[0].BufferType == SECBUFFER_STREAM_HEADER);
-            assert(buffers[1].BufferType == SECBUFFER_DATA);
-            assert(buffers[2].BufferType == SECBUFFER_STREAM_TRAILER);
-            return decrypted_type(make_vector(buffers[1]),
-                make_vector(buffers[1], &buffers[3]));
+    auto response_handler = [this, on_received, on_failed](
+            _In_ dataverse_connection *c,
+            _In_ const std::size_t cnt,
+            _In_ detail::io_context *i) {
+        try {
+            auto response = this->decrypt(i->payload(), cnt);
+            if (response != nullptr) {
+                response->on_failed = on_failed;
+                response->operation_receive(on_received);
+                response->client_data = i->client_data;
+                if (!this->_pending_decrypt.empty()) {
+                    // We need more data to decrypt the pending input.
+                    return this->message_size();
+                } else {
+                    auto retval = response->invoke_on_received(c,
+                        response->buffer.len);
+                    io_completion_port::instance().recycle(std::move(response));
+                }
+                // TODO: Can we recycle the response somehow?
+            } else {
+                // If we have no response and decrypt did not throw, we need
+                // more data from the server, so request another receive.
+                return this->message_size();
+            }
 
-        case SEC_I_CONTEXT_EXPIRED:
-            // Connection is being torn down, but not yet completely closed.
-            return decrypted_type();
+        } catch (std::system_error ex) {
+            i->invoke_on_failed(c, ex);
+        }
 
-        case SEC_E_INCOMPLETE_MESSAGE:
-            // Cannot decrypt, but need more input.
-            return decrypted_type(make_vector(), make_vector(data, size));
+        // If we are here, decrypt failed or the connection was terminated, so
+        // we do not want the completion port to post another receive.
+        return static_cast<std::size_t>(0);
+    };
 
-        case SEC_I_RENEGOTIATE:
-            // Server wants to renegotiate.
-            // Cf. https://learn.microsoft.com/en-us/windows/win32/secauthn/recognizing-a-request-to-renegotiate-a-connection
-            return decrypted_type(make_vector(buffers[1]),
-                make_vector(buffers[3]), this);
-
-        default:
-            throw std::system_error(status, com_category());
-    }
+    io_completion_port::instance().receive(connection, this->message_size(),
+        response_handler, on_failed, client_data);
 }
 
 
@@ -88,21 +97,18 @@ void visus::dataverse::detail::tls_context::send(
         _In_ const std::size_t size,
         _In_ const decltype(io_context::on_sent) on_sent,
         _In_ const decltype(io_context::on_failed) on_failed,
-        _In_ const decltype(io_context::on_disconnected) on_disconnected,
         _In_opt_ void *client_data) {
     assert(connection != nullptr);
     assert(data != nullptr);
     assert(size <= ULONG_MAX);
-    auto& ioc = io_completion_port::instance();
     auto cur = static_cast<const io_context::byte_type *>(data);
     auto rem = static_cast<unsigned long>(size);
 
     while (rem > 0) {
         auto payload = (std::min)(rem, this->_sizes.cbMaximumMessage);
-        auto packet = ioc.context(
+        auto packet = io_completion_port::instance().context(
             this->_sizes.cbHeader + payload + this->_sizes.cbTrailer,
             on_failed,
-            on_disconnected,
             client_data);
         packet->operation_send(on_sent);
 
@@ -134,7 +140,7 @@ void visus::dataverse::detail::tls_context::send(
             }
         }
 
-        ioc.send(connection, std::move(packet));
+        io_completion_port::instance().send(connection, std::move(packet));
 
         cur += payload;
         rem -= payload;
@@ -205,7 +211,6 @@ void visus::dataverse::detail::tls_context::shutdown(
                 out_buffer.cbBuffer,
                 nullptr,
                 nullptr,
-                nullptr,
                 nullptr);
         } else if (status < 0) {
             throw std::system_error(status, com_category());
@@ -220,33 +225,91 @@ void visus::dataverse::detail::tls_context::shutdown(
  */
 std::vector<visus::dataverse::detail::tls_context::byte_type>
 visus::dataverse::detail::tls_context::make_vector(
-        _In_ const SecBuffer& buffer, _In_ const SecBuffer *extra) {
+        _In_ const SecBuffer& buffer) {
     if (buffer.BufferType == SECBUFFER_EMPTY) {
         // Buffer is semantically empty.
-        return make_vector();
+        return std::vector<byte_type>();
     }
 
     if (buffer.pvBuffer == nullptr) {
         // Buffer is actually empty.
-        return make_vector();
+        return std::vector<byte_type>();
     }
 
-    if (extra != nullptr) {
-        // The remainder was requested rather than the output.
-        if ((extra->BufferType == SECBUFFER_EXTRA)
-                && (buffer.cbBuffer > extra->cbBuffer)) {
-            auto d = static_cast<const byte_type *>(buffer.pvBuffer);
-            return std::vector<byte_type>(
-                d + buffer.cbBuffer - extra->cbBuffer,
-                d + buffer.cbBuffer);
-
-        } else {
-            return make_vector();
-        }
+ 
+    // The normal case.
+    return make_vector(buffer.pvBuffer, buffer.cbBuffer);
+}
 
 
+/*
+ * visus::dataverse::detail::tls_context::decrypt
+ */
+std::unique_ptr<visus::dataverse::detail::io_context>
+visus::dataverse::detail::tls_context::decrypt(
+        _In_reads_bytes_(size) const void *data,
+        _In_ const std::size_t size) {
+    std::unique_ptr<visus::dataverse::detail::io_context> retval;
+
+    // Cf. https://gist.github.com/mmozeiko/c0dfcc8fec527a90a02145d2cc0bfb6d
+    SecBuffer buffers[4] = { 0 };
+    buffers[0].BufferType = SECBUFFER_DATA;
+    buffers[1].BufferType = SECBUFFER_EMPTY;
+    buffers[2].BufferType = SECBUFFER_EMPTY;
+    buffers[3].BufferType = SECBUFFER_EMPTY;
+
+    if (this->_pending_decrypt.empty()) {
+        buffers[0].pvBuffer = const_cast<void *>(data);
+        buffers[0].cbBuffer = static_cast<unsigned long>(size);
     } else {
-        // The normal case.
-        return make_vector(buffer.pvBuffer, buffer.cbBuffer);
+        auto d = static_cast<const byte_type *>(data);
+        auto s = this->_pending_decrypt.size() + size;
+        this->_pending_decrypt.reserve(s);
+        std::copy(d, d + size, std::back_inserter(this->_pending_decrypt));
+        buffers[0].pvBuffer = this->_pending_decrypt.data();
+        buffers[0].cbBuffer = static_cast<unsigned long>(s);
     }
+
+    SecBufferDesc desc;
+    desc.ulVersion = SECBUFFER_VERSION;
+    desc.cBuffers = ARRAYSIZE(buffers);
+    desc.pBuffers = buffers;
+    assert(this->_sizes.cBuffers == desc.cBuffers);
+
+    auto status = ::DecryptMessage(this->_context.addressof(), &desc, 0,
+        nullptr);
+    switch (status) {
+        case SEC_E_OK:
+            assert(buffers[0].BufferType == SECBUFFER_STREAM_HEADER);
+            assert(buffers[1].BufferType == SECBUFFER_DATA);
+            assert(buffers[2].BufferType == SECBUFFER_STREAM_TRAILER);
+            retval = io_completion_port::instance().context(buffers[1].cbBuffer,
+                nullptr,
+                nullptr);
+            ::memcpy(retval->payload(),
+                buffers[1].pvBuffer,
+                buffers[1].cbBuffer);
+            assert(retval->buffer.len == buffers[1].cbBuffer);
+            this->_pending_decrypt = make_vector(buffers[3]);
+            break;
+
+        case SEC_I_CONTEXT_EXPIRED:
+            // Connection is being torn down, but not yet completely closed.
+            throw std::system_error(status, com_category());
+
+        case SEC_E_INCOMPLETE_MESSAGE:
+            // Cannot decrypt, but need more input.
+            this->_pending_decrypt = make_vector(data, size);
+            break;
+
+        case SEC_I_RENEGOTIATE:
+            // Server wants to renegotiate.
+            // Cf. https://learn.microsoft.com/en-us/windows/win32/secauthn/recognizing-a-request-to-renegotiate-a-connection
+            throw std::logic_error("Renegotiation is not implemented.");
+
+        default:
+            throw std::system_error(status, com_category());
+    }
+
+    return retval;
 }

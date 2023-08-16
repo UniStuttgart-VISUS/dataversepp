@@ -51,7 +51,7 @@ namespace dataverse {
     /// <exception cref="std::system_error">If the conversion failed.
     /// </exception>
     extern std::size_t DATAVERSE_API convert(
-        _Out_writes_to_opt_(cnt_dst, return) char16_t *dst,
+        _Out_writes_to_opt_(cnt_dst, return) wchar_t *dst,
         _In_ const std::size_t cnt_dst,
         _In_reads_or_z_(cnt_src) const char *src,
         _In_ const std::size_t cnt_src,
@@ -74,45 +74,12 @@ namespace dataverse {
     /// <exception cref="std::system_error">If the conversion failed.
     /// </exception>
     inline std::size_t convert(
-            _Out_writes_to_opt_(cnt_dst, return) char16_t *dst,
+            _Out_writes_to_opt_(cnt_dst, return) wchar_t *dst,
             _In_ const std::size_t cnt_dst,
             _In_reads_or_z_(cnt_src) const char *src,
             _In_ const std::size_t cnt_src) {
         return convert(dst, cnt_dst, src, cnt_src, default_code_page);
     }
-
-#if (defined(__cplusplus) && (__cplusplus >= 202000))
-    /// <summary>
-    /// Converts a UTF-8 string intoe a UTF-16 string.
-    /// </summary>
-    /// <param name="dst">A buffer to receive the output that can hold at least
-    /// <paramref name="cnt_dst" /> characters. This can be <c>nullptr</c> if
-    /// <paramref name="cnt_dst" /> is zero.</param>
-    /// <param name="cnt_dst">The number of elements that can be stored to
-    /// <paramref name="dst" />.</param>
-    /// <param name="src">The source string.</param>
-    /// <param name="cnt_src">The length of the source string, which can be zero
-    /// if <paramref name="src" /> is null-terminated.</param>
-    /// <exception cref="std::invalid_argument">If <paramref name="src" /> is
-    /// <c>nullptr</c>.</exception>
-    /// <exception cref="std::system_error">If the conversion failed.
-    /// </exception>
-    inline  std::size_t convert(
-            _Out_writes_to_opt_(cnt_dst, return) char16_t *dst,
-            _In_ const std::size_t cnt_dst,
-            _In_reads_or_z_(cnt_src) const char8_t *src,
-            _In_ const std::size_t cnt_src) {
-#if defined(_WIN32)
-        return convert(dst, cnt_dst,
-            reinterpret_cast<const char *>(src), cnt_src,
-            CP_UTF8);
-#else /* defined(_WIN32) */
-        return convert(dst, cnt_dst,
-            reinterpret_cast<const char *>(src), cnt_src,
-            "UTF-8");
-#endif /* defined(_WIN32) */
-    }
-#endif /* (defined(__cplusplus) && (__cplusplus >= 202000)) */
 
     /// <summary>
     /// Converts a UTF-16 string to a string of the given encoding.
@@ -135,7 +102,7 @@ namespace dataverse {
     extern std::size_t DATAVERSE_API convert(
         _Out_writes_to_opt_(cnt_dst, return) char *dst,
         _In_ const std::size_t cnt_dst,
-        _In_reads_or_z_(cnt_src) const char16_t *src,
+        _In_reads_or_z_(cnt_src) const wchar_t *src,
         _In_ const std::size_t cnt_src,
         _In_ const code_page_type code_page);
 
@@ -160,33 +127,8 @@ namespace dataverse {
     extern std::size_t DATAVERSE_API convert(
         _Out_writes_to_opt_(cnt_dst, return) char *dst,
         _In_ const std::size_t cnt_dst,
-        _In_reads_or_z_(cnt_src) const char16_t *src,
+        _In_reads_or_z_(cnt_src) const wchar_t *src,
         _In_ const std::size_t cnt_src);
-
-#if (defined(__cplusplus) && (__cplusplus >= 202000))
-    /// <summary>
-    /// Converts a UTF-16 string into a UTF-8 string.
-    /// </summary>
-    /// <param name="dst">A buffer to receive the output that can hold at least
-    /// <paramref name="cnt_dst" /> characters. This can be <c>nullptr</c> if
-    /// <paramref name="cnt_dst" /> is zero.</param>
-    /// <param name="cnt_dst">The number of elements that can be stored to
-    /// <paramref name="dst" />.</param>
-    /// <param name="src">The source string.</param>
-    /// <param name="cnt_src">The length of the source string, which can be zero
-    /// if <paramref name="src" /> is null-terminated.</param>
-    /// <returns>The number of characters required for the output string,
-    /// not including the terminating zero.</returns>
-    /// <exception cref="std::invalid_argument">If <paramref name="src" /> is
-    /// <c>nullptr</c>.</exception>
-    /// <exception cref="std::system_error">If the conversion failed.
-    /// </exception>
-    extern std::size_t DATAVERSE_API convert(
-        _Out_writes_to_opt_(cnt_dst, return) char8_t *dst,
-        _In_ const std::size_t cnt_dst,
-        _In_reads_or_z_(cnt_src) const char16_t *src,
-        _In_ const std::size_t cnt_src);
-#endif /* (defined(__cplusplus) && (__cplusplus >= 202000)) */
 
     /// <summary>
     /// Converts a C-style string into an STL string.
@@ -349,7 +291,7 @@ namespace dataverse {
     /// <c>nullptr</c>.</exception>
     /// <exception cref="std::system_error">If the conversion failed.
     /// </exception>
-    inline std::string to_ascii(_In_z_ const char16_t *src) {
+    inline std::string to_ascii(_In_z_ const wchar_t *src) {
 #if defined(_WIN32)
         return convert<char>(src, CP_ACP);
 #else /* defined(_WIN32) */
@@ -387,9 +329,9 @@ namespace dataverse {
     inline std::string to_ansi(_In_z_ const char *src,
             _In_ const code_page_type code_page) {
 #if defined(_WIN32)
-        return convert<char>(convert<char16_t>(src, code_page), CP_ACP);
+        return convert<char>(convert<wchar_t>(src, code_page), CP_ACP);
 #else /* defined(_WIN32) */
-        return convert<char>(convert<char16_t>(src, code_page), "CP1252");
+        return convert<char>(convert<wchar_t>(src, code_page), "CP1252");
 #endif /* defined(_WIN32) */
     }
 
@@ -404,9 +346,9 @@ namespace dataverse {
     /// </exception>
     inline std::string to_ansi(_In_z_ const char *src) {
 #if defined(_WIN32)
-        return convert<char>(convert<char16_t>(src, default_code_page), CP_ACP);
+        return convert<char>(convert<wchar_t>(src, default_code_page), CP_ACP);
 #else /* defined(_WIN32) */
-        return convert<char>(convert<char16_t>(src, default_code_page),
+        return convert<char>(convert<wchar_t>(src, default_code_page),
             "CP1252");
 #endif /* defined(_WIN32) */
     }
@@ -420,7 +362,7 @@ namespace dataverse {
     /// <c>nullptr</c>.</exception>
     /// <exception cref="std::system_error">If the conversion failed.
     /// </exception>
-    inline std::string to_ansi(_In_z_ const char16_t *src) {
+    inline std::string to_ansi(_In_z_ const wchar_t *src) {
 #if defined(_WIN32)
         return convert<char>(src, CP_ACP);
 #else /* defined(_WIN32) */
@@ -452,7 +394,7 @@ namespace dataverse {
     inline std::string to_utf8(_In_z_ const char *src,
             _In_ const code_page_type code_page) {
 #if defined(_WIN32)
-        return convert<char>(convert<char16_t>(src, code_page), CP_UTF8);
+        return convert<char>(convert<wchar_t>(src, code_page), CP_UTF8);
 #else /* defined(_WIN32) */
         return convert<char>(src);
 #endif /* defined(_WIN32) */
@@ -466,7 +408,7 @@ namespace dataverse {
     /// <returns></returns>
     inline std::string to_utf8(_In_z_ const char *src) {
 #if defined(_WIN32)
-        return convert<char>(convert<char16_t>(src, CP_OEMCP), CP_UTF8);
+        return convert<char>(convert<wchar_t>(src, default_code_page), CP_UTF8);
 #else /* defined(_WIN32) */
         return convert<char>(src);
 #endif /* defined(_WIN32) */
@@ -477,7 +419,7 @@ namespace dataverse {
     /// </summary>
     /// <param name="src"></param>
     /// <returns></returns>
-    inline std::string to_utf8(_In_z_ const char16_t *src) {
+    inline std::string to_utf8(_In_z_ const wchar_t *src) {
 #if defined(_WIN32)
         return convert<char>(src, CP_UTF8);
 #else /* defined(_WIN32) */

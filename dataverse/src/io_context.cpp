@@ -53,17 +53,6 @@ visus::dataverse::detail::io_context::~io_context(void) noexcept {
 
 
 /*
- * visus::dataverse::detail::io_context::invoke_on_disconnected
- */
-void visus::dataverse::detail::io_context::invoke_on_disconnected(
-        _In_ dataverse_connection *connection) {
-    if (this->on_disconnected != nullptr) {
-        this->on_disconnected(connection, this);
-    }
-}
-
-
-/*
  * visus::dataverse::detail::io_context::invoke_on_failed
  */
 void visus::dataverse::detail::io_context::invoke_on_failed(

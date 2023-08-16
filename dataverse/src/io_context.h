@@ -72,12 +72,6 @@ namespace detail {
         void *client_data;
 
         /// <summary>
-        /// The handler to be invoked if a graceful disconnect was detected.
-        /// </summary>
-        std::function<void(_In_ dataverse_connection *,
-            _In_ io_context *)> on_disconnected;
-
-        /// <summary>
         /// The user-defined handler to be invoked in case of an I/O error.
         /// </summary>
         std::function<void(_In_ dataverse_connection *,
@@ -127,11 +121,6 @@ namespace detail {
         /// Finalises the instance.
         /// </summary>
         ~io_context(void) noexcept;
-
-        /// <summary>
-        /// Invoke <see cref="on_disconnected" /> if it is set.
-        /// </summary>
-        void invoke_on_disconnected(_In_ dataverse_connection *connection);
 
         /// <summary>
         /// Invoke <see cref="on_failed" /> if it is set.

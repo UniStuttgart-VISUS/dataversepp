@@ -38,7 +38,7 @@ const visus::dataverse::code_page_type visus::dataverse::default_code_page
  * visus::dataverse::convert
  */
 std::size_t visus::dataverse::convert(
-        _Out_writes_to_opt_(cnt_dst, return) char16_t *dst,
+        _Out_writes_to_opt_(cnt_dst, return) wchar_t *dst,
         _In_ const std::size_t cnt_dst,
         _In_reads_or_z_(cnt_src) const char *src,
         _In_ const std::size_t cnt_src,
@@ -53,7 +53,7 @@ std::size_t visus::dataverse::convert(
         auto s = (cnt_src > 0) ? static_cast<int>(cnt_src) : -1;
         auto retval = ::MultiByteToWideChar(code_page, 0,
             src, s,
-            reinterpret_cast<wchar_t *>(dst), static_cast<int>(cnt_dst));
+            dst, static_cast<int>(cnt_dst));
 
         if (retval <= 0) {
             auto error = ::GetLastError();
@@ -79,7 +79,7 @@ std::size_t visus::dataverse::convert(
 std::size_t visus::dataverse::convert(
         _Out_writes_to_opt_(cnt_dst, return) char *dst,
         _In_ const std::size_t cnt_dst,
-        _In_reads_or_z_(cnt_src) const char16_t *src,
+        _In_reads_or_z_(cnt_src) const wchar_t *src,
         _In_ const std::size_t cnt_src,
         _In_ const code_page_type code_page) {
     // Sanity checks.
@@ -96,7 +96,7 @@ std::size_t visus::dataverse::convert(
         auto s = (cnt_src > 0) ? static_cast<int>(cnt_src) : -1;
 
         auto retval = ::WideCharToMultiByte(code_page, 0,
-            reinterpret_cast<const wchar_t *>(src), s,
+            src, s,
             dst, static_cast<int>(cnt_dst),
             nullptr, r);
 
@@ -128,7 +128,7 @@ std::size_t visus::dataverse::convert(
 std::size_t visus::dataverse::convert(
         _Out_writes_to_opt_(cnt_dst, return) char *dst,
         _In_ const std::size_t cnt_dst,
-        _In_reads_or_z_(cnt_src) const char16_t *src,
+        _In_reads_or_z_(cnt_src) const wchar_t *src,
         _In_ const std::size_t cnt_src) {
 #if defined(_WIN32)
     return convert(dst, cnt_dst, src, cnt_src, CP_ACP);
@@ -136,25 +136,6 @@ std::size_t visus::dataverse::convert(
     throw "TODO: implement convert for linux";
 #endif /* defined(_WIN32) */
 }
-
-
-#if (defined(__cplusplus) && (__cplusplus >= 202000))
-/*
- * visus::dataverse::convert
- */
-std::size_t visus::dataverse::convert(
-        _Out_writes_to_opt_(cnt_dst, return) char8_t *dst,
-        _In_ const std::size_t cnt_dst,
-        _In_reads_or_z_(cnt_src) const char16_t *src,
-        _In_ const std::size_t cnt_src) {
-#if defined(_WIN32)
-    return convert(reinterpret_cast<char *>(dst), cnt_dst, src, cnt_src,
-        CP_UTF8);
-#else /* defined(_WIN32) */
-    throw "TODO: implement convert for linux";
-#endif /* defined(_WIN32) */
-}
-#endif /* (defined(__cplusplus) && (__cplusplus >= 202000)) */
 
 
 /*
