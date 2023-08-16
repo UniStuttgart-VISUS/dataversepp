@@ -43,7 +43,7 @@ namespace dataverse {
 
         dataverse_connection& base_path(_In_opt_z_ const char_type *base_path);
 
-        void connect(_In_z_ const char_type *host,
+        dataverse_connection& connect(_In_z_ const char_type *host,
             _In_ const std::uint16_t port,
             _In_ const bool tls = true);
 

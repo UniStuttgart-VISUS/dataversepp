@@ -22,8 +22,8 @@ int main() {
     try {
 
         dataverse_connection c;
-        c.connect(DVSL("darus.uni-stuttgart.de"), 443);
-        auto response = c.get(DVSL("/"));
+        c.connect(DVSL("darus.uni-stuttgart.de"), 443).api_key(L"").base_path(L"/api");
+        auto response = c.get(DVSL("/dataverses/tr161"));
 
         std::cout << std::string(response.as<char>(), response.size()) << std::endl;
 

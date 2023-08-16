@@ -57,8 +57,9 @@ visus::dataverse::dataverse_connection::api_key(
 
     if (api_key != nullptr) {
         const auto len = std::char_traits<char_type>::length(api_key);
-        i.api_key.resize(len);
+        i.api_key.resize(len + 1);
         std::copy(api_key, api_key + len, i.api_key.begin());
+        i.api_key.back() = static_cast<char_type>(0);
     } else {
         this->_impl->api_key.clear();
     }
@@ -88,7 +89,8 @@ visus::dataverse::dataverse_connection::base_path(
 /*
  * visus::dataverse::dataverse_connection::connect
  */
-void visus::dataverse::dataverse_connection::connect(
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::connect(
         _In_z_ const char_type *host,
         _In_ const std::uint16_t port,
         _In_ const bool tls) {
@@ -121,6 +123,7 @@ void visus::dataverse::dataverse_connection::connect(
 #endif /* defined(_WIN32) */
 
     i.tls = tls;
+    return *this;
 }
 
 
@@ -146,6 +149,13 @@ visus::dataverse::blob visus::dataverse::dataverse_connection::get(
         flags |= INTERNET_FLAG_SECURE;
     }
 
+    std::wstring headers;
+    if (!i.api_key.empty()) {
+        headers += L"X-Dataverse-key: ";
+        headers += i.api_key.data();
+        headers += L"\r\n";
+    }
+
     // Post the request.
     ::OutputDebugString((L"GET " + resource_name + L"\r\n").c_str());
     wil::unique_hinternet request(::HttpOpenRequestW(
@@ -161,7 +171,11 @@ visus::dataverse::blob visus::dataverse::dataverse_connection::get(
         throw std::system_error(::GetLastError(), detail::wininet_category());
     }
 
-    if (!::HttpSendRequestW(request.get(), nullptr, 0, nullptr, context)) {
+    if (!::HttpSendRequestW(request.get(),
+            headers.data(),
+            static_cast<DWORD>(headers.size()),
+            nullptr,
+            context)) {
         throw std::system_error(::GetLastError(), detail::wininet_category());
     }
 
