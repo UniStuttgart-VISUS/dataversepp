@@ -15,6 +15,7 @@
 
 #if !defined(_WIN32)
 #define ERROR_INVALID_HANDLE (EFAULT)
+#define ERROR_INVALID_STATE (ENOTRECOVERABLE)
 #define ERROR_OUTOFMEMORY (ENOMEM)
 #define ERROR_SUCCESS (0)
 #endif /* !defined(_WIN32) */

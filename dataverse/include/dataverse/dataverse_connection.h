@@ -5,22 +5,20 @@
 
 #pragma once
 
-#include <algorithm>
-#include <future>
+#if defined(_WIN32)
+#include <WinSock2.h>
+#include <Windows.h>
+#endif /* defined(_WIN32) */
 
-#include "dataverse/socket.h"
-#include "dataverse/http_response.h"
-#include "dataverse/event.h"
+#include "dataverse/blob.h"
+#include "dataverse/types.h"
 
 
 namespace visus {
 namespace dataverse {
 
     /* Forward declarations. */
-    namespace detail { class io_completion_port; }
-    namespace detail { class io_context; }
-    namespace detail { class tls_context; }
-    class dataverse_connection;
+    namespace detail { class dataverse_connection_impl; }
 
     /// <summary>
     /// Represents a TCP/IP connection to the DataVerse API, which is basically a
@@ -33,146 +31,36 @@ namespace dataverse {
 
     public:
 
-        /// <summary>
-        /// The handler to be invoked if a graceful disconnect was detected.
-        /// </summary>
-        typedef void (*disconnect_handler)(_In_ dataverse_connection *,
-            _In_opt_ void *);
-
-        /// <summary>
-        /// The callback to be invoked if an asynchronous network operation
-        /// failed.
-        /// </summary>
-        typedef void (*error_handler)(_In_ dataverse_connection *,
-            _In_ const int, _In_ const char *, _In_opt_ void *);
-
-        /// <summary>
-        /// The callback to be invoked if an asynchronous receive operation
-        /// completed successfully.
-        /// </summary>
-        typedef void (*response_handler)(_In_ dataverse_connection *,
-            _In_ const http_response&, _In_opt_ void *);
+        typedef blob::byte_type byte_type;
 
         dataverse_connection(void);
 
-        dataverse_connection(const dataverse_connection&) = delete;
-
-        dataverse_connection(dataverse_connection&&) = delete;
+        dataverse_connection(_Inout_ dataverse_connection&& rhs) noexcept;
 
         ~dataverse_connection(void);
 
-        /// <summary>
-        /// Gets the size of the receive buffer.
-        /// </summary>
-        /// <param name=""></param>
-        /// <returns></returns>
-        inline std::size_t buffer_size(void) const noexcept {
-            return this->_buffer_size;
-        }
+        dataverse_connection& api_key(_In_opt_z_ const char_type *api_key);
 
-        /// <summary>
-        /// Sets the size of the receive buffer in bytes.
-        /// </summary>
-        /// <param name="buffer_size"></param>
-        /// <returns><c>*this</c>.</returns>
-        inline dataverse_connection& buffer_size(
-                _In_ const std::size_t buffer_size) noexcept {
-            constexpr auto min_buffer = static_cast<std::size_t>(512);
-            this->_buffer_size = (std::max)(buffer_size, min_buffer);
-            return *this;
-        }
-
-        void connect(_In_reads_bytes_(length) const sockaddr *address,
-            _In_ const std::size_t length,
-            _In_ const bool tls = true);
+        dataverse_connection& base_path(_In_opt_z_ const char_type *base_path);
 
         void connect(_In_z_ const char_type *host,
             _In_ const std::uint16_t port,
             _In_ const bool tls = true);
 
-        //void connect(_In_z_ const char_type *url);
 
-        void get(_In_z_ const char *request,
-            _In_ response_handler on_response,
-            _In_opt_ error_handler on_error = nullptr,
-            _In_opt_ disconnect_handler on_disconnected = nullptr,
-            _In_opt_ void *context = nullptr);
+        blob get(_In_z_ const char_type *resource,
+            _In_opt_z_ const char_type *version = DVSL("1.0"));
 
-        //inline std::future<http_response> get(_In_z_ const char *request) {
-        //    this->get(request, [])
-        //}
-
-        void disconnect(void);
-
-        dataverse_connection& operator =(const dataverse_connection&) = delete;
-
-        dataverse_connection& operator =(dataverse_connection&&) = delete;
+        dataverse_connection& operator =(
+            _Inout_ dataverse_connection&& rhs) noexcept;
 
     private:
 
-        std::size_t _buffer_size;
-        detail::socket _socket;
-        detail::tls_context *_tls;
+        detail::dataverse_connection_impl& check_not_disposed(void) const;
 
-        // Allow the completion port access to the socket.
-        friend class visus::dataverse::detail::io_completion_port;
+        detail::dataverse_connection_impl *_impl;
 
     };
 
 } /* namespace dataverse */
 } /* namespace visus */
-
-
-  //    /// <summary>
-//    /// 
-//    /// </summary>
-//    /// <param name="address"></param>
-//    /// <param name="length"></param>
-//    /// <returns></returns>
-//DATAVERSE_EXTERN system_error_code DATAVERSE_API dataverse_connect(
-//    _Out_ dataverse_connection **dst,
-//    _In_reads_bytes_(length) sockaddr *address,
-//    _In_ const std::size_t length);
-//
-///// <summary>
-///// 
-///// </summary>
-///// <param name="connection"></param>
-///// <returns></returns>
-//DATAVERSE_EXTERN system_error_code DATAVERSE_API dataverse_disconnect(
-//    _In_ dataverse_connection *connection);
-//
-///// <summary>
-///// 
-///// </summary>
-///// <param name="connection"></param>
-///// <param name="dst"></param>
-///// <param name="cnt"></param>
-///// <param name="on_received"></param>
-///// <param name="on_failed"></param>
-///// <param name="context"></param>
-///// <returns></returns>
-//DATAVERSE_EXTERN system_error_code DATAVERSE_API dataverse_receive(
-//    _In_ dataverse_connection *connection,
-//    _In_ const std::size_t cnt,
-//    _In_ const network_received_handler on_received,
-//    _In_ const network_failed_handler on_failed,
-//    _In_opt_ void *context);
-//
-///// <summary>
-///// 
-///// </summary>
-///// <param name="connection"></param>
-///// <param name="src"></param>
-///// <param name="cnt"></param>
-///// <param name="on_sent"></param>
-///// <param name="on_failed"></param>
-///// <param name="context"></param>
-///// <returns></returns>
-//DATAVERSE_EXTERN system_error_code DATAVERSE_API dataverse_send(
-//    _In_ dataverse_connection *connection,
-//    _In_reads_bytes_(cnt) const std::uint8_t *src,
-//    _In_ const std::size_t cnt,
-//    _In_ const network_sent_handler on_sent,
-//    _In_ const network_failed_handler on_failed,
-//    _In_opt_ void *context);

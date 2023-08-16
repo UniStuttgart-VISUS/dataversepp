@@ -4,7 +4,6 @@
 // <author>Christoph Müller</author>
 
 #include "dataverse/dataverse_connection.h"
-#include "dataverse/winsock_scope.h"
 
 #include <iostream>
 
@@ -21,17 +20,14 @@ int main() {
 #endif /* (defined(DEBUG) || defined(_DEBUG)) */
 
     try {
-        winsock_scope w;
-
-        auto e = create_event();
 
         dataverse_connection c;
-        c.connect(DVSL("www.visus.uni-stuttgart.de"), 443, true);
-        c.get("/", [](_In_ dataverse_connection *, _In_ const http_response&, _In_opt_ void *e) {
-            set_event(*reinterpret_cast<event_type *>(e));
-        }, nullptr, nullptr, &e);
+        c.connect(DVSL("darus.uni-stuttgart.de"), 443);
+        auto response = c.get(DVSL("/"));
 
-        wait_event(e);
+        std::cout << std::string(response.as<char>(), response.size()) << std::endl;
+
+        //wait_event(e);
 
         return 0;
     } catch (std::exception& ex) {

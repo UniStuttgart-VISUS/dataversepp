@@ -42,7 +42,7 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE WIL)
 
 if (WIN32)
-    target_link_libraries(${PROJECT_NAME} PUBLIC Ws2_32 Secur32)
+    target_link_libraries(${PROJECT_NAME} PUBLIC WinInet)
 else ()
     find_package(Threads REQUIRED)
     find_package(ICU REQUIRED)

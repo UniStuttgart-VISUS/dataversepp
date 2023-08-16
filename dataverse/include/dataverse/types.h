@@ -8,12 +8,6 @@
 #include <cinttypes>
 #include <cstdlib>
 
-#if defined(_WIN32)
-#include <WinSock2.h>
-#include <Windows.h>
-#include <tchar.h>
-#endif /* defined(_WIN32) */
-
 
 namespace visus {
 namespace dataverse {
@@ -23,30 +17,12 @@ namespace dataverse {
     /// The type of a character.
     /// </summary>
     typedef wchar_t char_type;
-
-    /// <summary>
-    /// The type of a native API error code.
-    /// </summary>
-    typedef DWORD system_error_code;
-
 #else /* defined(_WIN32) */
     typedef char char_type;
-
-    typedef int system_error_code;
 #endif /* defined(_WIN32) */
 
 } /* namespace dataverse */
 } /* namespace visus */
-
-
-#if (defined(__cplusplus) && (__cplusplus >= 202000))
-/// <summary>
-/// Defines a UTF-8 string literal.
-/// </summary>
-#define DATAVERSE_UTF8_LITERAL(s) u8##s
-#else /* (defined(__cplusplus) && (__cplusplus >= 202000)) */
-#define DATAVERSE_UTF8_LITERAL(s) s
-#endif /* (defined(__cplusplus) && (__cplusplus >= 202000)) */
 
 
 #if defined(_WIN32)

@@ -12,8 +12,6 @@
 #include "dataverse/dataverse_connection.h"
 #include "dataverse/types.h"
 
-#include "io_operation.h"
-
 
 
 namespace visus {

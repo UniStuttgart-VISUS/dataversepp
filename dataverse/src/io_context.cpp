@@ -1,4 +1,5 @@
-﻿// <copyright file="io_context.cpp" company="Visualisierungsinstitut der Universität Stuttgart">
+﻿#if 0
+// <copyright file="io_context.cpp" company="Visualisierungsinstitut der Universität Stuttgart">
 // Copyright © 2023 Visualisierungsinstitut der Universität Stuttgart. Alle Rechte vorbehalten.
 // </copyright>
 // <author>Christoph Müller</author>
@@ -155,3 +156,4 @@ const std::uint8_t *visus::dataverse::detail::io_context::payload(
         ? reinterpret_cast<const std::uint8_t *>(this + 1)
         : nullptr;
 }
+#endif

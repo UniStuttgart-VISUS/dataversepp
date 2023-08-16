@@ -10,6 +10,10 @@
 #include <string>
 #include <vector>
 
+#if defined(_WIN32)
+#include <Windows.h>
+#endif /* defined(_WIN32) */
+
 #include "dataverse/api.h"
 #include "dataverse/types.h"
 
