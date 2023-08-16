@@ -62,21 +62,6 @@ namespace detail {
 
     private:
 
-        static void on_network_disconnected(
-            _In_ dataverse_connection *connection,
-            _In_opt_ io_context *context);
-
-        static void on_network_failed(_In_ dataverse_connection *connection,
-            _In_ const std::system_error& error,
-            _In_opt_ io_context *context);
-
-        static void on_network_received(_In_ dataverse_connection *connection,
-            _In_ const std::size_t cnt,
-            _In_opt_ io_context *context);
-
-        static void on_network_sent(_In_ dataverse_connection *connection,
-            _In_opt_ io_context *context);
-
 #if defined(_WIN32)
         static const DWORD default_flags;
 #endif /* defined(_WIN32) */
@@ -95,17 +80,32 @@ namespace detail {
 #endif /* defined(_WIN32) */
 
 #if defined(_WIN32)
-        void handshake(_In_ dataverse_connection *connection,
-            _In_opt_ const void *input = nullptr,
-            _In_ const std::size_t cnt = 0);
-#endif /* defined(_WIN32) */
-
-#if defined(_WIN32)
         /// <summary>
         /// Releases <see cref="_output_buffer" /> if it is valid.
         /// </summary>
         void free_output_buffer(void);
 #endif /* defined(_WIN32) */
+
+#if defined(_WIN32)
+        void handshake(_In_ dataverse_connection *connection,
+            _In_opt_ const void *input = nullptr,
+            _In_ const std::size_t cnt = 0);
+#endif /* defined(_WIN32) */
+
+        void on_network_disconnected(
+            _In_ dataverse_connection *connection,
+            _In_opt_ io_context *context);
+
+        void on_network_failed(_In_ dataverse_connection *connection,
+            _In_ const std::system_error &error,
+            _In_opt_ io_context *context);
+
+        std::size_t on_network_received(_In_ dataverse_connection *connection,
+            _In_ const std::size_t cnt,
+            _In_opt_ io_context *context);
+
+        void on_network_sent(_In_ dataverse_connection *connection,
+            _In_opt_ io_context *context);
 
 #if defined(_WIN32)
         tls_context::security_context_type _context;

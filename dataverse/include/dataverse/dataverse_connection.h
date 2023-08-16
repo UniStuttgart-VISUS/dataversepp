@@ -6,6 +6,7 @@
 #pragma once
 
 #include <algorithm>
+#include <functional>
 
 #include "dataverse/socket.h"
 

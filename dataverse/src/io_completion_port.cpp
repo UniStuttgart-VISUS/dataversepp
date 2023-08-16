@@ -57,19 +57,15 @@ void visus::dataverse::detail::io_completion_port::associate(
  */
 visus::dataverse::detail::io_completion_port::context_type
 visus::dataverse::detail::io_completion_port::context(
-        _In_ const io_operation operation,
         _In_ const std::size_t size,
         _In_ const decltype(io_context::on_failed) on_failed,
         _In_ const decltype(io_context::on_disconnected) on_disconnected,
-        _In_opt_ void *library_context,
-        _In_opt_ void *client_context) {
+        _In_opt_ void *client_data) {
     auto retval = this->context(size);
     assert(retval->size >= size);
-    retval->operation = operation;
     retval->on_failed = on_failed;
     retval->on_disconnected = on_disconnected;
-    retval->client_data = client_context;
-    retval->library_data = library_context;
+    retval->client_data = client_data;
     return retval;
 }
 
@@ -134,19 +130,16 @@ void visus::dataverse::detail::io_completion_port::receive(
 void visus::dataverse::detail::io_completion_port::receive(
         _In_ dataverse_connection *connection,
         _In_ const std::size_t size,
-        _In_ const decltype(io_context::on_succeded.received) on_received,
+        _In_ const decltype(io_context::on_received) on_received,
         _In_ const decltype(io_context::on_failed) on_failed,
         _In_ const decltype(io_context::on_disconnected) on_disconnected,
-        _In_opt_ void *library_context,
-        _In_opt_ void *client_context) {
+        _In_opt_ void *client_data) {
     assert(connection != nullptr);
-    auto ctx = this->context(io_operation::receive,
-        size,
+    auto ctx = this->context(size,
         on_failed,
         on_disconnected,
-        library_context,
-        client_context);
-    ctx->on_succeded.received = on_received;
+        client_data);
+    ctx->operation_receive(on_received);
     this->receive(connection, std::move(ctx));
 }
 
@@ -209,19 +202,16 @@ void visus::dataverse::detail::io_completion_port::send(
         _In_ dataverse_connection *connection,
         _In_reads_bytes_(size) const void *data,
         _In_ const std::size_t size,
-        _In_ const decltype(io_context::on_succeded.sent) on_sent,
+        _In_ const decltype(io_context::on_sent) on_sent,
         _In_ const decltype(io_context::on_failed) on_failed,
         _In_ const decltype(io_context::on_disconnected) on_disconnected,
-        _In_opt_ void *library_context,
-        _In_opt_ void *client_context) {
+        _In_opt_ void *client_data) {
     assert(connection != nullptr);
-    auto ctx = this->context(io_operation::send,
-        size,
+    auto ctx = this->context(size,
         on_failed,
         on_disconnected,
-        library_context,
-        client_context);
-    ctx->on_succeded.sent = on_sent;
+        client_data);
+    ctx->operation_send(on_sent);
     ::memcpy(ctx->payload(), data, size);
     this->send(connection, std::move(ctx));
 }
@@ -382,8 +372,21 @@ void visus::dataverse::detail::io_completion_port::pool_thread(void) {
                         if (transferred == 0) {
                             context->invoke_on_disconnected(connection);
                         } else {
-                            context->invoke_on_received(connection,
+                            auto cnt = context->invoke_on_received(connection,
                                 transferred);
+                            if (cnt > 0) {
+                                // The callback requested a follow-up receive.
+                                try {
+                                    this->receive(connection,
+                                        cnt,
+                                        context->on_received,
+                                        context->on_failed,
+                                        context->on_disconnected,
+                                        context->client_data);
+                                } catch (std::system_error ex) {
+                                    context->invoke_on_failed(connection, ex);
+                                }
+                            }
                         }
                         break;
 

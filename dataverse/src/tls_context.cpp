@@ -86,11 +86,10 @@ void visus::dataverse::detail::tls_context::send(
         _In_ dataverse_connection *connection,
         _In_reads_bytes_(size) const void *data,
         _In_ const std::size_t size,
-        _In_ const decltype(io_context::on_succeded.sent) on_sent,
+        _In_ const decltype(io_context::on_sent) on_sent,
         _In_ const decltype(io_context::on_failed) on_failed,
         _In_ const decltype(io_context::on_disconnected) on_disconnected,
-        _In_opt_ void *library_context,
-        _In_opt_ void *client_context) {
+        _In_opt_ void *client_data) {
     assert(connection != nullptr);
     assert(data != nullptr);
     assert(size <= ULONG_MAX);
@@ -100,13 +99,12 @@ void visus::dataverse::detail::tls_context::send(
 
     while (rem > 0) {
         auto payload = (std::min)(rem, this->_sizes.cbMaximumMessage);
-        auto packet = ioc.context(io_operation::send,
+        auto packet = ioc.context(
             this->_sizes.cbHeader + payload + this->_sizes.cbTrailer,
             on_failed,
             on_disconnected,
-            library_context,
-            client_context);
-        packet->on_succeded.sent = on_sent;
+            client_data);
+        packet->operation_send(on_sent);
 
         // Cf. https://gist.github.com/mmozeiko/c0dfcc8fec527a90a02145d2cc0bfb6d
         SecBuffer buffers[3];

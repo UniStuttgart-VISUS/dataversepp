@@ -122,11 +122,10 @@ namespace detail {
         void send(_In_ dataverse_connection *connection,
             _In_reads_bytes_(size) const void *data,
             _In_ const std::size_t size,
-            _In_ const decltype(io_context::on_succeded.sent) on_sent,
+            _In_ const decltype(io_context::on_sent) on_sent,
             _In_ const decltype(io_context::on_failed) on_failed,
             _In_ const decltype(io_context::on_disconnected) on_disconnected,
-            _In_opt_ void *library_context,
-            _In_opt_ void *client_context);
+            _In_opt_ void *client_data);
 
         /// <summary>
         /// Send a TLS shudown notification via the given connection.

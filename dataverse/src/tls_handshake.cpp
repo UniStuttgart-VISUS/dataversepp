@@ -119,82 +119,6 @@ visus::dataverse::detail::tls_handshake::operator ()(
 }
 
 
-/*
- * visus::dataverse::detail::tls_handshake::on_network_disconnected
- */
-void visus::dataverse::detail::tls_handshake::on_network_disconnected(
-        _In_ dataverse_connection *connection,
-        _In_ io_context *context) {
-    auto that = static_cast<tls_handshake *>(context->library_data);
-    try {
-        // TODO: linux
-#if (defined(_WIN32) && (defined(DEBUG) || defined(_DEBUG)))
-        ::OutputDebugStringW(L"Server disconnected during TLS handshake.\r\n");
-#endif /* (defined(_WIN32) && (defined(DEBUG) || defined(_DEBUG))) */
-        throw std::system_error(WSAEDISCON, std::system_category());
-    } catch (...) {
-        std::lock_guard<decltype(that->_lock)> l(that->_lock);
-        that->_promise.set_exception(std::current_exception());
-    }
-}
-
-
-/*
- * visus::dataverse::detail::tls_handshake::on_network_failed
- */
-void visus::dataverse::detail::tls_handshake::on_network_failed(
-        _In_ dataverse_connection *connection,
-        _In_ const std::system_error& error,
-        _In_opt_ io_context *context) {
-    auto that = static_cast<tls_handshake *>(context->library_data);
-    try {
-#if (defined(_WIN32) && (defined(DEBUG) || defined(_DEBUG)))
-        ::OutputDebugStringW(L"Communication error during TLS handshake.\r\n");
-#endif /* (defined(_WIN32) && (defined(DEBUG) || defined(_DEBUG))) */
-        throw error;
-    } catch (...) {
-        std::lock_guard<decltype(that->_lock)> l(that->_lock);
-        that->_promise.set_exception(std::current_exception());
-    }
-}
-
-
-/*
- * visus::dataverse::detail::tls_handshake::on_network_received
- */
-void visus::dataverse::detail::tls_handshake::on_network_received(
-        _In_ dataverse_connection *connection,
-        _In_ const std::size_t cnt,
-        _In_opt_ io_context *context) {
-    auto that = static_cast<tls_handshake *>(context->library_data);
-    try {
-#if defined(_WIN32)
-#if (defined(DEBUG) || defined(_DEBUG))
-        ::OutputDebugStringW(L"Received data for TLS handshake.\r\n");
-#endif /* (defined(DEBUG) || defined(_DEBUG)) */
-        std::lock_guard<decltype(that->_lock)> l(that->_lock);
-        that->handshake(connection, context->payload(), cnt);
-#endif /* defined(_WIN32) */
-    } catch (...) {
-        that->_promise.set_exception(std::current_exception());
-    }
-}
-
-
-/*
- * visus::dataverse::detail::tls_handshake::on_network_sent
- */
-void visus::dataverse::detail::tls_handshake::on_network_sent(
-        _In_ dataverse_connection *connection,
-        _In_opt_ io_context *context) {
-#if defined(_WIN32)
-#if (defined(DEBUG) || defined(_DEBUG))
-    ::OutputDebugStringW(L"Sent data for TLS handshake.\r\n");
-#endif /* (defined(DEBUG) || defined(_DEBUG)) */
-#endif /* defined(_WIN32) */
-}
-
-
 #if defined(_WIN32)
 /*
  * visus::dataverse::detail::tls_handshake::default_flags
@@ -406,6 +330,20 @@ SECURITY_STATUS visus::dataverse::detail::tls_handshake::create_client_context(
 }
 
 
+#if defined(_WIN32)
+/*
+ * visus::dataverse::detail::tls_handshake::free_output_buffer
+ */
+void visus::dataverse::detail::tls_handshake::free_output_buffer(void) {
+    if (this->_output_buffer.pvBuffer != nullptr) {
+        ::FreeContextBuffer(this->_output_buffer.pvBuffer);
+        this->_output_buffer.pvBuffer = nullptr;
+        this->_output_buffer.cbBuffer = 0;
+    }
+}
+#endif /* defined(_WIN32) */
+
+
 /*
  * visus::dataverse::detail::tls_handshake::handshake
  */
@@ -445,10 +383,16 @@ void visus::dataverse::detail::tls_handshake::handshake(
             io_completion_port::instance().send(connection,
                 this->_output_buffer.pvBuffer,
                 this->_output_buffer.cbBuffer,
-                &on_network_sent,
-                &on_network_failed,
-                &on_network_disconnected,
-                this);
+                std::bind(&tls_handshake::on_network_sent, this,
+                    std::placeholders::_1,
+                    std::placeholders::_2),
+                std::bind(&tls_handshake::on_network_failed, this,
+                    std::placeholders::_1,
+                    std::placeholders::_2,
+                    std::placeholders::_3),
+                std::bind(&tls_handshake::on_network_disconnected, this,
+                    std::placeholders::_1,
+                    std::placeholders::_2));
         }
 
         // Determine whether we need more input.
@@ -467,24 +411,95 @@ void visus::dataverse::detail::tls_handshake::handshake(
         ::OutputDebugStringW(L"Waiting for TLS handshake message.\r\n");
         io_completion_port::instance().receive(connection,
             max_packet_size,
-            &on_network_received,
-            &on_network_failed,
-            &on_network_disconnected,
-            this);
+            std::bind(&tls_handshake::on_network_received, this,
+                std::placeholders::_1,
+                std::placeholders::_2,
+                std::placeholders::_3),
+            std::bind(&tls_handshake::on_network_failed, this,
+                std::placeholders::_1,
+                std::placeholders::_2,
+                std::placeholders::_3),
+            std::bind(&tls_handshake::on_network_disconnected, this,
+                std::placeholders::_1,
+                std::placeholders::_2));
     }
 }
 #endif /* defined(_WIN32) */
 
 
-#if defined(_WIN32)
+
 /*
- * visus::dataverse::detail::tls_handshake::free_output_buffer
+ * visus::dataverse::detail::tls_handshake::on_network_disconnected
  */
-void visus::dataverse::detail::tls_handshake::free_output_buffer(void) {
-    if (this->_output_buffer.pvBuffer != nullptr) {
-        ::FreeContextBuffer(this->_output_buffer.pvBuffer);
-        this->_output_buffer.pvBuffer = nullptr;
-        this->_output_buffer.cbBuffer = 0;
+void visus::dataverse::detail::tls_handshake::on_network_disconnected(
+        _In_ dataverse_connection *connection,
+        _In_ io_context *context) {
+    try {
+        // TODO: linux
+#if defined(_WIN32)
+        ::OutputDebugStringW(L"Server disconnected during TLS handshake.\r\n");
+        throw std::system_error(WSAEDISCON, std::system_category());
+#else /* defined(_WIN32) */
+        throw std::system_error(ECONNABORTED, std::system_category());
+#endif /* defined(_WIN32) */
+    } catch (...) {
+        std::lock_guard<decltype(this->_lock)> l(this->_lock);
+        this->_promise.set_exception(std::current_exception());
     }
 }
+
+
+/*
+ * visus::dataverse::detail::tls_handshake::on_network_failed
+ */
+void visus::dataverse::detail::tls_handshake::on_network_failed(
+        _In_ dataverse_connection *connection,
+        _In_ const std::system_error& error,
+        _In_opt_ io_context *context) {
+    try {
+#if (defined(_WIN32) && (defined(DEBUG) || defined(_DEBUG)))
+        ::OutputDebugStringW(L"Communication error during TLS handshake.\r\n");
+#endif /* (defined(_WIN32) && (defined(DEBUG) || defined(_DEBUG))) */
+        throw error;
+    } catch (...) {
+        std::lock_guard<decltype(this->_lock)> l(this->_lock);
+        this->_promise.set_exception(std::current_exception());
+    }
+}
+
+
+/*
+ * visus::dataverse::detail::tls_handshake::on_network_received
+ */
+std::size_t visus::dataverse::detail::tls_handshake::on_network_received(
+        _In_ dataverse_connection *connection,
+        _In_ const std::size_t cnt,
+        _In_opt_ io_context *context) {
+    try {
+#if defined(_WIN32)
+#if (defined(DEBUG) || defined(_DEBUG))
+        ::OutputDebugStringW(L"Received data for TLS handshake.\r\n");
+#endif /* (defined(DEBUG) || defined(_DEBUG)) */
+        std::lock_guard<decltype(this->_lock)> l(this->_lock);
+        this->handshake(connection, context->payload(), cnt);
 #endif /* defined(_WIN32) */
+    } catch (...) {
+        this->_promise.set_exception(std::current_exception());
+    }
+
+    return 0;
+}
+
+
+/*
+ * visus::dataverse::detail::tls_handshake::on_network_sent
+ */
+void visus::dataverse::detail::tls_handshake::on_network_sent(
+        _In_ dataverse_connection *connection,
+        _In_opt_ io_context *context) {
+#if defined(_WIN32)
+#if (defined(DEBUG) || defined(_DEBUG))
+    ::OutputDebugStringW(L"Sent data for TLS handshake.\r\n");
+#endif /* (defined(DEBUG) || defined(_DEBUG)) */
+#endif /* defined(_WIN32) */
+}

@@ -23,45 +23,6 @@
 #include "tls_handshake.h"
 
 
-namespace visus {
-namespace dataverse {
-namespace detail {
-
-    static void disconnect_adapter(_In_ dataverse_connection *connection,
-            _In_ io_context *context) {
-        if (context->library_data != nullptr) {
-            auto h = static_cast<dataverse_connection::disconnect_handler>(
-                context->library_data);
-            h(connection, context->client_data);
-        }
-    }
-
-    static void error_adapter(_In_ dataverse_connection *connection,
-            _In_ const std::system_error& error,
-            _In_ io_context *context) {
-        if (context->library_data != nullptr) {
-            auto h = static_cast<dataverse_connection::error_handler>(
-                context->library_data);
-            h(connection, error.code().value(), error.what(),
-                context->client_data);
-        }
-    }
-
-    static void response_adapter(_In_ dataverse_connection *connection,
-            _In_ const std::size_t cnt,
-            _In_ io_context *context) {
-        if (context->library_data != nullptr) {
-            auto h = static_cast<dataverse_connection::response_handler>(
-                context->library_data);
-            h(connection, context->payload(), cnt, context->client_data);
-        }
-    }
-
-} /* namespace detail */
-} /* namespace dataverse */
-} /* namespace visus */
-
-
 /*
  * visus::dataverse::dataverse_connection::dataverse_connection
  */
