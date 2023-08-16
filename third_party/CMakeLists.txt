@@ -52,5 +52,12 @@ mark_as_advanced(FORCE
     JSON_SystemInclude)
 
 if (NOT WIN32)
+    # Open SSL
     find_package(OpenSSL REQUIRED)
+
+    # HTTP library
+    FetchContent_Declare(httplib
+        URL "https://github.com/yhirose/cpp-httplib/archive/refs/tags/v0.13.3.zip"
+    )
+    FetchContent_MakeAvailable(httplib)
 endif ()
