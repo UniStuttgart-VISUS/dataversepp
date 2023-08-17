@@ -22,24 +22,22 @@ const visus::dataverse::code_page_type visus::dataverse::default_code_page
 #endif /* defined(_WIN32) */
 
 
-#if defined(_WIN32)
-#include <Windows.h>
-#else /* defined(_WIN32) */
+#if !defined(_WIN32)
 #include <unicode/uchar.h>
 #include <unicode/ucnv.h>
 #include <unicode/unistr.h>
 #include <unicode/uloc.h>
 #include <unicode/utypes.h>
 #include <unicode/ustring.h>
-#endif /* defined(_WIN32) */
+#endif /* !defined(_WIN32) */
 
 
 /*
  * visus::dataverse::convert
  */
 std::size_t visus::dataverse::convert(
-        _Out_writes_to_opt_(cnt_dst, return) char16_t *dst,
-        _In_ const std::size_t cnt_dst,
+        _Out_writes_to_opt_(cnt_dst, return) wchar_t *dst,
+        _In_ std::size_t cnt_dst,
         _In_reads_or_z_(cnt_src) const char *src,
         _In_ const std::size_t cnt_src,
         _In_ const code_page_type code_page) {
@@ -50,10 +48,16 @@ std::size_t visus::dataverse::convert(
 
 #if defined(_WIN32)
     _try {
+        if (dst == nullptr) {
+            // Make sure that the output buffer size is zero if the output
+            // buffer is invalid, such that we get the required buffer size.
+            cnt_dst = 0;
+        }
+
         auto s = (cnt_src > 0) ? static_cast<int>(cnt_src) : -1;
         auto retval = ::MultiByteToWideChar(code_page, 0,
             src, s,
-            reinterpret_cast<wchar_t *>(dst), static_cast<int>(cnt_dst));
+            dst, static_cast<int>(cnt_dst));
 
         if (retval <= 0) {
             auto error = ::GetLastError();
@@ -78,8 +82,8 @@ std::size_t visus::dataverse::convert(
  */
 std::size_t visus::dataverse::convert(
         _Out_writes_to_opt_(cnt_dst, return) char *dst,
-        _In_ const std::size_t cnt_dst,
-        _In_reads_or_z_(cnt_src) const char16_t *src,
+        _In_ std::size_t cnt_dst,
+        _In_reads_or_z_(cnt_src) const wchar_t *src,
         _In_ const std::size_t cnt_src,
         _In_ const code_page_type code_page) {
     // Sanity checks.
@@ -89,14 +93,21 @@ std::size_t visus::dataverse::convert(
 
 #if defined(_WIN32)
     _try {
+        if (dst == nullptr) {
+            // Make sure that the output buffer size is zero if the output
+            // buffer is invalid, such that we get the required buffer size.
+            cnt_dst = 0;
+        }
+
         BOOL replacement = FALSE;
         auto r = ((code_page != CP_UTF7) && (code_page != CP_UTF8))
             ? &replacement
             : nullptr;
         auto s = (cnt_src > 0) ? static_cast<int>(cnt_src) : -1;
 
-        auto retval = ::WideCharToMultiByte(code_page, 0,
-            reinterpret_cast<const wchar_t *>(src), s,
+        auto retval = ::WideCharToMultiByte(code_page,
+            0,
+            src, s,
             dst, static_cast<int>(cnt_dst),
             nullptr, r);
 
@@ -123,38 +134,24 @@ std::size_t visus::dataverse::convert(
 
 
 /*
- * visus::dataverse::convert
+ * visus::dataverse::to_ascii
  */
-std::size_t visus::dataverse::convert(
+std::size_t DATAVERSE_API visus::dataverse::to_ascii(
         _Out_writes_to_opt_(cnt_dst, return) char *dst,
         _In_ const std::size_t cnt_dst,
-        _In_reads_or_z_(cnt_src) const char16_t *src,
-        _In_ const std::size_t cnt_src) {
-#if defined(_WIN32)
-    return convert(dst, cnt_dst, src, cnt_src, CP_ACP);
-#else /* defined(_WIN32) */
-    throw "TODO: implement convert for linux";
-#endif /* defined(_WIN32) */
-}
+        _In_reads_or_z_(cnt_src) const char *src,
+        _In_ const std::size_t cnt_src,
+        _In_ const code_page_type code_page) {
+    if (src == nullptr) {
+        throw std::invalid_argument("The string to convert cannot be null.");
+    }
 
+    // Simply check if any of the input characters exceeds the ASCII range.
+    const auto invalid = std::any_of(src, src + ::strlen(src),
+        [](const char c) {return (c > 127); });
 
-#if (defined(__cplusplus) && (__cplusplus >= 202000))
-/*
- * visus::dataverse::convert
- */
-std::size_t visus::dataverse::convert(
-        _Out_writes_to_opt_(cnt_dst, return) char8_t *dst,
-        _In_ const std::size_t cnt_dst,
-        _In_reads_or_z_(cnt_src) const char16_t *src,
-        _In_ const std::size_t cnt_src) {
-#if defined(_WIN32)
-    return convert(reinterpret_cast<char *>(dst), cnt_dst, src, cnt_src,
-        CP_UTF8);
-#else /* defined(_WIN32) */
-    throw "TODO: implement convert for linux";
-#endif /* defined(_WIN32) */
+    return convert(dst, cnt_dst, src, cnt_src, code_page);
 }
-#endif /* (defined(__cplusplus) && (__cplusplus >= 202000)) */
 
 
 /*
@@ -170,7 +167,7 @@ std::string visus::dataverse::to_ascii(_In_z_ const char *src,
     const auto invalid = std::any_of(src, src + ::strlen(src),
         [](const char c) {return (c > 127); });
     if (invalid) {
-        throw std::system_error(ERROR_INVALID_PARAMETER,
+        throw std::system_error(ERROR_NO_UNICODE_TRANSLATION,
             std::system_category());
     }
 
