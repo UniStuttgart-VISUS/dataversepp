@@ -57,20 +57,21 @@ visus::dataverse::detail::dataverse_connection_impl::dataverse_connection_impl(
 
 
 /*
- * visus::dataverse::detail::dataverse_connection_impl::make_headers
+ * visus::dataverse::detail::dataverse_connection_impl::add_auth_header
  */
 visus::dataverse::detail::dataverse_connection_impl::string_list_type
-visus::dataverse::detail::dataverse_connection_impl::make_headers(void) const {
-    auto retval = this->make_string_list();
-
+visus::dataverse::detail::dataverse_connection_impl::add_auth_header(
+        _In_opt_ string_list_type&& headers) const {
     if (!this->api_key.empty()) {
         static constexpr const char name[] = "X-Dataverse-key: ";
         std::vector<char> header(name, name + sizeof(name) - 1);
         header.insert(header.end(), this->api_key.begin(), this->api_key.end());
-        retval.reset(::curl_slist_append(retval.get(), header.data()));
+
+        headers.reset(::curl_slist_append(nullptr, header.data()));
+        secure_zero(header);
     }
 
-    return retval;
+    return std::move(headers);
 }
 
 

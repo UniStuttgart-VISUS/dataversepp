@@ -17,6 +17,60 @@
 #include "errors.h"
 
 
+#if defined(_WIN32)
+/*
+ * visus::dataverse::form_data::win32_read
+ */
+std::size_t CALLBACK visus::dataverse::form_data::win32_read(
+        _Out_writes_bytes_(cnt *size) char *dst,
+        _In_ const size_t size,
+        _In_ const size_t cnt,
+        _In_opt_ void *handle) {
+    auto h = reinterpret_cast<HANDLE>(handle);
+    auto c = static_cast<DWORD>(cnt * size);
+    DWORD retval = 0;
+
+    if (!::ReadFile(h, dst, c, &retval, nullptr)) {
+        return CURL_READFUNC_ABORT;
+    } else {
+        return retval;
+    }
+}
+#endif /* defined(_WIN32) */
+
+
+#if defined(_WIN32)
+/*
+ * visus::dataverse::form_data::win32_seek
+ */
+int CALLBACK visus::dataverse::form_data::win32_seek(_In_opt_ void *handle,
+        _In_ const std::streamoff offset,
+        _In_ const int origin) {
+    static_assert(SEEK_SET == FILE_BEGIN, "SEEK_SET matches FILE_BEGIN");
+    static_assert(SEEK_CUR == FILE_CURRENT, "SEEK_CUR matches FILE_CURRENT");
+    static_assert(SEEK_END == SEEK_END, "SEEK_SET matches FILE_END");
+    auto h = reinterpret_cast<HANDLE>(handle);
+
+    LARGE_INTEGER o;
+    o.QuadPart = offset;
+
+    return ::SetFilePointerEx(h, o, nullptr, origin)
+        ? CURL_SEEKFUNC_OK
+        : CURL_SEEKFUNC_FAIL;
+}
+#endif /* defined(_WIN32) */
+
+
+#if defined(_WIN32)
+/*
+ * visus::dataverse::form_data::win32_close
+ */
+void CALLBACK visus::dataverse::form_data::win32_close(_In_ void *handle) {
+    ::CloseHandle(reinterpret_cast<HANDLE>(handle));
+}
+#endif /* defined(_WIN32) */
+
+
 /*
  * visus::dataverse::form_data::form_data
  */
@@ -132,6 +186,43 @@ visus::dataverse::form_data& visus::dataverse::form_data::add_file(
     {
         auto v = to_utf8(path);
         auto status = ::curl_mime_filedata(field, v.c_str());
+        if (status != CURLE_OK) {
+            throw std::system_error(status, detail::curl_category());
+        }
+    }
+
+    return *this;
+}
+
+
+/*
+ * visus::dataverse::form_data::add_file
+ */
+visus::dataverse::form_data& visus::dataverse::form_data::add_file(
+        _In_z_ const char_type *name,
+        _In_ const std::size_t size,
+        _In_ on_read_type on_read,
+        _In_opt_ on_seek_type on_seek,
+        _In_opt_ on_close_type on_close,
+        _In_opt_ void *context) {
+    this->check_not_disposed();
+
+    auto field = ::curl_mime_addpart(this->_form);
+    if (field == nullptr) {
+        throw std::bad_alloc();
+    }
+
+    {
+        auto n = to_utf8(name);
+        auto status = ::curl_mime_name(field, n.c_str());
+        if (status != CURLE_OK) {
+            throw std::system_error(status, detail::curl_category());
+        }
+    }
+
+    {
+        auto status = ::curl_mime_data_cb(field, size, on_read, on_seek,
+            on_close, context);
         if (status != CURLE_OK) {
             throw std::system_error(status, detail::curl_category());
         }

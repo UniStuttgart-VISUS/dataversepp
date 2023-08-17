@@ -152,8 +152,8 @@ void visus::dataverse::detail::io_context::recycle(
  */
 std::size_t CALLBACK visus::dataverse::detail::io_context::write_response(
         _In_reads_bytes_(cnt *element_size) const void *data,
-        _In_ const std::size_t cnt,
         _In_ const std::size_t size,
+        _In_ const std::size_t cnt,
         _In_ void *context) {
     auto that = static_cast<io_context *>(context);
     const auto offset = that->response.size();
@@ -171,9 +171,7 @@ std::size_t CALLBACK visus::dataverse::detail::io_context::write_response(
  */
 visus::dataverse::detail::io_context::io_context(void)
     : client_data(nullptr),
-    curl(nullptr, &::curl_multi_cleanup),
-    headers(nullptr, &::curl_slist_free_all),
-    form(nullptr, &curl_mime_free) { }
+    curl(nullptr, &::curl_multi_cleanup) { }
 
 
 /*

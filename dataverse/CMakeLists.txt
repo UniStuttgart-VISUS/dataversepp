@@ -39,7 +39,7 @@ endif ()
 
 # Configure the linker.
 target_link_libraries(${PROJECT_NAME}
-    PRIVATE WIL)
+    PRIVATE WIL nlohmann_json)
 
 if (WIN32)
     target_link_libraries(${PROJECT_NAME} PUBLIC CURL::libcurl)

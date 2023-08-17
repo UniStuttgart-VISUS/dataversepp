@@ -11,13 +11,6 @@
 #include <system_error>
 #include <vector>
 
-#if defined(_WIN32)
-#include <WinSock2.h>
-#include <Windows.h>
-#else /* defined(_WIN32) */
-#define CALLBACK
-#endif /* defined(_WIN32) */
-
 #include "dataverse/blob.h"
 #include "dataverse/dataverse_connection.h"
 
@@ -48,8 +41,8 @@ namespace detail {
         /// </summary>
         static std::size_t CALLBACK write_response(
             _In_reads_bytes_(cnt *element_size) const void *data,
-            _In_ const std::size_t cnt,
             _In_ const std::size_t size,
+            _In_ const std::size_t cnt,
             _In_ void *context);
 
         /// <summary>
@@ -57,9 +50,10 @@ namespace detail {
         /// </summary>
         void *client_data;
 
+        /// <summary>
+        /// The library handle used for the connection.
+        /// </summary>
         dataverse_connection_impl::curlm_type curl;
-        dataverse_connection_impl::string_list_type headers;
-        dataverse_connection_impl::mime_type form;
 
         /// <summary>
         /// Receives the response from cURL.

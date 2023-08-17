@@ -7,6 +7,8 @@
 
 #include <iterator>
 
+#include <nlohmann/json.hpp>
+
 #include "dataverse/convert.h"
 
 #include "dataverse_connection_impl.h"
@@ -104,11 +106,10 @@ visus::dataverse::dataverse_connection::get(
     ::curl_easy_setopt(i.curl.get(), CURLOPT_URL, url.c_str());
     ::curl_easy_setopt(i.curl.get(), CURLOPT_WRITEDATA, c.get());
 
-    c->headers = i.make_headers();
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_HEADER, c->headers.get());
+    auto headers = i.add_auth_header();
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_HTTPHEADER, headers.get());
 
     auto status = ::curl_easy_perform(i.curl.get());
-    detail::dataverse_connection_impl::secure_zero(c->headers);
     if (status != CURLE_OK) {
         throw std::system_error(status, detail::curl_category());
     }
@@ -159,11 +160,10 @@ visus::dataverse::dataverse_connection::post(
     ::curl_easy_setopt(i.curl.get(), CURLOPT_WRITEDATA, c.get());
     ::curl_easy_setopt(i.curl.get(), CURLOPT_MIMEPOST, form._form);
 
-    c->headers = i.make_headers();
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_HEADER, c->headers.get());
+    auto headers = i.add_auth_header();
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_HTTPHEADER, headers.get());
 
     auto status = ::curl_easy_perform(i.curl.get());
-    detail::dataverse_connection_impl::secure_zero(c->headers);
     if (status != CURLE_OK) {
         throw std::system_error(status, detail::curl_category());
     }
@@ -172,6 +172,78 @@ visus::dataverse::dataverse_connection::post(
     detail::io_context::recycle(std::move(c));
 
     return *this;
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::upload
+ */
+visus::dataverse::dataverse_connection &
+visus::dataverse::dataverse_connection::upload(
+        _In_z_ const char_type *persistent_id,
+        _In_z_ const char_type *path,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto url = std::basic_string<char_type>(DVSL("/datasets/")
+        DVSL(":persistentId/add?persistentId=")) + persistent_id;
+    return this->post(url.c_str(),
+        this->make_form().add_file(DVSL("file"), path),
+        on_response,
+        on_error,
+        context);
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::upload
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::upload(
+        _In_z_ const char_type *persistent_id,
+        _In_z_ const char_type *path,
+        _In_z_ const char_type *description,
+        _In_z_ const char_type *directory,
+        const char_type **categories,
+        _In_ const std::size_t cnt_categories,
+        _In_ const bool restricted,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto url = std::basic_string<char_type>(DVSL("/datasets/")
+        DVSL(":persistentId/add?persistentId=")) + persistent_id;
+
+    // Note: It is important to pass all JSON input through to_utf8, because in
+    // contrast to the beliefs of MegaMol authors, char * is not necessarily
+    // UTF-8, but might use a different code page, specifically when using
+    // hard-coded string literals. This makes the whole thing explode if anyone
+    // passes anything but 7-bit ASCII as input to the method. The literals are
+    // OK for the labels, because we know(TM) that this is 7-bit ASCII.
+    auto json = nlohmann::json::object({
+        { "description", to_utf8(description) },
+        { "directoryLabel", to_utf8(directory) },
+        { "restrict", restricted },
+        { "categories", nlohmann::json::array() }
+    });
+
+    if (categories != nullptr) {
+        auto& cats = json["categories"];
+        for (std::size_t i = 0; i < cnt_categories; ++i) {
+            cats.push_back(to_utf8(categories[i]));
+        }
+    }
+
+    const auto dump = json.dump();
+    const auto desc = reinterpret_cast<const std::uint8_t *>(dump.data());
+    const auto size = dump.size();
+
+    return this->post(url.c_str(),
+        this->make_form()
+            .add_file(DVSL("file"), path)
+            .add_field(DVSL("jsonData"), desc, size),
+        on_response,
+        on_error,
+        context);
 }
 
 

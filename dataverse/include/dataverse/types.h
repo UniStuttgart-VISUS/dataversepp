@@ -7,6 +7,13 @@
 
 #include <cinttypes>
 #include <cstdlib>
+#include <fstream>
+
+#if defined(_WIN32)
+#include <Windows.h>
+#else /* defined(_WIN32) */
+#define CALLBACK
+#endif /* defined(_WIN32) */
 
 
 namespace visus {

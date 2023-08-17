@@ -44,6 +44,7 @@
 #define _In_reads_bytes_(cnt)
 #define _In_reads_or_z_(cnt)
 #define _In_reads_or_z_opt_(cnt)
+#define _In_reads_z_(cnt)
 #define _In_z_
 #define _Out_
 #define _Out_opt_

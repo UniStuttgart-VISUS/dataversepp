@@ -60,6 +60,9 @@ namespace detail {
 
         dataverse_connection_impl(void);
 
+        string_list_type add_auth_header(_In_opt_ string_list_type&& headers
+            = string_list_type(nullptr, &::curl_slist_free_all)) const;
+
         inline ~dataverse_connection_impl(void) {
             secure_zero(this->api_key);
         }
@@ -68,15 +71,9 @@ namespace detail {
             return curlm_type(::curl_multi_init(), &::curl_multi_cleanup);
         }
 
-        string_list_type make_headers(void) const;
-
         inline mime_type make_mime(void) const {
             auto curl = this->curl.get();
             return mime_type(::curl_mime_init(curl), &::curl_mime_free);
-        }
-
-        inline string_list_type make_string_list(void) const {
-            return string_list_type(nullptr, &::curl_slist_free_all);
         }
 
         std::string make_url(_In_opt_z_ const char_type *resource) const;
