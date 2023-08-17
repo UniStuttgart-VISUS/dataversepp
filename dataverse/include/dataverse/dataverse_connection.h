@@ -11,6 +11,7 @@
 #endif /* defined(_WIN32) */
 
 #include "dataverse/blob.h"
+#include "dataverse/form_data.h"
 #include "dataverse/types.h"
 
 
@@ -39,13 +40,13 @@ namespace dataverse {
         /// <summary>
         /// The callback to be invoked for a raw response.
         /// </summary>
-        typedef _In_ void (*on_response_type)(_In_ const blob &,
+        typedef void (*on_response_type)(_In_ const blob&,
             _In_opt_ void *);
 
         /// <summary>
         /// The callback to be invoked for an error.
         /// </summary>
-        typedef _In_ void (*on_error_type)(_In_ const int,
+        typedef void (*on_error_type)(_In_ const int,
             _In_z_ const char_type *,
             _In_z_ const char_type *,
             _In_opt_ void *);
@@ -92,11 +93,19 @@ namespace dataverse {
         /// data could not be alloctated.</exception>
         dataverse_connection& base_path(_In_opt_z_ const char_type *base_path);
 
-        dataverse_connection& connect(_In_z_ const char_type *host,
-            _In_ const std::uint16_t port,
-            _In_ const bool tls = true);
+        dataverse_connection& get(_In_opt_z_ const char_type *resource,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
 
-        void get(_In_opt_z_ const char_type *resource,
+        /// <summary>
+        /// Create a new and empty form for a POST request.
+        /// </summary>
+        /// <returns></returns>
+        form_data make_form(void) const;
+
+        dataverse_connection& post(_In_opt_z_ const char_type *resource,
+            _In_ const form_data& form,
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
             _In_opt_ void *context = nullptr);

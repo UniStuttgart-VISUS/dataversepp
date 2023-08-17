@@ -25,13 +25,16 @@ int main() {
 
     try {
         dataverse_connection c;
-        c.connect(L"darus.uni-stuttgart.de", 443)
-            .base_path(L"https://darus.uni-stuttgart.de/api")
-            .api_key(L"");
-        c.get(DVSL("/dataverses/tr161"), [](const blob &r, void *) {
-            std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
-        }, [](const int, const char_type *, const char_type *, void *) {
-        });
+        c.base_path(L"https://demodarus.izus.uni-stuttgart.de/api")
+            .api_key(L"")
+            .get(DVSL("/dataverses/visus"), [](const blob &r, void *) {
+                std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
+                std::cout << std::endl;
+            }, [](const int, const char_type *, const char_type *, void *) { })
+            .post(DVSL("/datasets/:persistentId/add?persistentId=doi:10.15770/darus-1644"), c.make_form().add_file(DVSL("file"), DVSL("T:\\Programmcode\\dataversepp\\dataverse\\src\\form_data.cpp")), [](const blob &r, void *) {
+                std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
+                std::cout << std::endl;
+            }, [](const int, const char_type *, const char_type *, void *) {});
 
         
 

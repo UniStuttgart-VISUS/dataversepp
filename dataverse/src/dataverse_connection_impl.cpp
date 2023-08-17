@@ -45,6 +45,14 @@ visus::dataverse::detail::dataverse_connection_impl::dataverse_connection_impl(
             throw std::system_error(status, curl_category());
         }
     }
+
+    {
+        auto status = ::curl_easy_setopt(this->curl.get(), CURLOPT_USERAGENT,
+            "Dataverse++");
+        if (status != CURLE_OK) {
+            throw std::system_error(status, curl_category());
+        }
+    }
 }
 
 

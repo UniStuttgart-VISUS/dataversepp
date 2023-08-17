@@ -425,9 +425,9 @@ namespace dataverse {
     /// <returns></returns>
     inline std::string to_utf8(_In_z_ const wchar_t *src) {
 #if defined(_WIN32)
-        return convert<char>(src, CP_UTF8);
+        return convert<char>(src, 0, CP_UTF8);
 #else /* defined(_WIN32) */
-        return convert<char>(src);
+        return convert<char>(src, 0, "UTF-8");
 #endif /* defined(_WIN32) */
     }
 

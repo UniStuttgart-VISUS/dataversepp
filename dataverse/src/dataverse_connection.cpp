@@ -80,22 +80,10 @@ visus::dataverse::dataverse_connection::base_path(
 
 
 /*
- * visus::dataverse::dataverse_connection::connect
- */
-visus::dataverse::dataverse_connection&
-visus::dataverse::dataverse_connection::connect(
-        _In_z_ const char_type *host,
-        _In_ const std::uint16_t port,
-        _In_ const bool tls) {
-    auto& i = this->check_not_disposed();
-    return *this;
-}
-
-
-/*
  * visus::dataverse::dataverse_connection::get
  */
-void visus::dataverse::dataverse_connection::get(
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::get(
         _In_opt_z_ const char_type *resource,
         _In_ const on_response_type on_response,
         _In_ const on_error_type on_error,
@@ -115,7 +103,6 @@ void visus::dataverse::dataverse_connection::get(
     std::string url = i.make_url(resource);
     ::curl_easy_setopt(i.curl.get(), CURLOPT_URL, url.c_str());
     ::curl_easy_setopt(i.curl.get(), CURLOPT_WRITEDATA, c.get());
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_USERAGENT, "Dataverse++");
 
     c->headers = i.make_headers();
     ::curl_easy_setopt(i.curl.get(), CURLOPT_HEADER, c->headers.get());
@@ -128,6 +115,63 @@ void visus::dataverse::dataverse_connection::get(
 
     on_response(c->response, c->client_data);
     detail::io_context::recycle(std::move(c));
+
+    return *this;
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::make_form
+ */
+visus::dataverse::form_data visus::dataverse::dataverse_connection::make_form(
+        void) const {
+    return form_data(this->check_not_disposed().curl.get());
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::post
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::post(
+        _In_opt_z_ const char_type *resource,
+        _In_ const form_data& form,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    if (!form) {
+        throw std::invalid_argument("The form must be valid.");
+    }
+    if (on_response == nullptr) {
+        throw std::invalid_argument("The response handler must be valid.");
+    }
+    if (on_error == nullptr) {
+        throw std::invalid_argument("The error handler must be valid.");
+    }
+
+    auto& i = this->check_not_disposed();
+
+    auto c = detail::io_context::create();
+    c->client_data = context;
+
+    std::string url = i.make_url(resource);
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_URL, url.c_str());
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_WRITEDATA, c.get());
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_MIMEPOST, form._form);
+
+    c->headers = i.make_headers();
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_HEADER, c->headers.get());
+
+    auto status = ::curl_easy_perform(i.curl.get());
+    detail::dataverse_connection_impl::secure_zero(c->headers);
+    if (status != CURLE_OK) {
+        throw std::system_error(status, detail::curl_category());
+    }
+
+    on_response(c->response, c->client_data);
+    detail::io_context::recycle(std::move(c));
+
+    return *this;
 }
 
 
