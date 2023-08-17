@@ -7,9 +7,10 @@
 
 #include <iterator>
 
+#include "dataverse/convert.h"
+
 #include "dataverse_connection_impl.h"
-#include "errors.h"
-#include "wininet_error_category.h"
+#include "io_context.h"
 
 
 /*
@@ -32,10 +33,6 @@ visus::dataverse::dataverse_connection::dataverse_connection(
  * visus::dataverse::dataverse_connection::~dataverse_connection
  */
 visus::dataverse::dataverse_connection::~dataverse_connection(void) {
-    if (this->_impl != nullptr) {
-        this->api_key(nullptr);
-    }
-
     delete this->_impl;
 }
 
@@ -49,16 +46,12 @@ visus::dataverse::dataverse_connection::api_key(
     auto& i = this->check_not_disposed();
 
     // Make sure that the old API key is erased from memory.
-#if defined(_WIN32)
-    ::SecureZeroMemory(i.api_key.data(), i.api_key.size());
-#else /* defined(_WIN32) */
-    ::memset(i.api_key.data(), 0, i.api_key.size());
-#endif /* defined(_WIN32) */
+    detail::dataverse_connection_impl::secure_zero(i.api_key);
 
     if (api_key != nullptr) {
         const auto len = std::char_traits<char_type>::length(api_key);
         i.api_key.resize(len + 1);
-        std::copy(api_key, api_key + len, i.api_key.begin());
+        to_ascii(i.api_key.data(), i.api_key.size(), api_key, 0);
         i.api_key.back() = static_cast<char_type>(0);
     } else {
         this->_impl->api_key.clear();
@@ -77,7 +70,7 @@ visus::dataverse::dataverse_connection::base_path(
     auto& i = this->check_not_disposed();
 
     if (base_path != nullptr) {
-        i.base_path = base_path;
+        i.base_path = to_ascii(base_path);
     } else {
         i.base_path.clear();
     }
@@ -95,34 +88,6 @@ visus::dataverse::dataverse_connection::connect(
         _In_ const std::uint16_t port,
         _In_ const bool tls) {
     auto& i = this->check_not_disposed();
-
-#if defined(_WIN32)
-    if (!i.session) {
-        i.session.reset(::InternetOpenW(L"Dataverse++",
-            INTERNET_OPEN_TYPE_PRECONFIG,
-            nullptr,
-            nullptr,
-            INTERNET_FLAG_DONT_CACHE));
-    }
-    if (!i.session) {
-        throw std::system_error(::GetLastError(), detail::wininet_category());
-    }
-
-    i.connection.reset(::InternetConnectW(i.session.get(),
-        host,
-        port,
-        nullptr,
-        nullptr,
-        INTERNET_SERVICE_HTTP,
-        0,
-        reinterpret_cast<DWORD_PTR>(this->_impl)));
-    if (!this->_impl->connection) {
-        throw std::system_error(::GetLastError(), detail::wininet_category());
-    }
-#else /* defined(_WIN32) */
-#endif /* defined(_WIN32) */
-
-    i.tls = tls;
     return *this;
 }
 
@@ -130,78 +95,39 @@ visus::dataverse::dataverse_connection::connect(
 /*
  * visus::dataverse::dataverse_connection::get
  */
-visus::dataverse::blob visus::dataverse::dataverse_connection::get(
-        _In_z_ const char_type *resource,
-        _In_opt_z_ const char_type *version) {
+void visus::dataverse::dataverse_connection::get(
+        _In_opt_z_ const char_type *resource,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    if (on_response == nullptr) {
+        throw std::invalid_argument("The response handler must be valid.");
+    }
+    if (on_error == nullptr) {
+        throw std::invalid_argument("The error handler must be valid.");
+    }
+    
     auto& i = this->check_not_disposed();
-    blob retval(1024);
 
-#if defined(_WIN32)
-    auto context = reinterpret_cast<DWORD_PTR>(this->_impl);
+    auto c = detail::io_context::create();
+    c->client_data = context;
 
-    auto resource_name = i.base_path;
-    if (resource != nullptr) {
-        resource_name += resource;
+    std::string url = i.make_url(resource);
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_URL, url.c_str());
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_WRITEDATA, c.get());
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_USERAGENT, "Dataverse++");
+
+    c->headers = i.make_headers();
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_HEADER, c->headers.get());
+
+    auto status = ::curl_easy_perform(i.curl.get());
+    detail::dataverse_connection_impl::secure_zero(c->headers);
+    if (status != CURLE_OK) {
+        throw std::system_error(status, detail::curl_category());
     }
 
-    DWORD flags = 0;
-    if (i.tls) {
-        flags |= INTERNET_FLAG_SECURE;
-    }
-
-    std::wstring headers;
-    if (!i.api_key.empty()) {
-        headers += L"X-Dataverse-key: ";
-        headers += i.api_key.data();
-        headers += L"\r\n";
-    }
-
-    // Post the request.
-    ::OutputDebugString((L"GET " + resource_name + L"\r\n").c_str());
-    wil::unique_hinternet request(::HttpOpenRequestW(
-        i.connection.get(),
-        L"GET",
-        resource_name.c_str(),
-        version,
-        nullptr,
-        nullptr,
-        flags,
-        context));
-    if (!request) {
-        throw std::system_error(::GetLastError(), detail::wininet_category());
-    }
-
-    if (!::HttpSendRequestW(request.get(),
-            headers.data(),
-            static_cast<DWORD>(headers.size()),
-            nullptr,
-            context)) {
-        throw std::system_error(::GetLastError(), detail::wininet_category());
-    }
-
-    // Read the response.
-    auto done = false;
-    std::size_t offset = 0;
-
-    while (!done) {
-        DWORD read = 0;
-
-        if (!::InternetReadFile(request.get(),
-                retval.at(offset),
-                static_cast<DWORD>(retval.size() - offset),
-                &read)) {
-            throw std::system_error(::GetLastError(), std::system_category());
-        }
-
-        offset += read;
-        done = (read <= 0);
-        retval.grow(retval.size() + retval.size() / 2);
-    }
-
-    retval.truncate(offset);
-#endif /* defined(_WIN32) */
-
-    return retval;
+    on_response(c->response, c->client_data);
+    detail::io_context::recycle(std::move(c));
 }
 
 

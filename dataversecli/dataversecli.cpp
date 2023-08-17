@@ -3,6 +3,10 @@
 // </copyright>
 // <author>Christoph Müller</author>
 
+#include <WinSock2.h>
+#include <Windows.h>
+
+#include "dataverse/convert.h"
 #include "dataverse/dataverse_connection.h"
 
 #include <iostream>
@@ -20,12 +24,16 @@ int main() {
 #endif /* (defined(DEBUG) || defined(_DEBUG)) */
 
     try {
-
         dataverse_connection c;
-        c.connect(DVSL("darus.uni-stuttgart.de"), 443).api_key(L"").base_path(L"/api");
-        auto response = c.get(DVSL("/dataverses/tr161"));
+        c.connect(L"darus.uni-stuttgart.de", 443)
+            .base_path(L"https://darus.uni-stuttgart.de/api")
+            .api_key(L"");
+        c.get(DVSL("/dataverses/tr161"), [](const blob &r, void *) {
+            std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
+        }, [](const int, const char_type *, const char_type *, void *) {
+        });
 
-        std::cout << std::string(response.as<char>(), response.size()) << std::endl;
+        
 
         //wait_event(e);
 

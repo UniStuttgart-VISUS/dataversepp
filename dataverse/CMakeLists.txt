@@ -42,7 +42,7 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE WIL)
 
 if (WIN32)
-    target_link_libraries(${PROJECT_NAME} PUBLIC WinInet)
+    target_link_libraries(${PROJECT_NAME} PUBLIC CURL::libcurl)
 else ()
     find_package(Threads REQUIRED)
     find_package(ICU REQUIRED)

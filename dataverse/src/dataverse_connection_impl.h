@@ -1,4 +1,4 @@
-﻿// <copyright file="io_context.h" company="Visualisierungsinstitut der Universität Stuttgart">
+﻿// <copyright file="dataverse_connection_impl.h" company="Visualisierungsinstitut der Universität Stuttgart">
 // Copyright © 2023 Visualisierungsinstitut der Universität Stuttgart. Alle Rechte vorbehalten.
 // </copyright>
 // <author>Christoph Müller</author>
@@ -12,12 +12,13 @@
 #include <system_error>
 #include <vector>
 
-#if defined(_WIN32)
-#include <Windows.h>
-#include <wininet.h>
+#include <curl/curl.h>
 
-#include <wil/resource.h>
-#endif /* defined(_WIN32) */
+#include "dataverse/types.h"
+
+#include "curl_error_category.h"
+#include "curlm_error_category.h"
+#include "errors.h"
 
 
 namespace visus {
@@ -29,16 +30,56 @@ namespace detail {
     /// </summary>
     struct dataverse_connection_impl final {
 
-        std::vector<char_type> api_key;
-        std::basic_string<char_type> base_path;
-        bool tls;
+        typedef std::unique_ptr<CURL, decltype(&::curl_easy_cleanup)> curl_type;
+        typedef std::unique_ptr<CURLM, decltype(&::curl_multi_cleanup)> curlm_type;
+        typedef std::unique_ptr<curl_mime, decltype(&::curl_mime_free)> mime_type;
+        typedef std::unique_ptr<curl_slist, decltype(&::curl_slist_free_all)>
+            string_list_type;
 
+        std::vector<char> api_key;
+        std::string base_path;
+        curl_type curl;
+
+        /// <summary>
+        /// Overwrites <paramref name="vector" /> with zeros.
+        /// </summary>
+        template<class TElement, class TAlloc>
+        static inline void secure_zero(
+                _Inout_ std::vector<TElement, TAlloc>& vector) {
 #if defined(_WIN32)
-        wil::unique_hinternet connection;
-        wil::unique_hinternet session;
+            ::SecureZeroMemory(vector.data(), vector.size() * sizeof(TElement));
+#else /* defined(_WIN32) */
+            ::memset(vector.data(), vector.size() * sizeof(TElement));
 #endif /* defined(_WIN32) */
+        }
 
-        inline dataverse_connection_impl(void) : tls(false) { }
+        /// <summary>
+        /// Overwrites all list members with zeros.
+        /// </summary>
+        static void secure_zero(_Inout_ string_list_type& list);
+
+        dataverse_connection_impl(void);
+
+        inline ~dataverse_connection_impl(void) {
+            secure_zero(this->api_key);
+        }
+
+        inline curlm_type make_curlm(void) const {
+            return curlm_type(::curl_multi_init(), &::curl_multi_cleanup);
+        }
+
+        string_list_type make_headers(void) const;
+
+        inline mime_type make_mime(void) const {
+            auto curl = this->curl.get();
+            return mime_type(::curl_mime_init(curl), &::curl_mime_free);
+        }
+
+        inline string_list_type make_string_list(void) const {
+            return string_list_type(nullptr, &::curl_slist_free_all);
+        }
+
+        std::string make_url(_In_opt_z_ const char_type *resource) const;
     };
 
 } /* namespace detail */

@@ -1,5 +1,4 @@
-﻿#if 0
-// <copyright file="io_context.cpp" company="Visualisierungsinstitut der Universität Stuttgart">
+﻿// <copyright file="io_context.cpp" company="Visualisierungsinstitut der Universität Stuttgart">
 // Copyright © 2023 Visualisierungsinstitut der Universität Stuttgart. Alle Rechte vorbehalten.
 // </copyright>
 // <author>Christoph Müller</author>
@@ -9,25 +8,7 @@
 #include "dataverse/convert.h"
 
 
-
-/*
- * visus::dataverse::detail::io_context::operator new
- */
-_Ret_ void *visus::dataverse::detail::io_context::operator new(
-        _In_ const std::size_t header_size,
-        _In_ const std::size_t body_size) {
-    return ::operator new(header_size + body_size);
-}
-
-
-/*
- * visus::dataverse::detail::io_context::operator delete
- */
-void visus::dataverse::detail::io_context::operator delete(_In_opt_ void *ptr) {
-    ::operator delete(ptr);
-}
-
-
+#if 0
 /*
  * visus::dataverse::detail::io_context::io_context
  */
@@ -135,25 +116,74 @@ void visus::dataverse::detail::io_context::operation_unknown(void) noexcept {
     this->operation = io_operation::unknown;
 #undef _DESTRUCT_CB
 }
-
-
-/*
- * visus::dataverse::detail::io_context::payload
- */
-std::uint8_t *visus::dataverse::detail::io_context::payload(void) noexcept {
-    return (this->size > 0)
-        ? reinterpret_cast<std::uint8_t *>(this + 1)
-        : nullptr;
-}
-
-
-/*
- * visus::dataverse::detail::io_context::payload
- */
-const std::uint8_t *visus::dataverse::detail::io_context::payload(
-        void) const noexcept {
-    return (this->size > 0)
-        ? reinterpret_cast<const std::uint8_t *>(this + 1)
-        : nullptr;
-}
 #endif
+
+
+/*
+ * visus::dataverse::detail::io_context::create
+ */
+std::unique_ptr<visus::dataverse::detail::io_context>
+visus::dataverse::detail::io_context::create(void) {
+    std::lock_guard<decltype(lock)> l(lock);
+    if (cache.empty()) {
+        return std::unique_ptr<io_context>(new io_context());
+    } else {
+        auto retval = std::move(cache.back());
+        cache.pop_back();
+        return retval;
+    }
+}
+
+
+/*
+ * visus::dataverse::detail::io_context::recycle
+ */
+void visus::dataverse::detail::io_context::recycle(
+        _Inout_ std::unique_ptr<io_context>&& context) {
+    if (context != nullptr) {
+        std::lock_guard<decltype(lock)> l(lock);
+        cache.push_back(std::move(context));
+    }
+}
+
+
+/*
+ * visus::dataverse::detail::io_context::write_response
+ */
+std::size_t CALLBACK visus::dataverse::detail::io_context::write_response(
+        _In_reads_bytes_(cnt *element_size) const void *data,
+        _In_ const std::size_t cnt,
+        _In_ const std::size_t size,
+        _In_ void *context) {
+    auto that = static_cast<io_context *>(context);
+    const auto offset = that->response.size();
+    const auto retval = cnt * size;
+
+    that->response.truncate(retval + offset);
+    ::memcpy(that->response.at(offset), data, retval);
+
+    return retval;
+}
+
+
+/*
+ * visus::dataverse::detail::io_context::io_context
+ */
+visus::dataverse::detail::io_context::io_context(void)
+    : client_data(nullptr),
+    curl(nullptr, &::curl_multi_cleanup),
+    headers(nullptr, &::curl_slist_free_all),
+    form(nullptr, &curl_mime_free) { }
+
+
+/*
+ * visus::dataverse::detail::io_context::cache
+ */
+std::vector<std::unique_ptr<visus::dataverse::detail::io_context>>
+visus::dataverse::detail::io_context::cache;
+
+
+/*
+ * visus::dataverse::detail::io_context::lock
+ */
+std::mutex visus::dataverse::detail::io_context::lock;
