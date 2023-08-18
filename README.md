@@ -48,7 +48,7 @@ Provided you have [nlohmann/json](https://github.com/nlohmann/json) installed, y
 ```c++
 auto data_set = nlohmann::json({ });
 data_set["datasetVersion"]["license"]["name"] = "CC BY 4.0";
-data_set["datasetVersion"]["license"]["uri"] = "https://creativecommons.org/licenses/by/4.0/legalcode.de";
+data_set["datasetVersion"]["license"]["uri"] = "https://creativecommons.org/licenses/by/4.0/";
 
 auto citation_metadata = nlohmann::json::array();
 citation_metadata.push_back(json::make_meta_field(
@@ -90,4 +90,4 @@ dataverse.base_path(L"https://darus.uni-stuttgart.de/api/")
         [](const int, const char *, const char *, const narrow_string::code_page_type, void *) {},
         nullptr);
 ```
-Make sure that all string content is UTF-8. Just assuming that string literals are UTF-8 is not sufficient.
+Make sure that all string content is UTF-8. Just assuming that string literals are UTF-8 is not sufficient. The construction of the meta data will fail if any non-UTF-8 code unit is discovered. It is best using the `to_utf8` functions provided by the library.
