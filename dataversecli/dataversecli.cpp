@@ -25,7 +25,6 @@ int main() {
         //auto h = ::CreateFile(DVSL("T:\\Programmcode\\dataversepp\\dataverse\\src\\convert.cpp"), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, NULL);
         //ULARGE_INTEGER size;
         //size.LowPart = ::GetFileSize(h, &size.HighPart);
-        ;
 
         c.base_path(L"https://demodarus.izus.uni-stuttgart.de/api")
             .api_key(L"")
@@ -56,9 +55,20 @@ int main() {
                     std::cout << std::endl;
                 },
                 [](const int, const char *, const char *, const narrow_string::code_page_type, void *) {},
+                nullptr)
+            .upload(const_narrow_string("doi:10.15770/darus-1644", CP_OEMCP),
+                const_narrow_string("T:\\Programmcode\\dataversepp\\dataverse\\src\\blob.cpp", CP_OEMCP),
+                const_narrow_string("Eine mächtige C++-Datei", CP_OEMCP),
+                const_narrow_string("/source/", CP_OEMCP),
+                std::vector<const_narrow_string> { narrow_string("#bota", CP_OEMCP), narrow_string("#boschofthemall", CP_OEMCP) },
+                true,
+                [](const blob &r, void *) {
+                    std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
+                    std::cout << std::endl;
+                },
+                [](const int, const char *, const char *, const narrow_string::code_page_type, void *) {},
                 nullptr);
 
-        
 
         //wait_event(e);
 
