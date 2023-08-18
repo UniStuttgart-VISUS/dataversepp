@@ -11,17 +11,6 @@
 #include <system_error>
 
 
-/*
- * isus::dataverse::default_code_page
- */
-const visus::dataverse::code_page_type visus::dataverse::default_code_page
-#if defined(_WIN32)
-    = CP_OEMCP;
-#else /* defined(_WIN32) */
-    = nullptr
-#endif /* defined(_WIN32) */
-
-
 #if !defined(_WIN32)
 #include <unicode/uchar.h>
 #include <unicode/ucnv.h>
@@ -40,7 +29,7 @@ std::size_t visus::dataverse::convert(
         _In_ std::size_t cnt_dst,
         _In_reads_or_z_(cnt_src) const char *src,
         _In_ const std::size_t cnt_src,
-        _In_ const code_page_type code_page) {
+        _In_ const narrow_string::code_page_type code_page) {
     // Sanity checks.
     if (src == nullptr) {
         throw std::invalid_argument("The string to convert cannot be null.");
@@ -85,7 +74,7 @@ std::size_t visus::dataverse::convert(
         _In_ std::size_t cnt_dst,
         _In_reads_or_z_(cnt_src) const wchar_t *src,
         _In_ const std::size_t cnt_src,
-        _In_ const code_page_type code_page) {
+        _In_ const narrow_string::code_page_type code_page) {
     // Sanity checks.
     if (src == nullptr) {
         throw std::invalid_argument("The string to convert cannot be null.");
@@ -141,7 +130,7 @@ std::size_t DATAVERSE_API visus::dataverse::to_ascii(
         _In_ const std::size_t cnt_dst,
         _In_reads_or_z_(cnt_src) const char *src,
         _In_ const std::size_t cnt_src,
-        _In_ const code_page_type code_page) {
+        _In_ const narrow_string::code_page_type code_page) {
     if (src == nullptr) {
         throw std::invalid_argument("The string to convert cannot be null.");
     }
@@ -149,6 +138,10 @@ std::size_t DATAVERSE_API visus::dataverse::to_ascii(
     // Simply check if any of the input characters exceeds the ASCII range.
     const auto invalid = std::any_of(src, src + ::strlen(src),
         [](const char c) {return (c > 127); });
+    if (invalid) {
+        throw std::system_error(ERROR_NO_UNICODE_TRANSLATION,
+            std::system_category());
+    }
 
     return convert(dst, cnt_dst, src, cnt_src, code_page);
 }
@@ -158,7 +151,7 @@ std::size_t DATAVERSE_API visus::dataverse::to_ascii(
  * visus::dataverse::to_ascii
  */
 std::string visus::dataverse::to_ascii(_In_z_ const char *src,
-        _In_ const code_page_type code_page) {
+        _In_ const narrow_string::code_page_type code_page) {
     if (src == nullptr) {
         throw std::invalid_argument("The string to convert cannot be null.");
     }

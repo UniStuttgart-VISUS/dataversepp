@@ -79,7 +79,18 @@ visus::dataverse::detail::dataverse_connection_impl::add_auth_header(
  * visus::dataverse::detail::dataverse_connection_impl::make_url
  */
 std::string visus::dataverse::detail::dataverse_connection_impl::make_url(
-        _In_opt_z_ const char_type *resource) const {
+        _In_opt_z_ const wchar_t *resource) const {
+    return (resource != nullptr)
+        ? this->base_path + to_ascii(resource)
+        : this->base_path;
+}
+
+
+/*
+ * visus::dataverse::detail::dataverse_connection_impl::make_url
+ */
+std::string visus::dataverse::detail::dataverse_connection_impl::make_url(
+        _In_ const const_narrow_string& resource) const {
     return (resource != nullptr)
         ? this->base_path + to_ascii(resource)
         : this->base_path;

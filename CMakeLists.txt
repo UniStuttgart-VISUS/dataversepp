@@ -30,6 +30,6 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/dataverse")
 add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/dataversecli")
 
 # Unit tests
-#if (DATAVERSE_BuildTests)
-#    add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/test")
-#endif ()
+if (DATAVERSE_BuildTests)
+    add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/test")
+endif ()

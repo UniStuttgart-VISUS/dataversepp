@@ -14,7 +14,7 @@
 
 #include <curl/curl.h>
 
-#include "dataverse/types.h"
+#include "dataverse/convert.h"
 
 #include "curl_error_category.h"
 #include "curlm_error_category.h"
@@ -76,7 +76,9 @@ namespace detail {
             return mime_type(::curl_mime_init(curl), &::curl_mime_free);
         }
 
-        std::string make_url(_In_opt_z_ const char_type *resource) const;
+        std::string make_url(_In_opt_z_ const wchar_t *resource) const;
+
+        std::string make_url(_In_ const const_narrow_string& resource) const;
     };
 
 } /* namespace detail */

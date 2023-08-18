@@ -44,17 +44,43 @@ visus::dataverse::dataverse_connection::~dataverse_connection(void) {
  */
 visus::dataverse::dataverse_connection& 
 visus::dataverse::dataverse_connection::api_key(
-        _In_opt_z_ const char_type *api_key) {
+        _In_opt_z_ const wchar_t *api_key) {
     auto& i = this->check_not_disposed();
 
     // Make sure that the old API key is erased from memory.
     detail::dataverse_connection_impl::secure_zero(i.api_key);
 
     if (api_key != nullptr) {
-        const auto len = std::char_traits<char_type>::length(api_key);
+        const auto len = ::wcslen(api_key);
         i.api_key.resize(len + 1);
         to_ascii(i.api_key.data(), i.api_key.size(), api_key, 0);
-        i.api_key.back() = static_cast<char_type>(0);
+        i.api_key.back() = static_cast<wchar_t>(0);
+    } else {
+        this->_impl->api_key.clear();
+    }
+
+    return *this;
+}
+
+
+
+/*
+ * visus::dataverse::dataverse_connection::api_key
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::api_key(
+        _In_ const const_narrow_string& api_key) {
+    auto& i = this->check_not_disposed();
+
+    // Make sure that the old API key is erased from memory.
+    detail::dataverse_connection_impl::secure_zero(i.api_key);
+
+    if (api_key != nullptr) {
+        const auto len = ::strlen(api_key);
+        i.api_key.resize(len + 1);
+        to_ascii(i.api_key.data(), i.api_key.size(), api_key, 0,
+            api_key.code_page());
+        i.api_key.back() = static_cast<wchar_t>(0);
     } else {
         this->_impl->api_key.clear();
     }
@@ -68,7 +94,25 @@ visus::dataverse::dataverse_connection::api_key(
  */
 visus::dataverse::dataverse_connection&
 visus::dataverse::dataverse_connection::base_path(
-        _In_z_ const char_type *base_path) {
+        _In_z_ const wchar_t *base_path) {
+    auto& i = this->check_not_disposed();
+
+    if (base_path != nullptr) {
+        i.base_path = to_ascii(base_path);
+    } else {
+        i.base_path.clear();
+    }
+
+    return *this;
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::base_path
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::base_path(
+        _In_ const const_narrow_string& base_path) {
     auto& i = this->check_not_disposed();
 
     if (base_path != nullptr) {
@@ -86,7 +130,7 @@ visus::dataverse::dataverse_connection::base_path(
  */
 visus::dataverse::dataverse_connection&
 visus::dataverse::dataverse_connection::get(
-        _In_opt_z_ const char_type *resource,
+        _In_opt_z_ const wchar_t *resource,
         _In_ const on_response_type on_response,
         _In_ const on_error_type on_error,
         _In_opt_ void *context) {
@@ -122,6 +166,25 @@ visus::dataverse::dataverse_connection::get(
 
 
 /*
+ * visus::dataverse::dataverse_connection::get
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::get(
+        _In_ const const_narrow_string& resource,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    if (resource == nullptr) {
+        auto r = static_cast<wchar_t *>(nullptr);
+        return this->get(r, on_response, on_error, context);
+    } else {
+        auto r = convert<wchar_t>(resource);
+        return this->get(r.c_str(), on_response, on_error, context);
+    }
+}
+
+
+/*
  * visus::dataverse::dataverse_connection::make_form
  */
 visus::dataverse::form_data visus::dataverse::dataverse_connection::make_form(
@@ -135,7 +198,7 @@ visus::dataverse::form_data visus::dataverse::dataverse_connection::make_form(
  */
 visus::dataverse::dataverse_connection&
 visus::dataverse::dataverse_connection::post(
-        _In_opt_z_ const char_type *resource,
+        _In_opt_z_ const wchar_t *resource,
         _In_ const form_data& form,
         _In_ const on_response_type on_response,
         _In_ const on_error_type on_error,
@@ -176,19 +239,39 @@ visus::dataverse::dataverse_connection::post(
 
 
 /*
+ * visus::dataverse::dataverse_connection::post
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::post(
+        _In_ const const_narrow_string& resource,
+        _In_ const form_data& form,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    if (resource == nullptr) {
+        auto r = static_cast<wchar_t *>(nullptr);
+        return this->post(r, form, on_response, on_error, context);
+    } else {
+        auto r = convert<wchar_t>(resource);
+        return this->post(r.c_str(), form, on_response, on_error, context);
+    }
+}
+
+
+/*
  * visus::dataverse::dataverse_connection::upload
  */
 visus::dataverse::dataverse_connection &
 visus::dataverse::dataverse_connection::upload(
-        _In_z_ const char_type *persistent_id,
-        _In_z_ const char_type *path,
+        _In_z_ const wchar_t *persistent_id,
+        _In_z_ const wchar_t *path,
         _In_ const on_response_type on_response,
         _In_ const on_error_type on_error,
         _In_opt_ void *context) {
-    const auto url = std::basic_string<char_type>(DVSL("/datasets/")
-        DVSL(":persistentId/add?persistentId=")) + persistent_id;
+    const auto url = std::wstring(L"/datasets/:persistentId/add?"
+        L"persistentId=") + persistent_id;
     return this->post(url.c_str(),
-        this->make_form().add_file(DVSL("file"), path),
+        this->make_form().add_file(L"file", path),
         on_response,
         on_error,
         context);
@@ -200,25 +283,45 @@ visus::dataverse::dataverse_connection::upload(
  */
 visus::dataverse::dataverse_connection&
 visus::dataverse::dataverse_connection::upload(
-        _In_z_ const char_type *persistent_id,
-        _In_z_ const char_type *path,
-        _In_z_ const char_type *description,
-        _In_z_ const char_type *directory,
-        const char_type **categories,
-        _In_ const std::size_t cnt_categories,
+        _In_ const const_narrow_string& persistent_id,
+        _In_ const const_narrow_string& path,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto url = std::string("/datasets/:persistentId/add?"
+        "persistentId=") + to_ascii(persistent_id);
+    return this->post(const_narrow_string(url.c_str(), CP_ACP),
+#if defined(_WIN32)
+        this->make_form().add_file(narrow_string("file", CP_OEMCP), path),
+#else /* defined(_WIN32) */
+        this->make_form().add_file(narrow_string("file", nullptr), path),
+#endif /* defined(_WIN32) */
+        on_response,
+        on_error,
+        context);
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::upload
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::upload(
+        _In_z_ const wchar_t *persistent_id,
+        _In_z_ const wchar_t *path,
+        _In_z_ const wchar_t *description,
+        _In_z_ const wchar_t *directory,
+        const wchar_t **categories,
+        _In_ const std::size_t cnt_cats,
         _In_ const bool restricted,
         _In_ const on_response_type on_response,
         _In_ const on_error_type on_error,
         _In_opt_ void *context) {
-    const auto url = std::basic_string<char_type>(DVSL("/datasets/")
-        DVSL(":persistentId/add?persistentId=")) + persistent_id;
+    // Note: We know that we do not use anything but 7-bit ASCII in the labels
+    // here, so we do not need to add a UTF-8 conversion for the names.
+    const auto url = std::wstring(L"/datasets/:persistentId/add?"
+        L"persistentId=") + persistent_id;
 
-    // Note: It is important to pass all JSON input through to_utf8, because in
-    // contrast to the beliefs of MegaMol authors, char * is not necessarily
-    // UTF-8, but might use a different code page, specifically when using
-    // hard-coded string literals. This makes the whole thing explode if anyone
-    // passes anything but 7-bit ASCII as input to the method. The literals are
-    // OK for the labels, because we know(TM) that this is 7-bit ASCII.
     auto json = nlohmann::json::object({
         { "description", to_utf8(description) },
         { "directoryLabel", to_utf8(directory) },
@@ -228,7 +331,7 @@ visus::dataverse::dataverse_connection::upload(
 
     if (categories != nullptr) {
         auto& cats = json["categories"];
-        for (std::size_t i = 0; i < cnt_categories; ++i) {
+        for (std::size_t i = 0; i < cnt_cats; ++i) {
             cats.push_back(to_utf8(categories[i]));
         }
     }
@@ -239,8 +342,57 @@ visus::dataverse::dataverse_connection::upload(
 
     return this->post(url.c_str(),
         this->make_form()
-            .add_file(DVSL("file"), path)
-            .add_field(DVSL("jsonData"), desc, size),
+            .add_file(L"file", path)
+            .add_field(L"jsonData", desc, size),
+        on_response,
+        on_error,
+        context);
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::upload
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::upload(
+        _In_ const const_narrow_string& persistent_id,
+        _In_ const const_narrow_string& path,
+        _In_ const const_narrow_string& description,
+        _In_ const const_narrow_string& directory,
+        _In_reads_opt_(cnt_cats) const const_narrow_string *categories,
+        _In_ const std::size_t cnt_cats,
+        _In_ const bool restricted,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    auto i = convert<wchar_t>(persistent_id);
+    auto p = convert<wchar_t>(path);
+    auto d = convert<wchar_t>(description);
+    auto f = convert<wchar_t>(directory);
+
+    std::vector<std::wstring> cats;
+    if (categories != nullptr) {
+        cats.reserve(cnt_cats);
+        std::transform(categories,
+            categories + cnt_cats,
+            std::back_inserter(cats),
+            [](const const_narrow_string& s) { return convert<wchar_t>(s); });
+    }
+
+    std::vector<const wchar_t *> cat_ptrs;
+    cat_ptrs.reserve(cats.size());
+    std::transform(cats.begin(),
+        cats.end(),
+        std::back_inserter(cat_ptrs),
+        [](const std::wstring& s ) { return s.c_str(); });
+
+    return this->upload(i.c_str(),
+        p.c_str(),
+        d.c_str(),
+        f.c_str(),
+        cat_ptrs.data(),
+        cat_ptrs.size(),
+        restricted,
         on_response,
         on_error,
         context);

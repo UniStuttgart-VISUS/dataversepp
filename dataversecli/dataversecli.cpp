@@ -3,7 +3,6 @@
 // </copyright>
 // <author>Christoph Müller</author>
 
-#include "dataverse/convert.h"
 #include "dataverse/dataverse_connection.h"
 
 #include <iostream>
@@ -26,14 +25,14 @@ int main() {
         //auto h = ::CreateFile(DVSL("T:\\Programmcode\\dataversepp\\dataverse\\src\\convert.cpp"), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, NULL);
         //ULARGE_INTEGER size;
         //size.LowPart = ::GetFileSize(h, &size.HighPart);
-        const char_type *categories[] = { DVSL("#bota"), DVSL("crowbar") };
+        ;
 
         c.base_path(L"https://demodarus.izus.uni-stuttgart.de/api")
             .api_key(L"")
-            .get(DVSL("/dataverses/visus"), [](const blob &r, void *) {
+            .get(L"/dataverses/visus", [](const blob &r, void *) {
                 std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
                 std::cout << std::endl;
-            }, [](const int, const char_type *, const char_type *, void *) { })
+            }, [](const int, const char *, const char *, const narrow_string::code_page_type, void *) { })
             //.post(DVSL("/datasets/:persistentId/add?persistentId=doi:10.15770/darus-1644"), c.make_form().add_file(DVSL("file"), DVSL("T:\\Programmcode\\dataversepp\\dataverse\\src\\convert.cpp")), [](const blob &r, void *) {
             //    std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
             //    std::cout << std::endl;
@@ -46,11 +45,18 @@ int main() {
             //    std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
             //    std::cout << std::endl;
             //}, [](const int, const char_type *, const char_type *, void *) {});
-            .upload(L"doi:10.15770/darus-1644", L"T:\\Programmcode\\dataversepp\\dataverse\\src\\blob.cpp",
-                L"Eine mächtige C++-Datei", L"/source/", (const char_type **) &categories, 1, true, [](const blob &r, void *) {
-                std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
-                std::cout << std::endl;
-            }, [](const int, const char_type *, const char_type *, void *) {});
+            .upload(std::wstring(L"doi:10.15770/darus-1644"),
+                std::wstring(L"T:\\Programmcode\\dataversepp\\dataverse\\src\\blob.cpp"),
+                std::wstring(L"Eine mächtige C++-Datei"),
+                std::wstring(L"/source/"),
+                std::vector<std::wstring> { L"#bota", L"#boschofthemall" },
+                true,
+                [](const blob &r, void *) {
+                    std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
+                    std::cout << std::endl;
+                },
+                [](const int, const char *, const char *, const narrow_string::code_page_type, void *) {},
+                nullptr);
 
         
 

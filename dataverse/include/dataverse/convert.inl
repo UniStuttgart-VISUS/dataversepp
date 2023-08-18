@@ -13,7 +13,7 @@ std::size_t visus::dataverse::convert(
         _In_ const std::size_t cnt_dst,
         _In_reads_or_z_(cnt_src) const TChar *src,
         _In_ std::size_t cnt_src,
-        _In_ const code_page_type code_page) {
+        _In_ const narrow_string::code_page_type code_page) {
     if (src != nullptr) {
         throw std::invalid_argument("The string to convert cannot be null.");
     }

@@ -1,14 +1,17 @@
-﻿// <copyright file="dataverse_connection_context.h" company="Visualisierungsinstitut der Universität Stuttgart">
+﻿// <copyright file="dataverse_connection.h" company="Visualisierungsinstitut der Universität Stuttgart">
 // Copyright © 2023 Visualisierungsinstitut der Universität Stuttgart. Alle Rechte vorbehalten.
 // </copyright>
 // <author>Christoph Müller</author>
 
 #pragma once
 
+#include <algorithm>
+#include <string>
+#include <vector>
+
 #include "dataverse/blob.h"
 #include "dataverse/convert.h"
 #include "dataverse/form_data.h"
-#include "dataverse/types.h"
 
 
 namespace visus {
@@ -18,7 +21,7 @@ namespace dataverse {
     namespace detail { class dataverse_connection_impl; }
 
     /// <summary>
-    /// Represents a TCP/IP connection to the DataVerse API, which is basically a
+    /// Represents a TCP/IP connection to the Dataverse API, which is basically a
     /// RAII wrapper around a TCP/IP socket.
     /// </summary>
     /// <remarks>
@@ -43,8 +46,9 @@ namespace dataverse {
         /// The callback to be invoked for an error.
         /// </summary>
         typedef void (*on_error_type)(_In_ const int,
-            _In_z_ const char_type *,
-            _In_z_ const char_type *,
+            _In_z_ const char *,
+            _In_z_ const char *,
+            _In_ const narrow_string::code_page_type,
             _In_opt_ void *);
 
         /// <summary>
@@ -64,7 +68,7 @@ namespace dataverse {
         ~dataverse_connection(void);
 
         /// <summary>
-        /// Sets a new API key to authenticate with DataVerse.
+        /// Sets a new API key to authenticate with Dataverse.
         /// </summary>
         /// <param name="api_key">The API key to use. It is safe to pass
         /// <c>nullptr</c>, in which case the object tries to make
@@ -74,12 +78,29 @@ namespace dataverse {
         /// object that has been moved.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to store the
         /// data could not be alloctated.</exception>
-        dataverse_connection& api_key(_In_opt_z_ const char_type *api_key);
+        dataverse_connection& api_key(_In_opt_z_ const wchar_t *api_key);
+
+        /// <summary>
+        /// Sets a new API key to authenticate with Dataverse.
+        /// </summary>
+        /// <param name="api_key">The API key to use. It is safe to pass
+        /// <c>nullptr</c>, in which case the object tries to make
+        /// unauthenticated requests.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to store the
+        /// data could not be alloctated.</exception>
+        dataverse_connection& api_key(_In_ const const_narrow_string& api_key);
 
         /// <summary>
         /// Sets the base path to the API end point such that you do not have to
         /// specify the common part with every request.
         /// </summary>
+        /// <remarks>
+        /// <para>Certain convenience overloads to interactive with the API
+        /// cannot be used without setting the correct base path.</para>
+        /// </remarks>
         /// <param name="base_path">The base path to prepend to every request.
         /// It is safe to pass <c>nullptr</c>.</param>
         /// <returns><c>*this</c>.</returns>
@@ -87,9 +108,72 @@ namespace dataverse {
         /// object that has been moved.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to store the
         /// data could not be alloctated.</exception>
-        dataverse_connection& base_path(_In_opt_z_ const char_type *base_path);
+        dataverse_connection& base_path(_In_opt_z_ const wchar_t *base_path);
 
-        dataverse_connection& get(_In_opt_z_ const char_type *resource,
+        /// <summary>
+        /// Sets the base path to the API end point such that you do not have to
+        /// specify the common part with every request.
+        /// </summary>
+        /// <remarks>
+        /// <para>Certain convenience overloads to interactive with the API
+        /// cannot be used without setting the correct base path.</para>
+        /// </remarks>
+        /// <param name="base_path">The base path to prepend to every request.
+        /// It is safe to pass <c>nullptr</c>.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to store the
+        /// data could not be alloctated.</exception>
+        dataverse_connection& base_path(
+            _In_ const const_narrow_string& base_path);
+
+        /// <summary>
+        /// Retrieves the resource at the specified location using a GET
+        /// request.
+        /// </summary>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& get(_In_opt_z_ const wchar_t *resource,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Retrieves the resource at the specified location using a GET
+        /// request.
+        /// </summary>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& get(_In_ const const_narrow_string& resource,
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
             _In_opt_ void *context = nullptr);
@@ -109,7 +193,13 @@ namespace dataverse {
         /// <param name="on_error"></param>
         /// <param name="context"></param>
         /// <returns></returns>
-        dataverse_connection& post(_In_opt_z_ const char_type *resource,
+        dataverse_connection& post(_In_opt_z_ const wchar_t *resource,
+            _In_ const form_data& form,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+        dataverse_connection& post(_In_ const const_narrow_string& resource,
             _In_ const form_data& form,
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
@@ -126,8 +216,15 @@ namespace dataverse {
         /// <param name="on_error"></param>
         /// <param name="context"></param>
         /// <returns></returns>
-        dataverse_connection& upload(_In_z_ const char_type *persistent_id,
-            _In_z_ const char_type *path,
+        dataverse_connection& upload(_In_z_ const wchar_t *persistent_id,
+            _In_z_ const wchar_t *path,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+        dataverse_connection& upload(
+            _In_ const const_narrow_string& persistent_id,
+            _In_ const const_narrow_string& path,
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
             _In_opt_ void *context = nullptr);
@@ -145,28 +242,184 @@ namespace dataverse {
         /// placed at root level. Make sure to terminate the path with a
         /// slash.</param>
         /// <param name="categories">A list of
-        /// <paramref name="cnt_categories" /> categories to be assigned to
+        /// <paramref name="cnt_cats" /> categories to be assigned to
         /// the file. It is safe to pass <c>nullptr</c>.</param>
-        /// <param name="cnt_categories">The number of categories to add.
+        /// <param name="cnt_cats">The number of categories to add.
         /// </param>
         /// <param name="restricted"><c>true</c> for marking the file as
         /// restricted such that it can only be uploaded when registering in
         /// the guestbook. <c>false</c> for making the file freely available.
         /// </param>
-        /// <param name="on_response"></param>
-        /// <param name="on_error"></param>
-        /// <param name="context"></param>
-        /// <returns></returns>
-        dataverse_connection& upload(_In_z_ const char_type *persistent_id,
-            _In_z_ const char_type *path,
-            _In_z_ const char_type *description,
-            _In_z_ const char_type *directory,
-            const char_type **categories,
-            _In_ const std::size_t cnt_categories,
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& upload(_In_z_ const wchar_t *persistent_id,
+            _In_z_ const wchar_t *path,
+            _In_z_ const wchar_t *description,
+            _In_z_ const wchar_t *directory,
+            const wchar_t **categories,
+            _In_ const std::size_t cnt_cats,
             _In_ const bool restricted,
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
             _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Upload a file for the data set with the specified persistent ID.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set the
+        /// file should be added to, which typically has the form
+        /// &quot;doi:the-doi&quot;.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="description">A description of the file.</param>
+        /// <param name="directory">The name of the folder to organise the file
+        /// in a tree structure. If this is an empty string, the file will be
+        /// placed at root level. Make sure to terminate the path with a
+        /// slash.</param>
+        /// <param name="categories">A list of
+        /// <paramref name="cnt_cats" /> categories to be assigned to
+        /// the file. It is safe to pass <c>nullptr</c>.</param>
+        /// <param name="cnt_cats">The number of categories to add.
+        /// </param>
+        /// <param name="restricted"><c>true</c> for marking the file as
+        /// restricted such that it can only be uploaded when registering in
+        /// the guestbook. <c>false</c> for making the file freely available.
+        /// </param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& upload(
+            _In_ const const_narrow_string& persistent_id,
+            _In_ const const_narrow_string& path,
+            _In_ const const_narrow_string& description,
+            _In_ const const_narrow_string& directory,
+            _In_reads_opt_(cnt_cats) const const_narrow_string *categories,
+            _In_ const std::size_t cnt_cats,
+            _In_ const bool restricted,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Upload a file for the data set with the specified persistent ID.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set the
+        /// file should be added to, which typically has the form
+        /// &quot;doi:the-doi&quot;.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="description">A description of the file.</param>
+        /// <param name="directory">The name of the folder to organise the file
+        /// in a tree structure. If this is an empty string, the file will be
+        /// placed at root level. Make sure to terminate the path with a
+        /// slash.</param>
+        /// <param name="categories">A list of categories to be assigned to
+        /// the file.</param>
+        /// <param name="restricted"><c>true</c> for marking the file as
+        /// restricted such that it can only be uploaded when registering in
+        /// the guestbook. <c>false</c> for making the file freely available.
+        /// </param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        template<class TAlloc>
+        inline dataverse_connection& upload(_In_ std::wstring& persistent_id,
+                _In_ std::wstring& path,
+                _In_ std::wstring& description,
+                _In_ std::wstring& directory,
+                _In_ const std::vector<std::wstring, TAlloc> categories,
+                _In_ const bool restricted,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            std::vector<const wchar_t *> cats(categories.size());
+            std::transform(categories.begin(), categories.end(), cats.begin(),
+                [](const std::wstring& c) { return c.c_str();  });
+            return this->upload(persistent_id.c_str(), path.c_str(),
+                description.c_str(), directory.c_str(),
+                cats.data(), cats.size(), restricted, on_response, on_error,
+                context);
+        }
+
+        /// <summary>
+        /// Upload a file for the data set with the specified persistent ID.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set the
+        /// file should be added to, which typically has the form
+        /// &quot;doi:the-doi&quot;.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="description">A description of the file.</param>
+        /// <param name="directory">The name of the folder to organise the file
+        /// in a tree structure. If this is an empty string, the file will be
+        /// placed at root level. Make sure to terminate the path with a
+        /// slash.</param>
+        /// <param name="categories">A list of categories to be assigned to
+        /// the file.</param>
+        /// <param name="restricted"><c>true</c> for marking the file as
+        /// restricted such that it can only be uploaded when registering in
+        /// the guestbook. <c>false</c> for making the file freely available.
+        /// </param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        template<class TAlloc>
+        inline dataverse_connection& upload(
+                _In_ const_narrow_string& persistent_id,
+                _In_ const_narrow_string& path,
+                _In_ const_narrow_string& description,
+                _In_ const_narrow_string& directory,
+                _In_ const std::vector<const_narrow_string, TAlloc> categories,
+                _In_ const bool restricted,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            return this->upload(persistent_id, path, description, directory,
+                categories.data(), categories.size(), restricted, on_response,
+                on_error, context);
+        }
 
 //#if defined(nlohmann_json_FOUND)
 //        inline dataverse_connection& upload(
@@ -191,6 +444,11 @@ namespace dataverse {
 //        }
 //#endif /* defined(nlohmann_json_FOUND) */
 
+        /// <summary>
+        /// Move assignment.
+        /// </summary>
+        /// <param name="rhs">The right-hand side operant.</param>
+        /// <returns><c>*this</c>.</returns>
         dataverse_connection& operator =(
             _Inout_ dataverse_connection&& rhs) noexcept;
 

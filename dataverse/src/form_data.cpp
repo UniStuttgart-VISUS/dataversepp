@@ -100,32 +100,12 @@ visus::dataverse::form_data::~form_data(void) noexcept {
  * visus::dataverse::form_data::add_field
  */
 visus::dataverse::form_data&
-visus::dataverse::form_data::add_field(_In_z_ const char_type *name,
-        _In_z_ const char_type *value) {
+visus::dataverse::form_data::add_field(_In_z_ const wchar_t *name,
+        _In_z_ const wchar_t *value) {
     this->check_not_disposed();
-
-    auto field = ::curl_mime_addpart(this->_form);
-    if (field == nullptr) {
-        throw std::bad_alloc();
-    }
-
-    {
-        auto n = to_utf8(name);
-        auto status = ::curl_mime_name(field, n.c_str());
-        if (status != CURLE_OK) {
-            throw std::system_error(status, detail::curl_category());
-        }
-    }
-
-    {
-        auto v = to_utf8(value);
-        auto status = ::curl_mime_data(field, v.c_str(), CURL_ZERO_TERMINATED);
-        if (status != CURLE_OK) {
-            throw std::system_error(status, detail::curl_category());
-        }
-    }
-
-    return *this;
+    const auto n = to_utf8(name);
+    const auto v = to_utf8(value);
+    return this->add_field(n.c_str(), v.c_str());
 }
 
 
@@ -133,8 +113,21 @@ visus::dataverse::form_data::add_field(_In_z_ const char_type *name,
  * visus::dataverse::form_data::add_field
  */
 visus::dataverse::form_data& visus::dataverse::form_data::add_field(
-        _In_z_ const char_type *name,
-        _In_reads_bytes_(cnt) _In_ const std::uint8_t *data,
+        _In_ const const_narrow_string& name,
+        _In_ const const_narrow_string& value) {
+    this->check_not_disposed();
+    const auto n = to_utf8(name);
+    const auto v = to_utf8(value);
+    return this->add_field(n.c_str(), v.c_str());
+}
+
+
+/*
+ * visus::dataverse::form_data::add_field
+ */
+visus::dataverse::form_data& visus::dataverse::form_data::add_field(
+        _In_z_ const wchar_t *name,
+        _In_reads_bytes_(cnt) _In_ const byte_type *data,
         _In_ const std::size_t cnt) {
     this->check_not_disposed();
 
@@ -164,10 +157,24 @@ visus::dataverse::form_data& visus::dataverse::form_data::add_field(
 
 
 /*
+ * visus::dataverse::form_data::add_field
+ */
+visus::dataverse::form_data& visus::dataverse::form_data::add_field(
+        _In_ const const_narrow_string& name,
+        _In_reads_bytes_(cnt) _In_ const byte_type *data,
+        _In_ const std::size_t cnt) {
+    // Note: the direct to_utf8 would do the same internally, so there is no
+    // performance penalty in being lazy here ...
+    auto n = convert<wchar_t>(name);
+    return this->add_field(n.c_str(), data, cnt);
+}
+
+
+/*
  * visus::dataverse::form_data::add_file
  */
 visus::dataverse::form_data& visus::dataverse::form_data::add_file(
-        _In_z_ const char_type *name, _In_z_ const char_type *path) {
+        _In_z_ const wchar_t *name, _In_z_ const wchar_t *path) {
     this->check_not_disposed();
 
     auto field = ::curl_mime_addpart(this->_form);
@@ -199,7 +206,22 @@ visus::dataverse::form_data& visus::dataverse::form_data::add_file(
  * visus::dataverse::form_data::add_file
  */
 visus::dataverse::form_data& visus::dataverse::form_data::add_file(
-        _In_z_ const char_type *name,
+        _In_ const const_narrow_string& name,
+        _In_ const const_narrow_string& path) {
+    // Note: the direct to_utf8 would do the same internally, so there is no
+    // performance penalty in being lazy here ...
+    auto n = convert<wchar_t>(name);
+    auto v = convert<wchar_t>(path);
+    return this->add_file(n.c_str(), v.c_str());
+}
+
+
+
+/*
+ * visus::dataverse::form_data::add_file
+ */
+visus::dataverse::form_data& visus::dataverse::form_data::add_file(
+        _In_z_ const wchar_t *name,
         _In_ const std::size_t size,
         _In_ on_read_type on_read,
         _In_opt_ on_seek_type on_seek,
@@ -233,6 +255,23 @@ visus::dataverse::form_data& visus::dataverse::form_data::add_file(
 
 
 /*
+ * visus::dataverse::form_data::add_file
+ */
+visus::dataverse::form_data& visus::dataverse::form_data::add_file(
+        _In_ const const_narrow_string& name,
+        _In_ const std::size_t size,
+        _In_ on_read_type on_read,
+        _In_opt_ on_seek_type on_seek,
+        _In_opt_ on_close_type on_close,
+        _In_opt_ void *context) {
+    // Note: the direct to_utf8 would do the same internally, so there is no
+    // performance penalty in being lazy here ...
+    auto n = convert<wchar_t>(name);
+    return this->add_file(n.c_str(), size, on_read, on_seek, on_close, context);
+}
+
+
+/*
  * visus::dataverse::form_data::operator =
  */
 visus::dataverse::form_data&
@@ -262,6 +301,35 @@ visus::dataverse::form_data::form_data(_In_ void *curl) : _form(nullptr) {
 }
 
 
+
+/*
+ * visus::dataverse::form_data::add_field
+ */
+visus::dataverse::form_data& visus::dataverse::form_data::add_field(
+        _In_z_ const char *name, _In_z_ const char *value) {
+    auto field = ::curl_mime_addpart(this->_form);
+    if (field == nullptr) {
+        throw std::bad_alloc();
+    }
+
+    {
+        auto status = ::curl_mime_name(field, name);
+        if (status != CURLE_OK) {
+            throw std::system_error(status, detail::curl_category());
+        }
+    }
+
+    {
+        auto status = ::curl_mime_data(field, value, CURL_ZERO_TERMINATED);
+        if (status != CURLE_OK) {
+            throw std::system_error(status, detail::curl_category());
+        }
+    }
+
+    return *this;
+}
+
+
 /*
  * visus::dataverse::form_data::check_not_disposed
  */
@@ -270,3 +338,4 @@ void visus::dataverse::form_data::check_not_disposed(void) {
         throw std::system_error(ERROR_INVALID_STATE, std::system_category());
     }
 }
+
