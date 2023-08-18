@@ -3,30 +3,195 @@
 // </copyright>
 // <author>Christoph Müller</author>
 
+#include <algorithm>
 #include <cinttypes>
 #include <iostream>
+#include <string>
 #include <vector>
+
+#if defined(_WIN32)
+#include <Windows.h>
+#include <tchar.h>
+
+#if (defined(UNICODE) || defined(_UNICODE))
+typedef std::wstring string_type;
+#define _TT(s) string_type(_T(s))
+
+#else /* (defined(UNICODE) || defined(_UNICODE)) */
+typedef visus::dataverse::const_narrow_string string_type;
+#define _TT(s) visus::dataverse::const_narrow_string(s, CP_OEMCP)
+#endif /* (defined(UNICODE) || defined(_UNICODE)) */
+
+#else /* defined(_WIN32) */
+#define TCHAR char
+#define _T(s) (s)
+
+typedef visus::dataverse::const_narrow_string string_type;
+#define _TT(s) visus::dataverse::const_narrow_string(s, nullptr)
+#endif /* defined(_WIN32) */
 
 #include <nlohmann/json.hpp>
 
 #include "dataverse/dataverse_connection.h"
 
 
+/// <summary>
+/// Find the specified switch in the given range.
+/// </summary>
+template<class TIterator>
+TIterator find_switch(_In_ const TIterator begin,
+        _In_ const TIterator end,
+        _In_z_ const TCHAR *argument) {
+    typedef typename TIterator::value_type value_type;
+    value_type a(argument);
+    std::transform(a.begin(), a.end(), a.begin(), [](const TCHAR c) {
+        return std::tolower(c);
+    });
 
-int main() {
+    return std::find_if(begin, end, [&a](const value_type& it) {
+        for (auto l = a.cbegin(), r = it.begin(); l != a.cend(); ++l, ++r) {
+            if (*l != std::tolower(*r)) {
+                return false;
+            }
+        }
+        return true;
+    });
+}
+
+
+/// <summary>
+/// Find the value of the specified argument in the given range.
+/// </summary>
+template<class TIterator>
+TIterator find_argument(_In_ const TIterator begin,
+        _In_ const TIterator end,
+        _In_z_ const TCHAR *argument) {
+    auto retval = ::find_switch(begin, end, argument);
+    return (retval != end) ? ++retval : retval;
+}
+
+
+/// <summary>
+/// Entry point of the command line demo application.
+/// </summary>
+/// <param name="argc">The size of the argument list.</param>
+/// <param name="argv">The command line arguments.</param>
+/// <returns>Zero in case of success, -1 in case of an error.</returns>
+int main(_In_ const int argc, const TCHAR **argv) {
     using namespace visus::dataverse;
-#if (defined(DEBUG) || defined(_DEBUG))
+
+#if (defined(_WIN32) && (defined(DEBUG) || defined(_DEBUG)))
     ::_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     //::_CrtSetBreakAlloc(190);
-#endif /* (defined(DEBUG) || defined(_DEBUG)) */
+#endif /* (defined(_WIN32) && (defined(DEBUG) || defined(_DEBUG))) */
 
     try {
-        dataverse_connection c;
+        const std::vector<std::basic_string<TCHAR>> cmd_line(argv, argv + argc);
+        dataverse_connection dataverse;
+        string_type description;
+        string_type doi;
+        string_type file;
+        string_type path;
+        std::vector<string_type> tags;
 
-        //auto h = ::CreateFile(DVSL("T:\\Programmcode\\dataversepp\\dataverse\\src\\convert.cpp"), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, NULL);
-        //ULARGE_INTEGER size;
-        //size.LowPart = ::GetFileSize(h, &size.HighPart);
+        {
+            // The API end point to connect to (a URL).
+            auto it = ::find_argument(cmd_line.begin(), cmd_line.end(),
+                _T("/endpoint"));
+            if (it != cmd_line.end()) {
+                dataverse.base_path(it->c_str());
+            } else {
+                dataverse.base_path(L"https://darus.uni-stuttgart.de/api/");
+            }
+        }
 
+        {
+            // The API key to authenticate with.
+            auto it = ::find_argument(cmd_line.begin(), cmd_line.end(),
+                _T("/apikey"));
+            if (it != cmd_line.end()) {
+                dataverse.api_key(it->c_str());
+            }
+        }
+
+        {
+            // The DOI of the data set to modify.
+            auto it = ::find_argument(cmd_line.begin(), cmd_line.end(),
+                _T("/doi"));
+            if (it != cmd_line.end()) {
+                doi = *it;
+            }
+        }
+
+        {
+            // The local path to the file to be uploaded.
+            auto it = ::find_argument(cmd_line.begin(), cmd_line.end(),
+                _T("/file"));
+            if (it != cmd_line.end()) {
+                file = *it;
+            }
+        }
+
+        {
+            // The logical path to build the tree structure of files in the data
+            // set.
+            auto it = ::find_argument(cmd_line.begin(), cmd_line.end(),
+                _T("/path"));
+            if (it != cmd_line.end()) {
+                path = *it;
+            }
+        }
+
+        {
+            // A description of the file.
+            auto it = ::find_argument(cmd_line.begin(), cmd_line.end(),
+                _T("/description"));
+            if (it != cmd_line.end()) {
+                description = *it;
+            }
+        }
+
+        // Indicates whether access to the file is restricted.
+        const auto restricted = (::find_switch(cmd_line.begin(), cmd_line.end(),
+            _T("/restricted")) != cmd_line.end());
+
+        {
+            // User-defined tags to be assigned to the file.
+            auto it = cmd_line.begin();
+            while (it != cmd_line.end()) {
+                it = ::find_argument(cmd_line.begin(), cmd_line.end(),
+                    _T("/tag"));
+                if (it != cmd_line.end()) {
+                    tags.push_back(*it++);
+                }
+            }
+        }
+
+        // Do the upload.
+        auto evt_done = create_event();
+        dataverse.upload(doi, file, description, path, tags, restricted,
+                    [](const blob &r, void *e) {
+                set_event(*static_cast<event_type *>(e));
+                std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
+                std::cout << std::endl;
+            }, [](const int,                                // Error code
+                    const char *m,                          // Message
+                    const char *,                           // Message category
+                    const narrow_string::code_page_type p,  // Code page
+                    void *e) {                              // Event handle
+                set_event(*static_cast<event_type *>(e));
+#if defined(_WIN32)
+                auto mm = convert<char>(convert<wchar_t>(m, 0, p), CP_OEMCP);
+#else /* defined(_WIN32) */
+                auto mm = m;
+#endif /* defined(_WIN32) */
+                std::cout << mm << std::endl;
+                std::cout << std::endl;
+            }, &evt_done);
+
+        wait_event(evt_done);
+
+#if false
         auto data_set = nlohmann::json({ });
         data_set["datasetVersion"]["license"]["name"] = "CC BY 4.0";
         data_set["datasetVersion"]["license"]["uri"] = "https://creativecommons.org/licenses/by/4.0/legalcode.de";
@@ -61,60 +226,7 @@ int main() {
         data_set["datasetVersion"]["metadataBlocks"]["citation"]["fields"] = citation_metadata;
 
         std::cout << convert<char>(convert<wchar_t>(data_set.dump(), CP_UTF8), CP_OEMCP) << std::endl;
-
-        c.base_path(L"https://demodarus.izus.uni-stuttgart.de/api/")
-            .api_key(L"")
-            //.get(L"/dataverses/visus", [](const blob &r, void *) {
-            //    std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
-            //    std::cout << std::endl;
-            //}, [](const int, const char *, const char *, const narrow_string::code_page_type, void *) { })
-            //.post(DVSL("/datasets/:persistentId/add?persistentId=doi:10.15770/darus-1644"), c.make_form().add_file(DVSL("file"), DVSL("T:\\Programmcode\\dataversepp\\dataverse\\src\\convert.cpp")), [](const blob &r, void *) {
-            //    std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
-            //    std::cout << std::endl;
-            //}, [](const int, const char_type *, const char_type *, void *) {});
-            //.post(DVSL("/datasets/:persistentId/add?persistentId=doi:10.15770/darus-1644"), c.make_form().add_field(L"file", L"convert.cpp").add_file(L"file", size.QuadPart, form_data::win32_read, form_data::win32_seek, form_data::win32_close, (void *)h), [](const blob &r, void *) {
-            //    std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
-            //    std::cout << std::endl;
-            //}, [](const int, const char_type *, const char_type *, void *) {});
-            //.upload(DVSL("doi:10.15770/darus-1644"), DVSL("T:\\Programmcode\\dataversepp\\dataverse\\src\\convert.cpp"), [](const blob &r, void *) {
-            //    std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
-            //    std::cout << std::endl;
-            //}, [](const int, const char_type *, const char_type *, void *) {});
-            //.upload(std::wstring(L"doi:10.15770/darus-1644"),
-            //    std::wstring(L"T:\\Programmcode\\dataversepp\\dataverse\\src\\blob.cpp"),
-            //    std::wstring(L"Eine mächtige C++-Datei"),
-            //    std::wstring(L"/source/"),
-            //    std::vector<std::wstring> { L"#bota", L"#boschofthemall" },
-            //    true,
-            //    [](const blob &r, void *) {
-            //        std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
-            //        std::cout << std::endl;
-            //    },
-            //    [](const int, const char *, const char *, const narrow_string::code_page_type, void *) {},
-            //    nullptr)
-            //.upload(const_narrow_string("doi:10.15770/darus-1644", CP_OEMCP),
-            //    const_narrow_string("T:\\Programmcode\\dataversepp\\dataverse\\src\\blob.cpp", CP_OEMCP),
-            //    const_narrow_string("Eine mächtige C++-Datei", CP_OEMCP),
-            //    const_narrow_string("/source/", CP_OEMCP),
-            //    std::vector<const_narrow_string> { narrow_string("#bota", CP_OEMCP), narrow_string("#boschofthemall", CP_OEMCP) },
-            //    true,
-            //    [](const blob &r, void *) {
-            //        std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
-            //        std::cout << std::endl;
-            //    },
-            //    [](const int, const char *, const char *, const narrow_string::code_page_type, void *) {},
-            //    nullptr)
-            .post(const_narrow_string("dataverses/visus/datasets", CP_OEMCP),
-                data_set,
-                [](const blob &r, void *) {
-                    std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
-                    std::cout << std::endl;
-                },
-                [](const int, const char *, const char *, const narrow_string::code_page_type, void *) {},
-                nullptr);
-
-
-        //wait_event(e);
+#endif
 
         return 0;
     } catch (std::exception& ex) {

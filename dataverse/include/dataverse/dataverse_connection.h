@@ -11,6 +11,7 @@
 
 #include "dataverse/blob.h"
 #include "dataverse/convert.h"
+#include "dataverse/event.h"
 #include "dataverse/form_data.h"
 #include "dataverse/json.h"
 
@@ -75,7 +76,7 @@ namespace dataverse {
         /// <c>nullptr</c>, in which case the object tries to make
         /// unauthenticated requests.</param>
         /// <returns><c>*this</c>.</returns>
-        /// <exception cref std::system_error">If the method was called on an
+        /// <exception cref=std::system_error">If the method was called on an
         /// object that has been moved.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to store the
         /// data could not be alloctated.</exception>
@@ -88,7 +89,7 @@ namespace dataverse {
         /// <c>nullptr</c>, in which case the object tries to make
         /// unauthenticated requests.</param>
         /// <returns><c>*this</c>.</returns>
-        /// <exception cref std::system_error">If the method was called on an
+        /// <exception cref="std::system_error">If the method was called on an
         /// object that has been moved.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to store the
         /// data could not be alloctated.</exception>
@@ -105,7 +106,7 @@ namespace dataverse {
         /// <param name="base_path">The base path to prepend to every request.
         /// It is safe to pass <c>nullptr</c>.</param>
         /// <returns><c>*this</c>.</returns>
-        /// <exception cref std::system_error">If the method was called on an
+        /// <exception cref=std::system_error">If the method was called on an
         /// object that has been moved.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to store the
         /// data could not be alloctated.</exception>
@@ -122,7 +123,7 @@ namespace dataverse {
         /// <param name="base_path">The base path to prepend to every request.
         /// It is safe to pass <c>nullptr</c>.</param>
         /// <returns><c>*this</c>.</returns>
-        /// <exception cref std::system_error">If the method was called on an
+        /// <exception cref=std::system_error">If the method was called on an
         /// object that has been moved.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to store the
         /// data could not be alloctated.</exception>
@@ -142,9 +143,9 @@ namespace dataverse {
         /// <param name="context">A user-defined context pointer passed to the
         /// callbacks.</param>
         /// <returns><c>*this</c>.</returns>
-        /// <exception cref std::system_error">If the method was called on an
+        /// <exception cref=std::system_error">If the method was called on an
         /// object that has been moved.</exception>
-        /// <exception cref std::system_error">If the request failed right away.
+        /// <exception cref=std::system_error">If the request failed right away.
         /// Note that even if the request initially succeeded, it might still
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
@@ -167,9 +168,9 @@ namespace dataverse {
         /// <param name="context">A user-defined context pointer passed to the
         /// callbacks.</param>
         /// <returns><c>*this</c>.</returns>
-        /// <exception cref std::system_error">If the method was called on an
+        /// <exception cref=std::system_error">If the method was called on an
         /// object that has been moved.</exception>
-        /// <exception cref std::system_error">If the request failed right away.
+        /// <exception cref=std::system_error">If the request failed right away.
         /// Note that even if the request initially succeeded, it might still
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
@@ -342,9 +343,9 @@ namespace dataverse {
         /// <param name="context">A user-defined context pointer passed to the
         /// callbacks.</param>
         /// <returns><c>*this</c>.</returns>
-        /// <exception cref std::system_error">If the method was called on an
+        /// <exception cref=std::system_error">If the method was called on an
         /// object that has been moved.</exception>
-        /// <exception cref std::system_error">If the request failed right away.
+        /// <exception cref=std::system_error">If the request failed right away.
         /// Note that even if the request initially succeeded, it might still
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
@@ -388,9 +389,9 @@ namespace dataverse {
         /// <param name="context">A user-defined context pointer passed to the
         /// callbacks.</param>
         /// <returns><c>*this</c>.</returns>
-        /// <exception cref std::system_error">If the method was called on an
+        /// <exception cref=std::system_error">If the method was called on an
         /// object that has been moved.</exception>
-        /// <exception cref std::system_error">If the request failed right away.
+        /// <exception cref=std::system_error">If the request failed right away.
         /// Note that even if the request initially succeeded, it might still
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
@@ -432,9 +433,9 @@ namespace dataverse {
         /// <param name="context">A user-defined context pointer passed to the
         /// callbacks.</param>
         /// <returns><c>*this</c>.</returns>
-        /// <exception cref std::system_error">If the method was called on an
+        /// <exception cref=std::system_error">If the method was called on an
         /// object that has been moved.</exception>
-        /// <exception cref std::system_error">If the request failed right away.
+        /// <exception cref=std::system_error">If the request failed right away.
         /// Note that even if the request initially succeeded, it might still
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
@@ -483,9 +484,9 @@ namespace dataverse {
         /// <param name="context">A user-defined context pointer passed to the
         /// callbacks.</param>
         /// <returns><c>*this</c>.</returns>
-        /// <exception cref std::system_error">If the method was called on an
+        /// <exception cref=std::system_error">If the method was called on an
         /// object that has been moved.</exception>
-        /// <exception cref std::system_error">If the request failed right away.
+        /// <exception cref=std::system_error">If the request failed right away.
         /// Note that even if the request initially succeeded, it might still
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
