@@ -169,17 +169,25 @@ int main(_In_ const int argc, const TCHAR **argv) {
 
         // Do the upload.
         auto evt_done = create_event();
+
         dataverse.upload(doi, file, description, path, tags, restricted,
-                    [](const blob &r, void *e) {
-                set_event(*static_cast<event_type *>(e));
-                std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
+                    [](const blob& r,   // Response from server.
+                        void *e) {      // Event handle
+                const auto response = std::string(r.as<char>(), r.size());
+#if defined(_WIN32)
+                auto rr = convert<char>(convert<wchar_t>(response, CP_UTF8),
+                    CP_OEMCP);
+#else /* defined(_WIN32) */
+                auto rr = response;
+#endif /* defined(_WIN32) */
+                std::cout << rr << std::endl;
                 std::cout << std::endl;
+                set_event(*static_cast<event_type *>(e));
             }, [](const int,                                // Error code
                     const char *m,                          // Message
                     const char *,                           // Message category
                     const narrow_string::code_page_type p,  // Code page
                     void *e) {                              // Event handle
-                set_event(*static_cast<event_type *>(e));
 #if defined(_WIN32)
                 auto mm = convert<char>(convert<wchar_t>(m, 0, p), CP_OEMCP);
 #else /* defined(_WIN32) */
@@ -187,6 +195,7 @@ int main(_In_ const int argc, const TCHAR **argv) {
 #endif /* defined(_WIN32) */
                 std::cout << mm << std::endl;
                 std::cout << std::endl;
+                set_event(*static_cast<event_type *>(e));
             }, &evt_done);
 
         wait_event(evt_done);
