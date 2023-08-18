@@ -5,6 +5,7 @@
 
 #include "dataverse/form_data.h"
 
+#include <algorithm>
 #include <memory>
 #include <stdexcept>
 #include <system_error>

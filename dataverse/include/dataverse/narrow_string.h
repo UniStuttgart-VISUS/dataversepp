@@ -15,10 +15,17 @@ namespace visus {
 namespace dataverse {
 
     /// <summary>
-    /// 
+    /// Provides the ability to pass the encoding of a string with the string
+    /// pointer.
     /// </summary>
     /// <remarks>
-    /// 
+    /// <para>This structure is mainly used for passing encoding information
+    /// along with string parameters. It is mainly intended for keeping the
+    /// interface of methods accepting narrow strings clean. The string is
+    /// treated like the raw string pointer it contains, ie the caller remains
+    /// owner of the memory and must make sure that the string lives as long
+    /// as this structure lives. The structure will never create any copy of
+    /// the data.</para>
     /// </remarks>
     class DATAVERSE_API narrow_string final {
 

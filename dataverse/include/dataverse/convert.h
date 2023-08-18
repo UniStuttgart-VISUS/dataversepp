@@ -16,6 +16,7 @@
 #include <Windows.h>
 #endif /* defined(_WIN32) */
 
+#include "dataverse/api.h"
 #include "dataverse/narrow_string.h"
 
 

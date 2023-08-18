@@ -129,9 +129,28 @@ visus::dataverse::detail::io_context::create(void) {
         return std::unique_ptr<io_context>(new io_context());
     } else {
         auto retval = std::move(cache.back());
+        retval->response.clear();
         cache.pop_back();
         return retval;
     }
+}
+
+
+/*
+ * visus::dataverse::detail::io_context::read_request
+ */
+std::size_t CALLBACK visus::dataverse::detail::io_context::read_request(
+        _Out_writes_bytes_(cnt * size) char *dst,
+        _In_ const size_t size,
+        _In_ const size_t cnt,
+        _In_opt_ void *context) {
+    auto that = static_cast<detail::io_context *>(context);
+    const auto requested = size * cnt;
+    const auto offset = that->request.size() - that->request_remaining;
+    const auto retval = (std::min)(requested, that->request_remaining);
+    ::memcpy(dst, that->request.at(offset), retval);
+    that->request_remaining -= retval;
+    return retval;
 }
 
 
@@ -171,7 +190,20 @@ std::size_t CALLBACK visus::dataverse::detail::io_context::write_response(
  */
 visus::dataverse::detail::io_context::io_context(void)
     : client_data(nullptr),
-    curl(nullptr, &::curl_multi_cleanup) { }
+    curl(nullptr, &::curl_multi_cleanup),
+    request_remaining(0) { }
+
+
+/*
+ * visus::dataverse::detail::io_context::prepare_request
+ */
+void visus::dataverse::detail::io_context::prepare_request(
+        _In_reads_bytes_(cnt) const byte_type *data,
+        _In_ const std::size_t cnt) {
+    this->request_remaining = cnt;
+    this->request.resize(this->request_remaining);
+    ::memcpy(this->request.data(), data, cnt);
+}
 
 
 /*

@@ -12,6 +12,7 @@
 #include "dataverse/blob.h"
 #include "dataverse/convert.h"
 #include "dataverse/form_data.h"
+#include "dataverse/json.h"
 
 
 namespace visus {
@@ -204,6 +205,90 @@ namespace dataverse {
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
             _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Posts the given data to the given resource location.
+        /// </summary>
+        /// <remarks>
+        /// This method can be used to create data sets.
+        /// </remarks>
+        /// <param name="resource"></param>
+        /// <param name="data"></param>
+        /// <param name="cnt"></param>
+        /// <param name="content_type"></param>
+        /// <param name="on_response"></param>
+        /// <param name="on_error"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        dataverse_connection& post(_In_opt_z_ const wchar_t *resource,
+            _In_reads_bytes_(cnt) const byte_type *data,
+            _In_ const std::size_t cnt,
+            _In_opt_z_ const wchar_t *content_type,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+        dataverse_connection& post(_In_ const const_narrow_string& resource,
+            _In_reads_bytes_(cnt) const byte_type *data,
+            _In_ const std::size_t cnt,
+            _In_ const const_narrow_string& content_type,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+#if defined(DATAVERSE_WITH_JSON)
+        /// <summary>
+        /// Posts the specified JSON data to the specified resource location.
+        /// </summary>
+        /// <remarks>
+        /// This method can be used to create data sets.
+        /// </remarks>
+        /// <param name="resource"></param>
+        /// <param name="json"></param>
+        /// <param name="on_response"></param>
+        /// <param name="on_error"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        inline dataverse_connection& post(_In_opt_z_ const wchar_t *resource,
+                _In_ const nlohmann::json& json,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            auto dump = json.dump();
+            auto octets = reinterpret_cast<const byte_type *>(dump.data());
+            return this->post(resource, octets, dump.size(),
+                L"application/json", on_response, on_error, context);
+        }
+
+        /// <summary>
+        /// Posts the specified JSON data to the specified resource location.
+        /// </summary>
+        /// <remarks>
+        /// This method can be used to create data sets.
+        /// </remarks>
+        /// <param name="resource"></param>
+        /// <param name="json"></param>
+        /// <param name="on_response"></param>
+        /// <param name="on_error"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        inline dataverse_connection& post(
+                _In_ const const_narrow_string& resource,
+                _In_ const nlohmann::json& json,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            auto dump = json.dump();
+            auto octets = reinterpret_cast<const byte_type *>(dump.data());
+            return this->post(resource, octets, dump.size(),
+#if defined(_WIN32)
+                const_narrow_string("application/json", CP_OEMCP),
+#else /* defined(_WIN32) */
+                const_narrow_string("application/json", nullptr),
+#endif /* defined(_WIN32) */
+                on_response, on_error, context);
+        }
+#endif /* defined(DATAVERSE_WITH_JSON) */
 
         /// <summary>
         /// Upload a file for the data set with the specified persistent ID.
@@ -421,7 +506,7 @@ namespace dataverse {
                 on_error, context);
         }
 
-//#if defined(nlohmann_json_FOUND)
+#if defined(NLOHMANN_JSON_NAMESPACE_BEGIN)
 //        inline dataverse_connection& upload(
 //                _In_opt_z_ const char_type *persistent_id,
 //                _In_ const char_type *path,
@@ -442,7 +527,7 @@ namespace dataverse {
 //                on_error,
 //                context);
 //        }
-//#endif /* defined(nlohmann_json_FOUND) */
+#endif /* defined(NLOHMANN_JSON_NAMESPACE_BEGIN) */
 
         /// <summary>
         /// Move assignment.

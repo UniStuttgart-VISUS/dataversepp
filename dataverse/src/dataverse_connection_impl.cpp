@@ -67,7 +67,7 @@ visus::dataverse::detail::dataverse_connection_impl::add_auth_header(
         std::vector<char> header(name, name + sizeof(name) - 1);
         header.insert(header.end(), this->api_key.begin(), this->api_key.end());
 
-        headers.reset(::curl_slist_append(nullptr, header.data()));
+        headers.reset(::curl_slist_append(headers.release(), header.data()));
         secure_zero(header);
     }
 

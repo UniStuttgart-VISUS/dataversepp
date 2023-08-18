@@ -33,6 +33,15 @@ namespace detail {
 
         static _Ret_valid_ std::unique_ptr<io_context> create(void);
 
+        /// <summary>
+        /// I/O callback to read the response from our buffer.
+        /// </summary>
+        static std::size_t CALLBACK read_request(
+            _Out_writes_bytes_(cnt *size) char *dst,
+            _In_ const size_t size,
+            _In_ const size_t cnt,
+            _In_opt_ void *context);
+
         static void recycle(_Inout_ std::unique_ptr<io_context> &&context);
 
         /// <summary>
@@ -55,6 +64,14 @@ namespace detail {
         /// </summary>
         dataverse_connection_impl::curlm_type curl;
 
+        blob request;
+
+        /// <summary>
+        /// The amount of data, in bytes, from <see cref="request" /> that we
+        /// have not yet delivered to cURL.
+        /// </summary>
+        std::size_t request_remaining;
+
         /// <summary>
         /// Receives the response from cURL.
         /// </summary>
@@ -64,6 +81,9 @@ namespace detail {
         /// Initialises a new instance.
         /// </summary>
         io_context(void);
+
+        void prepare_request(_In_reads_bytes_(cnt) const byte_type *data,
+            _In_ const std::size_t cnt);
 
     private:
 

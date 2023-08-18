@@ -3,16 +3,21 @@
 // </copyright>
 // <author>Christoph Müller</author>
 
+#include <nlohmann/json.hpp>
 #include "dataverse/dataverse_connection.h"
 
 #include <iterator>
 
-#include <nlohmann/json.hpp>
-
-#include "dataverse/convert.h"
-
 #include "dataverse_connection_impl.h"
 #include "io_context.h"
+
+
+#define _CHECK_ON_RESPONSE if (on_response == nullptr) \
+    throw std::invalid_argument("The response handler must be valid.")
+
+#define _CHECK_ON_ERROR if (on_error == nullptr) \
+    throw std::invalid_argument("The error handler must be valid.")
+
 
 
 /*
@@ -134,13 +139,8 @@ visus::dataverse::dataverse_connection::get(
         _In_ const on_response_type on_response,
         _In_ const on_error_type on_error,
         _In_opt_ void *context) {
-    if (on_response == nullptr) {
-        throw std::invalid_argument("The response handler must be valid.");
-    }
-    if (on_error == nullptr) {
-        throw std::invalid_argument("The error handler must be valid.");
-    }
-    
+    _CHECK_ON_RESPONSE;
+    _CHECK_ON_ERROR;
     auto& i = this->check_not_disposed();
 
     auto c = detail::io_context::create();
@@ -203,14 +203,11 @@ visus::dataverse::dataverse_connection::post(
         _In_ const on_response_type on_response,
         _In_ const on_error_type on_error,
         _In_opt_ void *context) {
+    _CHECK_ON_RESPONSE;
+    _CHECK_ON_ERROR;
+
     if (!form) {
         throw std::invalid_argument("The form must be valid.");
-    }
-    if (on_response == nullptr) {
-        throw std::invalid_argument("The response handler must be valid.");
-    }
-    if (on_error == nullptr) {
-        throw std::invalid_argument("The error handler must be valid.");
     }
 
     auto& i = this->check_not_disposed();
@@ -255,6 +252,89 @@ visus::dataverse::dataverse_connection::post(
         auto r = convert<wchar_t>(resource);
         return this->post(r.c_str(), form, on_response, on_error, context);
     }
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::post
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::post(
+        _In_opt_z_ const wchar_t *resource,
+        _In_reads_bytes_(cnt) const byte_type *data,
+        _In_ const std::size_t cnt,
+        _In_opt_z_ const wchar_t *content_type,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    _CHECK_ON_RESPONSE;
+    _CHECK_ON_ERROR;
+
+    if (data == nullptr) {
+        throw std::invalid_argument("The data to be uploaded must be valid.");
+    }
+
+    auto &i = this->check_not_disposed();
+
+    auto c = detail::io_context::create();
+    c->client_data = context;
+    c->prepare_request(data, cnt);
+
+    std::string url = i.make_url(resource);
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_URL, url.c_str());
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_UPLOAD, 1L);
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_POST, 1L);
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_INFILESIZE_LARGE, cnt);
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_WRITEDATA, c.get());
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_READDATA, c.get());
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_READFUNCTION,
+        &detail::io_context::read_request);
+
+    // Set the headers.
+    auto headers = i.add_auth_header();
+    if (content_type != nullptr) {
+        auto h = "Content-Type: " + to_ascii(content_type);
+        headers.reset(::curl_slist_append(headers.release(), h.c_str()));
+    }
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_HTTPHEADER, headers.get());
+
+    auto status = ::curl_easy_perform(i.curl.get());
+    if (status != CURLE_OK) {
+        throw std::system_error(status, detail::curl_category());
+    }
+
+    on_response(c->response, c->client_data);
+    detail::io_context::recycle(std::move(c));
+
+    return *this;
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::post
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::post(
+        _In_ const const_narrow_string& resource,
+        _In_reads_bytes_(cnt) const byte_type *data,
+        _In_ const std::size_t cnt,
+        _In_ const const_narrow_string& content_type,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto c = (content_type != nullptr)
+        ? convert<wchar_t>(content_type)
+        : std::wstring();
+    const auto r = (resource != nullptr)
+        ? convert<wchar_t>(resource)
+        : std::wstring();
+
+    return this->post((resource != nullptr) ? r.c_str() : nullptr,
+        data, cnt,
+        (content_type != nullptr) ? c.c_str() : nullptr,
+        on_response,
+        on_error,
+        context);
 }
 
 
@@ -426,3 +506,6 @@ visus::dataverse::dataverse_connection::check_not_disposed(void) const {
         return *this->_impl;
     }
 }
+
+#undef _CHECK_ON_RESPONSE
+#undef _CHECK_ON_ERROR
