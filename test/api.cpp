@@ -20,6 +20,9 @@ namespace test {
     public:
 
         api(void) {
+            std::string xxx = std::getenv("ApiKey");
+            xxx.substr(5);
+            Logger::WriteMessage(xxx.c_str());
             this->_connection.api_key(visus::dataverse::make_narrow_string(std::getenv("ApiKey"), CP_OEMCP));
             this->_connection.base_path(visus::dataverse::make_narrow_string(std::getenv("ApiEndPoint"), CP_OEMCP));
         }
@@ -28,7 +31,7 @@ namespace test {
             auto evt_done = visus::dataverse::create_event();
 
             this->_connection.get(L"/dataverses/visus",
-                [](const visus::dataverse::blob &r, void *e) {
+                [](const visus::dataverse::blob& r, void *e) {
                 const auto response = std::string(r.as<char>(), r.size());
                 const auto json = nlohmann::json::parse(response);
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
@@ -36,7 +39,7 @@ namespace test {
                 visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
             }, [](const int c, const char *m, const char *t, const visus::dataverse::narrow_string::code_page_type p, void *e) {
                 visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
-                Assert::IsTrue(false, L"Error callback invoked", LINE_INFO());
+                Assert::Fail(L"Error callback invoked", LINE_INFO());
             }, &evt_done);
 
             visus::dataverse::wait_event(evt_done);
@@ -46,7 +49,7 @@ namespace test {
             auto data_set = nlohmann::json({ });
 
             data_set["datasetVersion"]["license"]["name"] = "CC BY 4.0";
-            data_set["datasetVersion"]["license"]["uri"] = "https://creativecommons.org/licenses/by/4.0/legalcode.de";
+            data_set["datasetVersion"]["license"]["uri"] = "https://creativecommons.org/licenses/by/4.0/";
             data_set["datasetVersion"]["metadataBlocks"]["citation"] = visus::dataverse::json::make_citation_metadata(
                 visus::dataverse::json::make_meta_field(
                     L"title",
@@ -84,7 +87,7 @@ namespace test {
                 Assert::IsTrue(true, L"Response callback invoked", LINE_INFO());
             }, [](const int c, const char *m, const char *t, const visus::dataverse::narrow_string::code_page_type p, void *e) {
                 visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
-                Assert::IsTrue(false, L"Error callback invoked", LINE_INFO());
+                Assert::Fail(L"Error callback invoked", LINE_INFO());
             }, &evt_done);
 
             visus::dataverse::wait_event(evt_done);

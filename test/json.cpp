@@ -21,7 +21,7 @@ namespace test {
 
         TEST_METHOD(data_set) {
             const auto licence_name = "CC BY 4.0";
-            const auto licence_uri = "https://creativecommons.org/licenses/by/4.0/legalcode.de";
+            const auto licence_uri = "https://creativecommons.org/licenses/by/4.0/";
             const auto citation_display_name = L"Citation Metadata";
             const auto title = visus::dataverse::to_utf8(L"Energy consumption of scientific visualisation and data visualisation algorithms");
             const auto first_author = L"Müller, Christoph";
