@@ -52,47 +52,32 @@ dataverse.base_path(const_narrow_string("https://darus.uni-stuttgart.de/api/", C
 Provided you have [nlohmann/json](https://github.com/nlohmann/json) installed, you can also make requests like for the creation of a new data set:
 ```c++
 auto data_set = nlohmann::json({ });
+
 data_set["datasetVersion"]["license"]["name"] = "CC BY 4.0";
-data_set["datasetVersion"]["license"]["uri"] = "https://creativecommons.org/licenses/by/4.0/";
+data_set["datasetVersion"]["license"]["uri"] = "https://creativecommons.org/licenses/by/4.0/legalcode.de";
+data_set["datasetVersion"]["metadataBlocks"]["citation"] = visus::dataverse::json::make_citation_metadata(
+    visus::dataverse::json::make_meta_field(
+        L"title",
+        L"primitive",
+        false,
+        visus::dataverse::to_utf8(L"Energy consumption of scientific visualisation and data visualisation algorithms")),
 
-auto citation_metadata = nlohmann::json::array();
-citation_metadata.push_back(json::make_meta_field(
-    L"title",
-    L"primitive",
-    false,
-    to_utf8(L"Energy consumption of scientific visualisation and data visualisation algorithms")));
-citation_metadata.push_back(
-    json::make_meta_field(L"author", L"compound", true,
-        json::make_author(L"Müller, Christoph"),
-        json::make_author(L"Heinemann, Moritz"),
-        json::make_author(L"Weiskopf, Daniel"),
-        json::make_author(L"Ertl, Thomas"))
-);
-citation_metadata.push_back(
-    json::make_meta_field(L"datasetContact", L"compound", true,
-        json::make_contact(L"Querulant", L"querulant@visus.uni-stuttgart.de"))
-);
-citation_metadata.push_back(
-    json::make_meta_field(L"dsDescription", L"compound", true,
-        json::make_data_desc(L"This data set comprises a series of measurements of GPU power consumption.")
-    )
-);
-citation_metadata.push_back(
-    json::make_meta_field(L"subject", L"controlledVocabulary", true, to_utf8(L"Computer and Information Science"))
-);
+    visus::dataverse::json::make_meta_field(L"author", L"compound", true,
+        visus::dataverse::json::make_author(L"Müller, Christoph"),
+        visus::dataverse::json::make_author(L"Heinemann, Moritz"),
+        visus::dataverse::json::make_author(L"Weiskopf, Daniel"),
+        visus::dataverse::json::make_author(L"Ertl, Thomas")),
 
-data_set["datasetVersion"]["metadataBlocks"]["citation"]["displayName"] = to_utf8(L"Citation Metadata");
-data_set["datasetVersion"]["metadataBlocks"]["citation"]["fields"] = citation_metadata;
+    visus::dataverse::json::make_meta_field(L"datasetContact", L"compound", true,
+        visus::dataverse::json::make_contact(L"Querulant", L"querulant@visus.uni-stuttgart.de")),
 
-dataverse.base_path(L"https://darus.uni-stuttgart.de/api/")
-    .api_key(L"YOUR API KEY")
-    .post(L"dataverses/visus/datasets"),
-        data_set,
-        [](const blob& r, void *) {
-            std::cout << convert<char>(convert<wchar_t>(std::string(r.as<char>(), r.size()), CP_UTF8), CP_OEMCP) << std::endl;
-            std::cout << std::endl;
-        },
-        [](const int, const char *, const char *, const narrow_string::code_page_type, void *) {},
-        nullptr);
+    visus::dataverse::json::make_meta_field(L"dsDescription", L"compound", true,
+        visus::dataverse::json::make_data_desc(L"This data set comprises a series of measurements of GPU power consumption.")),
+
+    visus::dataverse::json::make_meta_field(L"subject",
+        L"controlledVocabulary",
+        true,
+        visus::dataverse::to_utf8(L"Computer and Information Science"))
+);
 ```
 Make sure that all string content is UTF-8. Just assuming that string literals are UTF-8 is not sufficient. The construction of the meta data will fail if any non-UTF-8 code unit is discovered. It is best using the `to_utf8` functions provided by the library.
