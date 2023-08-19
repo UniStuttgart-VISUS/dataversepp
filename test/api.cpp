@@ -47,7 +47,7 @@ namespace test {
             auto data_set = nlohmann::json({ });
 
             data_set["datasetVersion"]["license"]["name"] = "CC BY 4.0";
-            data_set["datasetVersion"]["license"]["uri"] = "https://creativecommons.org/licenses/by/4.0/";
+            data_set["datasetVersion"]["license"]["uri"] = "http://creativecommons.org/licenses/by/4.0/";
             data_set["datasetVersion"]["metadataBlocks"]["citation"] = visus::dataverse::json::make_citation_metadata(
                 visus::dataverse::json::make_meta_field(
                     L"title",
