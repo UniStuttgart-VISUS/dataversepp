@@ -25,10 +25,14 @@ jobs:
   variables:
     buildPlatform: 'x64'
     buildConfiguration: 'Release'
-    generator: 'Visual Studio 17 2022'
+    generator: 'Visual Studio 16 2019'
 
   pool:
-    vmImage: 'windows-2022'
+    name: 'default'
+    demands:
+    - Agent.OS -equals Windows_NT
+    - cmake
+    - VisualStudio_16.0
 
   steps:
   - task: CMake@1
