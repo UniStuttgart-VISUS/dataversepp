@@ -64,13 +64,27 @@ namespace detail {
         /// </summary>
         dataverse_connection_impl::curlm_type curl;
 
-        blob request;
+        /// <summary>
+        /// A pointer to the caller-provided request data.
+        /// </summary>
+        const byte_type *request;
+
+        /// <summary>
+        /// A user-defined deleter to be called once the request has been
+        /// processed.
+        /// </summary>
+        dataverse_connection::data_deleter_type request_deleter;
 
         /// <summary>
         /// The amount of data, in bytes, from <see cref="request" /> that we
         /// have not yet delivered to cURL.
         /// </summary>
         std::size_t request_remaining;
+
+        /// <summary>
+        /// The overall size of the data designated by <see cref="request" />.
+        /// </summary>
+        std::size_t request_size;
 
         /// <summary>
         /// Receives the response from cURL.
@@ -82,8 +96,19 @@ namespace detail {
         /// </summary>
         io_context(void);
 
+        /// <summary>
+        /// Finalises the instance.
+        /// </summary>
+        ~io_context(void);
+
+        /// <summary>
+        /// Runs the <see cref="request_deleter" /> if one is set.
+        /// </summary>
+        void delete_request(void);
+
         void prepare_request(_In_reads_bytes_(cnt) const byte_type *data,
-            _In_ const std::size_t cnt);
+            _In_ const std::size_t cnt,
+            _In_opt_ const dataverse_connection::data_deleter_type deleter);
 
     private:
 

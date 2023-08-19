@@ -192,5 +192,55 @@ namespace dataverse {
         value_type _value;
     };
 
+
+    /// <summary>
+    /// Creates a new instance of <see cref="narrow_string" />.
+    /// </summary>
+    /// <param name="string">The narrow string pointer. The caller remains
+    /// owner of the memory and must ensure that it lives as long as the
+    /// new object.</param>
+    /// <param name="code_page">The code page used in
+    /// <paramref name="string" />. Note that on non-Windows systems, this
+    /// is a string and the caller must make sure that it lives as long
+    /// as the new object.</param>
+    /// <returns>A new <see cref="narrow_string" />.</returns>
+    inline narrow_string make_narrow_string(_In_opt_z_ char *string,
+            _In_ narrow_string::code_page_type code_page) {
+        return narrow_string(string, code_page);
+    }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="const_narrow_string" />.
+    /// </summary>
+    /// <param name="string">The narrow string pointer. The caller remains
+    /// owner of the memory and must ensure that it lives as long as the
+    /// new object.</param>
+    /// <param name="code_page">The code page used in
+    /// <paramref name="string" />. Note that on non-Windows systems, this
+    /// is a string and the caller must make sure that it lives as long
+    /// as the new object.</param>
+    /// <returns>A new <see cref="const_narrow_string" />.</returns>
+    inline const_narrow_string make_narrow_string(_In_opt_z_ const char *string,
+            _In_ narrow_string::code_page_type code_page) {
+        return const_narrow_string(string, code_page);
+    }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="const_narrow_string" />.
+    /// </summary>
+    /// <param name="string">The narrow string pointer. The caller remains
+    /// owner of the memory and must ensure that it lives as long as the
+    /// new object.</param>
+    /// <param name="code_page">The code page used in
+    /// <paramref name="string" />. Note that on non-Windows systems, this
+    /// is a string and the caller must make sure that it lives as long
+    /// as the new object.</param>
+    /// <returns>A new <see cref="const_narrow_string" />.</returns>
+    inline const_narrow_string make_const_narrow_string(
+            _In_opt_z_ const char *string,
+            _In_ narrow_string::code_page_type code_page) {
+        return const_narrow_string(string, code_page);
+    }
+
 } /* namespace dataverse */
 } /* namespace visus */

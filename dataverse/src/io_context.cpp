@@ -8,117 +8,6 @@
 #include "dataverse/convert.h"
 
 
-#if 0
-/*
- * visus::dataverse::detail::io_context::io_context
- */
-visus::dataverse::detail::io_context::io_context(
-        _In_ const std::size_t size) noexcept
-    : client_data(nullptr), on_failed(nullptr),
-        operation(io_operation::unknown), size(size) {
-#if defined(_WIN32)
-    this->buffer.buf = reinterpret_cast<CHAR *>(this->payload());
-    this->buffer.len = static_cast<ULONG>(this->size);
-#endif /* defined(_WIN32) */
-    std::memset(&this->overlapped, 0, sizeof(this->overlapped));
-}
-
-
-/*
- * visus::dataverse::detail::io_context::~io_context
- */
-visus::dataverse::detail::io_context::~io_context(void) noexcept {
-    // We need to make sure here that we delete any possible heap allocation for
-    // std::functions.
-    this->operation_unknown();
-}
-
-
-/*
- * visus::dataverse::detail::io_context::invoke_on_failed
- */
-void visus::dataverse::detail::io_context::invoke_on_failed(
-        _In_ dataverse_connection *connection,
-        _In_ const std::system_error& ex) {
-    if (this->on_failed != nullptr) {
-        this->on_failed(connection, ex, this);
-    }
-}
-
-
-/*
- * visus::dataverse::detail::io_context::invoke_on_received
- */
-std::size_t visus::dataverse::detail::io_context::invoke_on_received(
-        _In_ dataverse_connection *connection,
-        _In_ const std::size_t cnt) {
-    if ((this->operation == io_operation::receive) && this->on_received) {
-        return this->on_received(connection, cnt, this);
-    } else {
-        return 0;
-    }
-}
-
-
-/*
- * visus::dataverse::detail::io_context::invoke_on_sent
- */
-void visus::dataverse::detail::io_context::invoke_on_sent(
-        _In_ dataverse_connection *connection) {
-    if ((this->operation == io_operation::send) && this->on_sent) {
-        this->on_sent(connection, this);
-    }
-}
-
-
-/*
- * visus::dataverse::detail::io_context::operation_receive
- */
-void visus::dataverse::detail::io_context::operation_receive(
-        _In_ const decltype(io_context::on_received)& on_received) {
-    this->operation_unknown();
-    new (&this->on_received) decltype(io_context::on_received)(on_received);
-    this->operation = io_operation::receive;
-}
-
-
-/*
- * visus::dataverse::detail::io_context::operation_send
- */
-void visus::dataverse::detail::io_context::operation_send(
-        _In_ const decltype(io_context::on_sent)& on_sent) {
-    this->operation_unknown();
-    new (&this->on_sent) decltype(io_context::on_sent)(on_sent);
-    this->operation = io_operation::send;
-}
-
-
-/*
- * visus::dataverse::detail::io_context::operation_unknown
- */
-void visus::dataverse::detail::io_context::operation_unknown(void) noexcept {
-#define _DESTRUCT_CB(cb) this->cb.~decltype(this->cb)()
-
-    switch (this->operation) {
-        case io_operation::receive:
-            _DESTRUCT_CB(on_received);
-            break;
-
-        case io_operation::send:
-            _DESTRUCT_CB(on_sent);
-            break;
-
-        case io_operation::unknown:
-            // Nothing to do.
-            break;
-    }
-
-    this->operation = io_operation::unknown;
-#undef _DESTRUCT_CB
-}
-#endif
-
-
 /*
  * visus::dataverse::detail::io_context::create
  */
@@ -146,10 +35,16 @@ std::size_t CALLBACK visus::dataverse::detail::io_context::read_request(
         _In_opt_ void *context) {
     auto that = static_cast<detail::io_context *>(context);
     const auto requested = size * cnt;
-    const auto offset = that->request.size() - that->request_remaining;
+    const auto offset = that->request_size- that->request_remaining;
     const auto retval = (std::min)(requested, that->request_remaining);
-    ::memcpy(dst, that->request.at(offset), retval);
-    that->request_remaining -= retval;
+
+    if (retval > 0) {
+        ::memcpy(dst, that->request + offset, retval);
+        that->request_remaining -= retval;
+    } else {
+        that->delete_request();
+    }
+
     return retval;
 }
 
@@ -160,6 +55,7 @@ std::size_t CALLBACK visus::dataverse::detail::io_context::read_request(
 void visus::dataverse::detail::io_context::recycle(
         _Inout_ std::unique_ptr<io_context>&& context) {
     if (context != nullptr) {
+        context->delete_request();
         std::lock_guard<decltype(lock)> l(lock);
         cache.push_back(std::move(context));
     }
@@ -191,7 +87,31 @@ std::size_t CALLBACK visus::dataverse::detail::io_context::write_response(
 visus::dataverse::detail::io_context::io_context(void)
     : client_data(nullptr),
     curl(nullptr, &::curl_multi_cleanup),
-    request_remaining(0) { }
+    request(nullptr),
+    request_deleter(nullptr),
+    request_remaining(0),
+    request_size(0) { }
+
+
+/*
+ * visus::dataverse::detail::io_context::~io_context
+ */
+visus::dataverse::detail::io_context::~io_context(void) {
+    this->delete_request();
+}
+
+
+/*
+ * visus::dataverse::detail::io_context::delete_request
+ */
+void visus::dataverse::detail::io_context::delete_request(void) {
+    if ((this->request_deleter != nullptr) && (this->request != nullptr)) {
+        this->request_deleter(this->request);
+    }
+
+    this->request = nullptr;
+    this->request_deleter = nullptr;
+}
 
 
 /*
@@ -199,10 +119,12 @@ visus::dataverse::detail::io_context::io_context(void)
  */
 void visus::dataverse::detail::io_context::prepare_request(
         _In_reads_bytes_(cnt) const byte_type *data,
-        _In_ const std::size_t cnt) {
+        _In_ const std::size_t cnt,
+        _In_opt_ const dataverse_connection::data_deleter_type deleter) {
+    this->delete_request();
+    this->request = data;
+    this->request_size = cnt;
     this->request_remaining = cnt;
-    this->request.resize(this->request_remaining);
-    ::memcpy(this->request.data(), data, cnt);
 }
 
 

@@ -67,14 +67,9 @@ namespace detail {
             secure_zero(this->api_key);
         }
 
-        inline curlm_type make_curlm(void) const {
-            return curlm_type(::curl_multi_init(), &::curl_multi_cleanup);
-        }
+        curlm_type make_curlm(void) const;
 
-        inline mime_type make_mime(void) const {
-            auto curl = this->curl.get();
-            return mime_type(::curl_mime_init(curl), &::curl_mime_free);
-        }
+        mime_type make_mime(void) const;
 
         std::string make_url(_In_opt_z_ const wchar_t *resource) const;
 

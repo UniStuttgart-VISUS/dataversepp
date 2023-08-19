@@ -263,6 +263,7 @@ visus::dataverse::dataverse_connection::post(
         _In_opt_z_ const wchar_t *resource,
         _In_reads_bytes_(cnt) const byte_type *data,
         _In_ const std::size_t cnt,
+        _In_opt_ const data_deleter_type data_deleter,
         _In_opt_z_ const wchar_t *content_type,
         _In_ const on_response_type on_response,
         _In_ const on_error_type on_error,
@@ -274,11 +275,11 @@ visus::dataverse::dataverse_connection::post(
         throw std::invalid_argument("The data to be uploaded must be valid.");
     }
 
-    auto &i = this->check_not_disposed();
+    auto& i = this->check_not_disposed();
 
     auto c = detail::io_context::create();
     c->client_data = context;
-    c->prepare_request(data, cnt);
+    c->prepare_request(data, cnt, data_deleter);
 
     std::string url = i.make_url(resource);
     ::curl_easy_setopt(i.curl.get(), CURLOPT_URL, url.c_str());
@@ -318,6 +319,7 @@ visus::dataverse::dataverse_connection::post(
         _In_ const const_narrow_string& resource,
         _In_reads_bytes_(cnt) const byte_type *data,
         _In_ const std::size_t cnt,
+        _In_opt_ const data_deleter_type data_deleter,
         _In_ const const_narrow_string& content_type,
         _In_ const on_response_type on_response,
         _In_ const on_error_type on_error,
@@ -330,7 +332,7 @@ visus::dataverse::dataverse_connection::post(
         : std::wstring();
 
     return this->post((resource != nullptr) ? r.c_str() : nullptr,
-        data, cnt,
+        data, cnt, data_deleter,
         (content_type != nullptr) ? c.c_str() : nullptr,
         on_response,
         on_error,

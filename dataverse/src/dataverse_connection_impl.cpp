@@ -5,6 +5,8 @@
 
 #include "dataverse_connection_impl.h"
 
+#include <stdexcept>
+
 #include "dataverse/convert.h"
 
 #include "io_context.h"
@@ -67,11 +69,44 @@ visus::dataverse::detail::dataverse_connection_impl::add_auth_header(
         std::vector<char> header(name, name + sizeof(name) - 1);
         header.insert(header.end(), this->api_key.begin(), this->api_key.end());
 
-        headers.reset(::curl_slist_append(headers.release(), header.data()));
+        auto old_headers = headers.release();
+        headers.reset(::curl_slist_append(old_headers, header.data()));
         secure_zero(header);
+
+        if (!headers) {
+            ::curl_slist_free_all(old_headers);
+            throw std::bad_alloc();
+        }
     }
 
     return std::move(headers);
+}
+
+
+/*
+ * visus::dataverse::detail::dataverse_connection_impl::make_curlm
+ */
+visus::dataverse::detail::dataverse_connection_impl::curlm_type
+visus::dataverse::detail::dataverse_connection_impl::make_curlm(void) const {
+    auto retval = curlm_type(::curl_multi_init(), &::curl_multi_cleanup);
+    if (!retval) {
+        throw std::bad_alloc();
+    }
+    return retval;
+}
+
+
+/*
+ * visus::dataverse::detail::dataverse_connection_impl::make_mime
+ */
+visus::dataverse::detail::dataverse_connection_impl::mime_type
+visus::dataverse::detail::dataverse_connection_impl::make_mime(void) const {
+    auto curl = this->curl.get();
+    auto retval = mime_type(::curl_mime_init(curl), &::curl_mime_free);
+    if (!retval) {
+        throw std::bad_alloc();
+    }
+    return retval;
 }
 
 

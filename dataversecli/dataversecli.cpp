@@ -27,7 +27,7 @@ typedef visus::dataverse::const_narrow_string string_type;
 #define _T(s) (s)
 
 typedef visus::dataverse::const_narrow_string string_type;
-#define _TT(s) visus::dataverse::const_narrow_string(s, nullptr)
+#define _TT(s) visus::dataverse::make_narrow_string(s, nullptr)
 #endif /* defined(_WIN32) */
 
 #include <nlohmann/json.hpp>
