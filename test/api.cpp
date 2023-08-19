@@ -33,6 +33,7 @@ namespace test {
             this->_connection.get(L"/dataverses/visus",
                 [](const visus::dataverse::blob& r, void *e) {
                 const auto response = std::string(r.as<char>(), r.size());
+                Logger::WriteMessage(response.c_str());
                 const auto json = nlohmann::json::parse(response);
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
                 Assert::AreEqual(visus::dataverse::to_utf8(L"visus"), json["data"]["alias"].get<std::string>(), L"Dataverse alias", LINE_INFO());
@@ -81,6 +82,7 @@ namespace test {
                 data_set,
                 [](const visus::dataverse::blob& r, void *e) {
                 const auto response = std::string(r.as<char>(), r.size());
+                Logger::WriteMessage(response.c_str());
                 const auto json = nlohmann::json::parse(response);
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
                 visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
