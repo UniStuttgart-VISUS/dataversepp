@@ -42,7 +42,7 @@ namespace dataverse {
         /// </summary>
         typedef unsigned int code_page_type;
 #else /* defined(_WIN32) */
-        typedef char *code_page_type;
+        typedef const char *code_page_type;
 #endif /* defined(_WIN32) */
 
         /// <summary>

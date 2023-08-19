@@ -1,7 +1,7 @@
-// <copyright file="blob.cpp" company="Visualisierungsinstitut der Universität Stuttgart">
-// Copyright © 2023 Visualisierungsinstitut der Universität Stuttgart. Alle Rechte vorbehalten.
+ï»¿// <copyright file="blob.cpp" company="Visualisierungsinstitut der UniversitÃ¤t Stuttgart">
+// Copyright Â© 2023 Visualisierungsinstitut der UniversitÃ¤t Stuttgart. Alle Rechte vorbehalten.
 // </copyright>
-// <author>Christoph Müller</author>
+// <author>Christoph MÃ¼ller</author>
 
 #include "CppUnitTest.h"
 
@@ -24,7 +24,7 @@ namespace test {
             const auto licence_uri = "http://creativecommons.org/licenses/by/4.0/";
             const auto citation_display_name = L"Citation Metadata";
             const auto title = visus::dataverse::to_utf8(L"Energy consumption of scientific visualisation and data visualisation algorithms");
-            const auto first_author = L"Müller, Christoph";
+            const auto first_author = L"MÃ¼ller, Christoph";
             const auto contact_name = L"Querulant";
             const auto contact_email = L"querulant@visus.uni-stuttgart.de";
 
