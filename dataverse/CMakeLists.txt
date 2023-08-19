@@ -42,11 +42,13 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE WIL nlohmann_json)
 
 if (WIN32)
-    target_link_libraries(${PROJECT_NAME} PUBLIC CURL::libcurl)
+    target_link_libraries(${PROJECT_NAME} PRIVATE CURL::libcurl)
 else ()
     find_package(Threads REQUIRED)
     find_package(ICU REQUIRED)
-    target_link_libraries(${PROJECT_NAME} PUBLIC ${CMAKE_DL_LIBS} ${ICU_LIBRARIES} Threads::Threads)
+    target_link_libraries(${PROJECT_NAME}
+        PUBLIC ${CMAKE_DL_LIBS} Threads::Threads
+        PRIVATE CURL::libcurl ${ICU_LIBRARIES})
     set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif ()
 
