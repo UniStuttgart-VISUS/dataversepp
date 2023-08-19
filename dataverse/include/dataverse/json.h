@@ -20,6 +20,15 @@ namespace json {
 
 
 #if defined(DATAVERSE_WITH_JSON)
+    /// <summary>
+    /// Creates a Dataverse metadata field with one value.
+    /// </summary>
+    /// <typeparam name="TValue"></typeparam>
+    /// <param name="name"></param>
+    /// <param name="clazz"></param>
+    /// <param name="multiple"></param>
+    /// <param name="value"></param>
+    /// <returns></returns>
     template<class TValue>
     inline nlohmann::json make_meta_field(_In_z_ const wchar_t *name,
             _In_z_ const wchar_t *clazz,
@@ -36,7 +45,7 @@ namespace json {
     }
 
     /// <summary>
-    /// Makes an multi-valued Dataverse metadata field.
+    /// Creates a Dataverse metadata field with multiple values.
     /// </summary>
     /// <typeparam name="TValues"></typeparam>
     /// <param name="type"></param>
@@ -84,6 +93,20 @@ namespace json {
         }
 
         return retval;
+    }
+
+    /// <summary>
+    /// Creates a citation metadata object.
+    /// </summary>
+    /// <typeparam name="TFields"></typeparam>
+    /// <param name="fields"></param>
+    /// <returns></returns>
+    template<class... TFields>
+    inline nlohmann::json make_citation_metadata(_In_ TFields&&... fields) {
+        return nlohmann::json::object({
+            { "displayName", "Citation Metadata" },
+            { "fields", nlohmann::json::array({ fields... }) }
+        });
     }
 
     /// <summary>

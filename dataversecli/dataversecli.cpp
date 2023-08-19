@@ -200,43 +200,6 @@ int main(_In_ const int argc, const TCHAR **argv) {
 
         wait_event(evt_done);
 
-#if false
-        auto data_set = nlohmann::json({ });
-        data_set["datasetVersion"]["license"]["name"] = "CC BY 4.0";
-        data_set["datasetVersion"]["license"]["uri"] = "https://creativecommons.org/licenses/by/4.0/legalcode.de";
-
-        auto citation_metadata = nlohmann::json::array();
-        citation_metadata.push_back(json::make_meta_field(
-            L"title",
-            L"primitive",
-            false,
-            to_utf8(L"Energy consumption of scientific visualisation and data visualisation algorithms")));
-        citation_metadata.push_back(
-            json::make_meta_field(L"author", L"compound", true,
-                json::make_author(L"Müller, Christoph"),
-                json::make_author(L"Heinemann, Moritz"),
-                json::make_author(L"Weiskopf, Daniel"),
-                json::make_author(L"Ertl, Thomas"))
-        );
-        citation_metadata.push_back(
-            json::make_meta_field(L"datasetContact", L"compound", true,
-                json::make_contact(L"Querulant", L"querulant@visus.uni-stuttgart.de"))
-        );
-        citation_metadata.push_back(
-            json::make_meta_field(L"dsDescription", L"compound", true,
-                json::make_data_desc(L"This data set comprises a series of measurements of GPU power consumption.")
-            )
-        );
-        citation_metadata.push_back(
-            json::make_meta_field(L"subject", L"controlledVocabulary", true, to_utf8(L"Computer and Information Science"))
-        );
-
-        data_set["datasetVersion"]["metadataBlocks"]["citation"]["displayName"] = to_utf8(L"Citation Metadata");
-        data_set["datasetVersion"]["metadataBlocks"]["citation"]["fields"] = citation_metadata;
-
-        std::cout << convert<char>(convert<wchar_t>(data_set.dump(), CP_UTF8), CP_OEMCP) << std::endl;
-#endif
-
         return 0;
     } catch (std::exception& ex) {
         std::cout << ex.what() << std::endl << std::endl;

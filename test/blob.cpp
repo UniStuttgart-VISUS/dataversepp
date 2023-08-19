@@ -1,10 +1,12 @@
-// <copyright file="blob_test.cpp" company="Visualisierungsinstitut der Universität Stuttgart">
+// <copyright file="blob.cpp" company="Visualisierungsinstitut der Universität Stuttgart">
 // Copyright © 2023 Visualisierungsinstitut der Universität Stuttgart. Alle Rechte vorbehalten.
 // </copyright>
 // <author>Christoph Müller</author>
 
-#include "pch.h"
 #include "CppUnitTest.h"
+
+#include "dataverse/blob.h"
+
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
@@ -15,8 +17,8 @@ namespace test {
 
     public:
 
-      TEST_METHOD(default_ctor) {
-            blob b;
+        TEST_METHOD(default_ctor) {
+            visus::dataverse::blob b;
 
             Assert::IsNull(b.data(), L"Data of default-initialised blob is nullptr", LINE_INFO());
             Assert::AreEqual(std::size_t(0), b.size(), L"Size of default-initialised blob is zero", LINE_INFO());
@@ -24,7 +26,7 @@ namespace test {
 
         TEST_METHOD(size_ctor) {
             const std::size_t expected = 42;
-            blob b(expected);
+            visus::dataverse::blob b(expected);
 
             Assert::IsNotNull(b.data(), L"Data of has been allocated", LINE_INFO());
             Assert::AreEqual(expected, b.size(), L"Requested size has been allocated at construction", LINE_INFO());
@@ -32,7 +34,7 @@ namespace test {
 
         TEST_METHOD(init_ctor) {
             {
-                blob b { std::uint8_t(1), std::uint8_t(2), std::uint8_t(3) };
+                visus::dataverse::blob b { std::uint8_t(1), std::uint8_t(2), std::uint8_t(3) };
 
                 Assert::IsNotNull(b.data(), L"Data of has been allocated", LINE_INFO());
                 Assert::AreEqual(std::size_t(3), b.size(), L"Requested size has been allocated at construction", LINE_INFO());
@@ -42,7 +44,7 @@ namespace test {
             }
 
             {
-                blob b { std::int32_t(1), std::int32_t(2), std::int32_t(3) };
+                visus::dataverse::blob b { std::int32_t(1), std::int32_t(2), std::int32_t(3) };
                 Assert::IsNotNull(b.data(), L"Data of has been allocated", LINE_INFO());
                 Assert::AreEqual(std::size_t(3 * sizeof(std::int32_t)), b.size(), L"Requested size has been allocated at construction", LINE_INFO());
                 Assert::AreEqual(std::int32_t(1), *b.as<std::int32_t>(0 * sizeof(std::int32_t)), L"Initialiser at 0", LINE_INFO());
@@ -52,8 +54,8 @@ namespace test {
         }
 
         TEST_METHOD(copy_ctor) {
-            blob b1 { std::uint8_t(3), std::uint8_t(4), std::uint8_t(5) };
-            blob b2(b1);
+            visus::dataverse::blob b1 { std::uint8_t(3), std::uint8_t(4), std::uint8_t(5) };
+            visus::dataverse::blob b2(b1);
 
             Assert::IsNotNull(b2.data(), L"Data of has been allocated", LINE_INFO());
             Assert::AreEqual(b1.size(), b2.size(), L"Size has been copied", LINE_INFO());
@@ -63,10 +65,10 @@ namespace test {
         }
 
         TEST_METHOD(move_ctor) {
-            blob b1 { std::uint8_t(6), std::uint8_t(7), std::uint8_t(8) };
+            visus::dataverse::blob b1 { std::uint8_t(6), std::uint8_t(7), std::uint8_t(8) };
             const auto expected_ptr = b1.data();
             const auto expected_size = b1.size();
-            blob b2(std::move(b1));
+            visus::dataverse::blob b2(std::move(b1));
 
             Assert::IsNotNull(b2.data(), L"Data of has been moved", LINE_INFO());
             Assert::AreEqual(expected_ptr, b2.data(), L"Pointer has been moved", LINE_INFO());
@@ -76,7 +78,7 @@ namespace test {
         }
 
         TEST_METHOD(accessors) {
-            blob b(1);
+            visus::dataverse::blob b(1);
             const auto& r = b;
 
             Assert::IsTrue(b.data() == r.data(), L"Const vs non-const data", LINE_INFO());
@@ -85,7 +87,7 @@ namespace test {
         }
 
         TEST_METHOD(reserve) {
-            blob b;
+            visus::dataverse::blob b;
 
             Assert::IsTrue(b.reserve(8), L"reserve 8 from 0", LINE_INFO());
             Assert::AreEqual(std::size_t(8), b.size(), L"Size after reserve", LINE_INFO());
@@ -94,7 +96,7 @@ namespace test {
         }
 
         TEST_METHOD(grow) {
-            blob b { std::uint8_t(1), std::uint8_t(2) };
+            visus::dataverse::blob b { std::uint8_t(1), std::uint8_t(2) };
 
             Assert::IsTrue(b.grow(8), L"grow 8 from 2", LINE_INFO());
             Assert::AreEqual(std::size_t(8), b.size(), L"Size after grow", LINE_INFO());
@@ -107,7 +109,7 @@ namespace test {
         }
 
         TEST_METHOD(resize) {
-            blob b;
+            visus::dataverse::blob b;
 
             b.resize(8);
             Assert::AreEqual(std::size_t(8), b.size(), L"Size after resize", LINE_INFO());
@@ -116,7 +118,7 @@ namespace test {
         }
 
         TEST_METHOD(truncate) {
-            blob b { std::uint8_t(1), std::uint8_t(2) };
+            visus::dataverse::blob b { std::uint8_t(1), std::uint8_t(2) };
 
             b.truncate(8);
             Assert::AreEqual(std::size_t(8), b.size(), L"Size after truncate", LINE_INFO());
@@ -132,7 +134,7 @@ namespace test {
         }
 
         TEST_METHOD(as) {
-            blob b { std::int16_t(1), std::int16_t(2) };
+            visus::dataverse::blob b { std::int16_t(1), std::int16_t(2) };
 
             Assert::AreEqual(std::size_t(4), b.size(), L"Size after ctor", LINE_INFO());
             Assert::AreEqual(std::int16_t(1), *b.as<std::int16_t>(), L"Data at 0", LINE_INFO());
@@ -140,7 +142,7 @@ namespace test {
         }
 
         TEST_METHOD(at) {
-            blob b { std::int16_t(1), std::int16_t(2) };
+            visus::dataverse::blob b { std::int16_t(1), std::int16_t(2) };
 
             Assert::AreEqual(std::size_t(4), b.size(), L"Size after ctor", LINE_INFO());
             Assert::AreEqual(std::int16_t(1), *static_cast<std::int16_t *>(b.at(0)), L"Data at 0", LINE_INFO());
@@ -148,7 +150,7 @@ namespace test {
         }
 
         TEST_METHOD(clear) {
-            blob b(5);
+            visus::dataverse::blob b(5);
 
             Assert::AreEqual(std::size_t(5), b.size(), L"Size after ctor", LINE_INFO());
             b.clear();

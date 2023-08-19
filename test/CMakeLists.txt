@@ -26,7 +26,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
 
 # In the test driver, the compiler needs to know about the private includes of
 # the library, so we add these manually.
-target_include_directories(${PROJECT_NAME} PRIVATE ${PowerOverwhelmingTestInclude})
+#target_include_directories(${PROJECT_NAME} PRIVATE ${PowerOverwhelmingTestInclude})
 
 #target_precompile_headers(${PROJECT_NAME} PRIVATE pch.h)
 

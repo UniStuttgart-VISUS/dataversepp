@@ -1,0 +1,97 @@
+﻿#
+# azure-pipelines.yml
+#
+# Copyright © 2023 Visualisierungsinstitut der Universität Stuttgart. Alle Rechte vorbehalten.
+#
+
+trigger:
+- master
+
+pr:
+- master
+
+schedules:
+- cron: '0 12 * * 0'
+  displayName: Weekly Sunday build
+  branches:
+    include:
+    - master
+  always: true
+
+
+jobs:
+- job: Windows
+
+  variables:
+    buildPlatform: 'x64'
+    buildConfiguration: 'Release'
+    generator: 'Visual Studio 17 2022'
+
+  pool:
+    vmImage: 'windows-2022'
+
+  steps:
+  - task: CMake@1
+    displayName: 'Configure'
+    inputs:
+      workingDirectory: '_build'
+      cmakeArgs: '.. -G"$(generator)" -A"$(buildPlatform)" -DCMAKE_INSTALL_PREFIX="$(Build.ArtifactStagingDirectory)" -DPWROWG_BuildDemo=ON -DPWROWG_BuildStablePower=ON -DPWROWG_BuildWeb=ON'
+
+  - task: VSBuild@1
+    displayName: 'Build'
+    inputs:
+      solution: '_build/*.sln'
+      platform: '$(buildPlatform)'
+      configuration: '$(buildConfiguration)'
+  
+  - task: VSTest@2
+    displayName: 'Tests'
+    inputs:
+      platform: '$(buildPlatform)'
+      configuration: '$(buildConfiguration)'
+
+  - task: CMake@1
+    displayName: 'Stage'
+    inputs:
+      workingDirectory: '_build'
+      cmakeArgs: '--install .'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish artefact'
+    inputs:
+      pathToPublish: '$(Build.ArtifactStagingDirectory)'
+      artifactName: '$(Build.Repository.Name)-win-$(Build.SourceVersion)'
+
+
+#- job: Linux
+#  variables:
+#    buildConfiguration: 'Release'
+#    generator: 'Unix Makefiles'
+#
+#  pool:
+#    vmImage: 'ubuntu-22.04'
+#
+#  steps:
+#  - task: CMake@1
+#    displayName: 'Configure'
+#    inputs:
+#      workingDirectory: '_build'
+#      cmakeArgs: '.. -G"$(generator)" -DCMAKE_BUILD_TYPE="$(buildConfiguration)" -DCMAKE_INSTALL_PREFIX="$(Build.ArtifactStagingDirectory)" -DPWROWG_BuildDemo=ON'
+#
+#  - task: CMake@1
+#    displayName: 'Build'
+#    inputs:
+#      workingDirectory: '_build'
+#      cmakeArgs: '--build .'
+#
+#  - task: CMake@1
+#    displayName: 'Stage'
+#    inputs:
+#      workingDirectory: '_build'
+#      cmakeArgs: '--install .'
+#
+#  - task: PublishBuildArtifacts@1
+#    displayName: 'Publish artefact'
+#    inputs:
+#      pathToPublish: '$(Build.ArtifactStagingDirectory)'
+#      artifactName: '$(Build.Repository.Name)-lin-$(Build.SourceVersion)'
