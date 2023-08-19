@@ -31,9 +31,9 @@ namespace test {
                 [](const visus::dataverse::blob &r, void *e) {
                 const auto response = std::string(r.as<char>(), r.size());
                 const auto json = nlohmann::json::parse(response);
+                Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
                 Assert::AreEqual(visus::dataverse::to_utf8(L"visus"), json["data"]["alias"].get<std::string>(), L"Dataverse alias", LINE_INFO());
                 visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
-
             }, [](const int c, const char *m, const char *t, const visus::dataverse::narrow_string::code_page_type p, void *e) {
                 visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
                 Assert::IsTrue(false, L"Error callback invoked", LINE_INFO());
@@ -74,14 +74,12 @@ namespace test {
 
             auto evt_done = visus::dataverse::create_event();
 
-            this->_connection.post(L"/dataverses/visus",
+            this->_connection.post(L"/dataverses/visus/datasets",
                 data_set,
                 [](const visus::dataverse::blob& r, void *e) {
                 const auto response = std::string(r.as<char>(), r.size());
-                //auto rr = convert<char>(convert<wchar_t>(response, CP_UTF8),
-                //    CP_OEMCP);
-                //std::cout << rr << std::endl;
-                //std::cout << std::endl;
+                const auto json = nlohmann::json::parse(response);
+                Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
                 visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
                 Assert::IsTrue(true, L"Response callback invoked", LINE_INFO());
             }, [](const int c, const char *m, const char *t, const visus::dataverse::narrow_string::code_page_type p, void *e) {
