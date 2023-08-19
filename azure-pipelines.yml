@@ -51,10 +51,10 @@ jobs:
   - task: VSTest@2
     displayName: 'Tests'
     inputs:
-      env:
-        ApiKey: $(ApiKey)
       platform: '$(buildPlatform)'
       configuration: '$(buildConfiguration)'
+    env:
+      ApiKey: $(ApiKey)
 
   - task: CMake@1
     displayName: 'Stage'
