@@ -20,9 +20,9 @@ namespace test {
     public:
 
         api(void) {
-            std::string xxx = std::getenv("ApiKey");
-            xxx.substr(5);
-            Logger::WriteMessage(xxx.c_str());
+            //std::string xxx = std::getenv("ApiKey");
+            //xxx.substr(5);
+            //Logger::WriteMessage(xxx.c_str());
             this->_connection.api_key(visus::dataverse::make_narrow_string(std::getenv("ApiKey"), CP_OEMCP));
             this->_connection.base_path(visus::dataverse::make_narrow_string(std::getenv("ApiEndPoint"), CP_OEMCP));
         }
