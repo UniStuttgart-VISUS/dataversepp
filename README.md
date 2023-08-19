@@ -1,5 +1,10 @@
-# dataversepp
-This library provides a C++ API for uploading files to a [Dataverse](https://github.com/IQSS/dataverse) instance.
+# dataverse++
+[![Build Status - Azure Pipelines][build-button]][build-link]
+
+[build-button]: https://img.shields.io/github/checks-status/UniStuttgart-VISUS/dataversepp/master?label=Azure%20Pipelines&logo=Azure%20Pipelines
+[build-link]: https://devops.visus.uni-stuttgart.de/tfs/VIS(US)/MegaMol/_build/latest?definitionId=32&branchName=master
+
+This library provides a C++ API for uploading files to a [Dataverse](https://github.com/IQSS/dataverse) instance. Its main purpose is enabling direct archival of research data from your simulation code or benchmarking experiments.
 
 ## Building
 [CMake](https://cmake.org/) is required for building. It should obtain all dependencies automatically when configuring.
@@ -58,7 +63,7 @@ citation_metadata.push_back(json::make_meta_field(
     to_utf8(L"Energy consumption of scientific visualisation and data visualisation algorithms")));
 citation_metadata.push_back(
     json::make_meta_field(L"author", L"compound", true,
-        json::make_author(L"Müller, Christoph"),
+        json::make_author(L"MÃ¼ller, Christoph"),
         json::make_author(L"Heinemann, Moritz"),
         json::make_author(L"Weiskopf, Daniel"),
         json::make_author(L"Ertl, Thomas"))
