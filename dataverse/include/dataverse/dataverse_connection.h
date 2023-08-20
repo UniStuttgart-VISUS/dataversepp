@@ -694,10 +694,10 @@ namespace dataverse {
         /// request could not be alloctated.</exception>
         template<class TAlloc>
         inline dataverse_connection& upload(
-                _In_ const_narrow_string& persistent_id,
-                _In_ const_narrow_string& path,
-                _In_ const_narrow_string& description,
-                _In_ const_narrow_string& directory,
+                _In_ const const_narrow_string& persistent_id,
+                _In_ const const_narrow_string& path,
+                _In_ const const_narrow_string& description,
+                _In_ const const_narrow_string& directory,
                 _In_ const std::vector<const_narrow_string, TAlloc> categories,
                 _In_ const bool restricted,
                 _In_ const on_response_type on_response,
@@ -707,6 +707,90 @@ namespace dataverse {
                 categories.data(), categories.size(), restricted, on_response,
                 on_error, context);
         }
+
+#if defined(DATAVERSE_WITH_JSON)
+        /// <summary>
+        /// Upload a file for the data set with the specified persistent ID.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set the
+        /// file should be added to, which typically has the form
+        /// &quot;doi:the-doi&quot;.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="description">The JSON-formatted description of the
+        /// file. See
+        /// <a href="https://guides.dataverse.org/en/latest/api/native-api.html">
+        /// the Dataverse documentation</a> for details on how to format this
+        /// JSON object.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        template<class TTraits, class TAlloc>
+        inline dataverse_connection& upload(_In_ const std::basic_string<
+                    wchar_t, TTraits, TAlloc>& persistent_id,
+                _In_ const std::basic_string<wchar_t, TTraits, TAlloc>& path,
+                _In_ const nlohmann::json& description,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            const auto url = std::wstring(L"/datasets/:persistentId/add?"
+                L"persistentId=") + persistent_id;
+            const auto dump = description.dump();
+            const auto d = reinterpret_cast<const std::uint8_t *>(dump.data());
+            const auto s = dump.size();
+            return this->post(url.c_str(),
+                this->make_form()
+                    .add_file(L"file", path.c_str())
+                    .add_field(L"jsonData", d, s),
+                on_response,
+                on_error,
+                context);
+        }
+
+        /// <summary>
+        /// Upload a file for the data set with the specified persistent ID.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set the
+        /// file should be added to, which typically has the form
+        /// &quot;doi:the-doi&quot;.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="description">The JSON-formatted description of the
+        /// file. See
+        /// <a href="https://guides.dataverse.org/en/latest/api/native-api.html">
+        /// the Dataverse documentation</a> for details on how to format this
+        /// JSON object.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& upload(
+            _In_ const const_narrow_string& persistent_id,
+            _In_ const const_narrow_string& path,
+            _In_ const nlohmann::json& description,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+#endif /* defined(DATAVERSE_WITH_JSON) */
 
         /// <summary>
         /// Move assignment.

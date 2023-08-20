@@ -6,6 +6,7 @@
 #include "upload.h"
 
 #include <atomic>
+#include <fstream>
 #include <iostream>
 #include <thread>
 
@@ -93,23 +94,43 @@ void upload(_In_ visus::dataverse::dataverse_connection& dataverse,
         _In_ const bool recurse,
         _In_ const std::chrono::milliseconds wait) {
     using namespace visus::dataverse;
+    std::ifstream desc_source;
     auto files = ::get_files(_TTC(directory), recurse);
     std::atomic<std::size_t> remaining(files.size());
 
+    const auto on_success = [](const blob &r, void *e) {
+        ::print_response(r);
+        std::cout << std::endl;
+        --(*static_cast<decltype(remaining) *>(e));
+    };
+
+    const auto on_failure = [](const int c, const char *m, const char *a,
+            const narrow_string::code_page_type p, void *e) {
+        ::print_error(c, m, a, p);
+        std::cerr << std::endl;
+        --(*static_cast<decltype(remaining) *>(e));
+    };
+
     for (auto& f : files) {
-        dataverse.upload(_TTC(doi),
-            _TTC(f),
-            [](const blob& r, void *e) {
-                ::print_response(r);
-                std::cout << std::endl;
-                --(*static_cast<decltype(remaining) *>(e));
-            },
-            [](const int c, const char *m, const char *a,
-                    const narrow_string::code_page_type p, void *e) {
-                ::print_error(c, m, a, p);
-                std::cerr << std::endl;
-                --(*static_cast<decltype(remaining) *>(e));
-            }, &remaining);
+        const auto desc_path = f + _T(".json");
+#if defined(_WIN32)
+        desc_source.open(desc_path);
+#else /* defined(WIN32) */
+        const auto crap = convert<char>(desc_path, nullptr);
+        desc_source.open(crap);
+#endif /* defined(WIN32) */
+
+        if (desc_source.good()) {
+            // Parse the JSON description and upload it along with the data.
+            const auto desc = nlohmann::json::parse(desc_source);
+            dataverse.upload(_TTS(doi), _TTS(f), desc, on_success, on_failure,
+                &remaining);
+
+        } else {
+            // Have no description file, so just upload the data.
+            dataverse.upload(_TTC(doi), _TTC(f), on_success, on_failure,
+                &remaining);
+        }
     }
 
     // Wait for all transfers to complete.

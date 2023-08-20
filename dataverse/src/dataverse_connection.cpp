@@ -481,6 +481,35 @@ visus::dataverse::dataverse_connection::upload(
 }
 
 
+#if defined(DATAVERSE_WITH_JSON)
+/*
+ * visus::dataverse::dataverse_connection::upload
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::upload(
+        _In_ const const_narrow_string& persistent_id,
+        _In_ const const_narrow_string& path,
+        _In_ const nlohmann::json& description,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto url = std::wstring(L"/datasets/:persistentId/add?"
+        L"persistentId=") + convert<wchar_t>(persistent_id);
+    const auto dump = description.dump();
+    const auto d = reinterpret_cast<const std::uint8_t *>(dump.data());
+    const auto s = dump.size();
+    const auto p = convert<wchar_t>(path);
+    return this->post(url.c_str(),
+        this->make_form()
+            .add_file(L"file", p.c_str())
+            .add_field(L"jsonData", d, s),
+        on_response,
+        on_error,
+        context);
+}
+#endif /* defined(DATAVERSE_WITH_JSON) */
+
+
 /*
  * visus::dataverse::dataverse_connection::operator =
  */
