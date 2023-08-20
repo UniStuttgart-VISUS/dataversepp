@@ -159,6 +159,10 @@ namespace test {
                         description,
                         [](const visus::dataverse::blob &r, void *c) {
                             auto cc = static_cast<decltype(context) *>(c);
+
+                            const auto response = std::string(r.as<char>(), r.size());
+                            Logger::WriteMessage(response.c_str());
+
                             visus::dataverse::set_event(cc->evt_done);
                             Assert::IsTrue(true, L"Upload succeeded", LINE_INFO());
                         },
