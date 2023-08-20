@@ -38,6 +38,7 @@ namespace test {
                 Assert::AreEqual(visus::dataverse::to_utf8(L"visus"), json["data"]["alias"].get<std::string>(), L"Dataverse alias", LINE_INFO());
                 visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
             }, [](const int c, const char *m, const char *t, const visus::dataverse::narrow_string::code_page_type p, void *e) {
+                Logger::WriteMessage(m);
                 visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
                 Assert::Fail(L"Error callback invoked", LINE_INFO());
             }, &evt_done);
@@ -88,6 +89,7 @@ namespace test {
                     visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
                     Assert::IsTrue(true, L"Response callback invoked", LINE_INFO());
                 } , [](const int c, const char *m, const char *t, const visus::dataverse::narrow_string::code_page_type p, void *e) {
+                    Logger::WriteMessage(m);
                     visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
                     Assert::Fail(L"Error callback invoked", LINE_INFO());
                 }, &evt_done);
@@ -166,15 +168,17 @@ namespace test {
                             visus::dataverse::set_event(cc->evt_done);
                             Assert::IsTrue(true, L"Upload succeeded", LINE_INFO());
                         },
-                        [](const int, const char *, const char *, const visus::dataverse::narrow_string::code_page_type, void *c) {
+                        [](const int, const char *m, const char *, const visus::dataverse::narrow_string::code_page_type, void *c) {
                             auto cc = static_cast<decltype(context) *>(c);
+                            Logger::WriteMessage(m);
                             visus::dataverse::set_event(cc->evt_done);
                             Assert::Fail(L"Error callback invoked for upload", LINE_INFO());
                         },
                         c);
                     
-                }, [](const int, const char *, const char *, const visus::dataverse::narrow_string::code_page_type, void *c) {
+                }, [](const int, const char *m, const char *, const visus::dataverse::narrow_string::code_page_type, void *c) {
                     auto cc = static_cast<decltype(context) *>(c);
+                    Logger::WriteMessage(m);
                     visus::dataverse::set_event(cc->evt_done);
                     Assert::Fail(L"Error callback invoked for data set creation", LINE_INFO());
                 }, &context);
