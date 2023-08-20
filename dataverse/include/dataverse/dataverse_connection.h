@@ -411,6 +411,37 @@ namespace dataverse {
 #endif /* defined(_WIN32) */
                 on_response, on_error, context);
         }
+
+        ///// <summary>
+        ///// Posts the specified JSON data to the specified resource location.
+        ///// </summary>
+        ///// <remarks>
+        ///// This method can be used to create data sets.
+        ///// </remarks>
+        ///// <param name="resource">The path to the resource to post. The
+        ///// base path configured will be prepended if set.</param>
+        ///// <param name="json">The JSON object to post.</param>
+        ///// <param name="on_response">A callback to be invoked if the response
+        ///// to the request was received.</param>
+        ///// <param name="on_error">A callback to be invoked if the request
+        ///// failed asynchronously.</param>
+        ///// <param name="context">A user-defined context pointer passed to the
+        ///// callbacks.</param>
+        ///// <returns><c>*this</c>.</returns>
+        ///// <exception cref="std::system_error">If the method was called on an
+        ///// object that has been moved.</exception>
+        ///// <exception cref="std::system_error">If the request failed right away.
+        ///// Note that even if the request initially succeeded, it might still
+        ///// fail and call <paramref name="on_error" /> later.</exception>
+        ///// <exception cref="std::bad_alloc">If the memory required to build the
+        ///// request could not be alloctated.</exception>
+        //inline dataverse_connection& post(_In_opt_z_ const wchar_t *resource,
+        //        _In_ const nlohmann::json& json,
+        //        _In_ const on_api_response_type on_response,
+        //        _In_ const on_error_type on_error,
+        //        _In_opt_ void *context = nullptr) {
+        //    return this->post(resource, json, on_response, on_error, context);
+        //}
 #endif /* defined(DATAVERSE_WITH_JSON) */
 
         /// <summary>

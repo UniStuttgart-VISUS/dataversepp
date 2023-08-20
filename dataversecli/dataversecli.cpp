@@ -3,36 +3,12 @@
 // </copyright>
 // <author>Christoph Müller</author>
 
-#include <algorithm>
 #include <cinttypes>
 #include <iostream>
-#include <string>
-#include <vector>
 
-#if defined(_WIN32)
-#include <Windows.h>
-#include <tchar.h>
-
-#if (defined(UNICODE) || defined(_UNICODE))
-typedef std::wstring string_type;
-#define _TT(s) string_type(_T(s))
-
-#else /* (defined(UNICODE) || defined(_UNICODE)) */
-typedef visus::dataverse::const_narrow_string string_type;
-#define _TT(s) visus::dataverse::const_narrow_string(s, CP_OEMCP)
-#endif /* (defined(UNICODE) || defined(_UNICODE)) */
-
-#else /* defined(_WIN32) */
-#define TCHAR char
-#define _T(s) (s)
-
-typedef visus::dataverse::const_narrow_string string_type;
-#define _TT(s) visus::dataverse::make_narrow_string(s, nullptr)
-#endif /* defined(_WIN32) */
-
-#include <nlohmann/json.hpp>
-
-#include "dataverse/dataverse_connection.h"
+#include "convert.h"
+#include "directory.h"
+#include "upload.h"
 
 
 /// <summary>
@@ -78,7 +54,7 @@ TIterator find_argument(_In_ const TIterator begin,
 /// <param name="argv">The command line arguments.</param>
 /// <returns>Zero in case of success, -1 in case of an error.</returns>
 int main(_In_ const int argc, const TCHAR **argv) {
-    using namespace visus::dataverse;
+    typedef std::basic_string<TCHAR> string_type;
 
 #if (defined(_WIN32) && (defined(DEBUG) || defined(_DEBUG)))
     ::_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -87,7 +63,7 @@ int main(_In_ const int argc, const TCHAR **argv) {
 
     try {
         const std::vector<std::basic_string<TCHAR>> cmd_line(argv, argv + argc);
-        dataverse_connection dataverse;
+        visus::dataverse::dataverse_connection dataverse;
         string_type description;
         string_type doi;
         string_type file;
@@ -99,7 +75,7 @@ int main(_In_ const int argc, const TCHAR **argv) {
             auto it = ::find_argument(cmd_line.begin(), cmd_line.end(),
                 _T("/endpoint"));
             if (it != cmd_line.end()) {
-                dataverse.base_path(it->c_str());
+                dataverse.base_path(_TT(it->c_str()));
             } else {
                 dataverse.base_path(L"https://darus.uni-stuttgart.de/api/");
             }
@@ -110,7 +86,7 @@ int main(_In_ const int argc, const TCHAR **argv) {
             auto it = ::find_argument(cmd_line.begin(), cmd_line.end(),
                 _T("/apikey"));
             if (it != cmd_line.end()) {
-                dataverse.api_key(it->c_str());
+                dataverse.api_key(_TT(it->c_str()));
             }
         }
 
@@ -124,7 +100,7 @@ int main(_In_ const int argc, const TCHAR **argv) {
         }
 
         {
-            // The local path to the file to be uploaded.
+            // The local path to the file or directory to be uploaded.
             auto it = ::find_argument(cmd_line.begin(), cmd_line.end(),
                 _T("/file"));
             if (it != cmd_line.end()) {
@@ -155,6 +131,11 @@ int main(_In_ const int argc, const TCHAR **argv) {
         const auto restricted = (::find_switch(cmd_line.begin(), cmd_line.end(),
             _T("/restricted")) != cmd_line.end());
 
+        // Indicates whether, in case the input is a directory, the directory
+        // should be recursively uploaded.
+        const auto recurse = (::find_switch(cmd_line.begin(), cmd_line.end(),
+            _T("/recurse")) != cmd_line.end());
+
         {
             // User-defined tags to be assigned to the file.
             auto it = cmd_line.begin();
@@ -167,42 +148,21 @@ int main(_In_ const int argc, const TCHAR **argv) {
             }
         }
 
+        // Make the DOI a persistent ID.
+        doi = _T("doi:") + doi;
+
         // Do the upload.
-        auto evt_done = create_event();
-
-        dataverse.upload(doi, file, description, path, tags, restricted,
-                    [](const blob& r,   // Response from server.
-                        void *e) {      // Event handle
-                const auto response = std::string(r.as<char>(), r.size());
-#if defined(_WIN32)
-                auto rr = convert<char>(convert<wchar_t>(response, CP_UTF8),
-                    CP_OEMCP);
-#else /* defined(_WIN32) */
-                auto rr = response;
-#endif /* defined(_WIN32) */
-                std::cout << rr << std::endl;
-                std::cout << std::endl;
-                set_event(*static_cast<event_type *>(e));
-            }, [](const int,                                // Error code
-                    const char *m,                          // Message
-                    const char *,                           // Message category
-                    const narrow_string::code_page_type p,  // Code page
-                    void *e) {                              // Event handle
-#if defined(_WIN32)
-                auto mm = convert<char>(convert<wchar_t>(m, 0, p), CP_OEMCP);
-#else /* defined(_WIN32) */
-                auto mm = m;
-#endif /* defined(_WIN32) */
-                std::cout << mm << std::endl;
-                std::cout << std::endl;
-                set_event(*static_cast<event_type *>(e));
-            }, &evt_done);
-
-        wait_event(evt_done);
+        if (::is_directory(_TTS(file))) {
+            ::upload(dataverse, doi, file, recurse,
+                std::chrono::milliseconds(100));
+        } else {
+            ::upload(dataverse, doi, file, description, path, tags, restricted);
+        }
 
         return 0;
     } catch (std::exception& ex) {
-        std::cout << ex.what() << std::endl << std::endl;
+        std::cerr << ex.what() << std::endl;
+        std::cerr << std::endl;
         return -1;
     }
 }

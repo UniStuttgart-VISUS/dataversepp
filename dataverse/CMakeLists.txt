@@ -25,6 +25,10 @@ add_library(${PROJECT_NAME} SHARED ${PublicHeaderFiles} ${PrivateHeaderFiles} ${
 # Configure the compiler.
 target_compile_definitions(${PROJECT_NAME} PRIVATE DATAVERSE_EXPORTS UNICODE _UNICODE)
 
+if (WIN32 AND DATAVERSE_Unicode)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
+endif ()
+
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
@@ -38,17 +42,16 @@ endif ()
 
 
 # Configure the linker.
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE WIL nlohmann_json)
+target_link_libraries(${PROJECT_NAME} PRIVATE WIL nlohmann_json CURL::libcurl)
 
 if (WIN32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE CURL::libcurl)
+#    target_link_libraries(${PROJECT_NAME} )
 else ()
     find_package(Threads REQUIRED)
     find_package(ICU REQUIRED)
     target_link_libraries(${PROJECT_NAME}
         PUBLIC ${CMAKE_DL_LIBS} Threads::Threads
-        PRIVATE CURL::libcurl ${ICU_LIBRARIES})
+        PRIVATE ${ICU_LIBRARIES})
     set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif ()
 

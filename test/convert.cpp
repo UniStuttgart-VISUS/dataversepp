@@ -127,6 +127,74 @@ namespace test {
             }
         }
 
+        TEST_METHOD(make_narrow_string) {
+            {
+                auto input = "Müller";
+                const auto actual = visus::dataverse::make_narrow_string(input, CP_OEMCP);
+                Assert::AreEqual(input, actual.value(), L"value", LINE_INFO());
+                Assert::AreEqual(unsigned int(CP_OEMCP), actual.code_page(), L"code_page", LINE_INFO());
+            }
+
+            {
+                std::string input = "Müller";
+                const auto actual = visus::dataverse::make_narrow_string(input, CP_OEMCP);
+                Assert::AreEqual(input.c_str(), actual.value(), L"value", LINE_INFO());
+                Assert::AreEqual(unsigned int(CP_OEMCP), actual.code_page(), L"code_page", LINE_INFO());
+            }
+
+            Assert::ExpectException<std::logic_error>([](void) {
+                const auto actual = visus::dataverse::make_narrow_string(std::string("Müller"), CP_OEMCP);
+            }, L"No temporary", LINE_INFO());
+        }
+
+        TEST_METHOD(make_narrow_strings) {
+            {
+                std::vector<char *> input = { "Müller", "Dörr", "Lämmle", "Schneegaß" };
+                const auto actual = visus::dataverse::make_narrow_strings(input.begin(), input.end(), CP_OEMCP);
+                Assert::AreEqual(input[0], actual[0].value(), L"value[0]", LINE_INFO());
+                Assert::AreEqual(unsigned int(CP_OEMCP), actual[0].code_page(), L"code_page[0]", LINE_INFO());
+                Assert::AreEqual(input[1], actual[1].value(), L"value[1]", LINE_INFO());
+                Assert::AreEqual(unsigned int(CP_OEMCP), actual[1].code_page(), L"code_page[1]", LINE_INFO());
+                Assert::AreEqual(input[2], actual[2].value(), L"value[2]", LINE_INFO());
+                Assert::AreEqual(unsigned int(CP_OEMCP), actual[2].code_page(), L"code_page[2]", LINE_INFO());
+            }
+
+            {
+                std::vector<const char *> input = { "Müller", "Dörr", "Lämmle", "Schneegaß" };
+                const auto actual = visus::dataverse::make_narrow_strings(input.begin(), input.end(), CP_OEMCP);
+                Assert::AreEqual(input[0], actual[0].value(), L"value[0]", LINE_INFO());
+                Assert::AreEqual(unsigned int(CP_OEMCP), actual[0].code_page(), L"code_page[0]", LINE_INFO());
+                Assert::AreEqual(input[1], actual[1].value(), L"value[1]", LINE_INFO());
+                Assert::AreEqual(unsigned int(CP_OEMCP), actual[1].code_page(), L"code_page[1]", LINE_INFO());
+                Assert::AreEqual(input[2], actual[2].value(), L"value[2]", LINE_INFO());
+                Assert::AreEqual(unsigned int(CP_OEMCP), actual[2].code_page(), L"code_page[2]", LINE_INFO());
+            }
+
+            {
+                std::vector<std::string> input = { "Müller", "Dörr", "Schneegaß" };
+                const auto actual = visus::dataverse::make_narrow_strings(input.begin(), input.end(), CP_OEMCP);
+                Assert::AreEqual(input[0].c_str(), actual[0].value(), L"value[0]", LINE_INFO());
+                Assert::AreEqual(unsigned int(CP_OEMCP), actual[0].code_page(), L"code_page[0]", LINE_INFO());
+                Assert::AreEqual(input[1].c_str(), actual[1].value(), L"value[1]", LINE_INFO());
+                Assert::AreEqual(unsigned int(CP_OEMCP), actual[1].code_page(), L"code_page[1]", LINE_INFO());
+                Assert::AreEqual(input[2].c_str(), actual[2].value(), L"value[2]", LINE_INFO());
+                Assert::AreEqual(unsigned int(CP_OEMCP), actual[2].code_page(), L"code_page[2]", LINE_INFO());
+            }
+
+            {
+                std::vector<std::string> input = { "Müller", "Dörr", "Schneegaß" };
+                std::vector<visus::dataverse::const_narrow_string> actual;
+                actual.reserve(input.size());
+                visus::dataverse::make_narrow_strings(std::back_inserter(actual), input.begin(), input.end(), CP_OEMCP);
+                Assert::AreEqual(input[0].c_str(), actual[0].value(), L"value[0]", LINE_INFO());
+                Assert::AreEqual(unsigned int(CP_OEMCP), actual[0].code_page(), L"code_page[0]", LINE_INFO());
+                Assert::AreEqual(input[1].c_str(), actual[1].value(), L"value[1]", LINE_INFO());
+                Assert::AreEqual(unsigned int(CP_OEMCP), actual[1].code_page(), L"code_page[1]", LINE_INFO());
+                Assert::AreEqual(input[2].c_str(), actual[2].value(), L"value[2]", LINE_INFO());
+                Assert::AreEqual(unsigned int(CP_OEMCP), actual[2].code_page(), L"code_page[2]", LINE_INFO());
+            }
+        }
+
     };
 
 } /* namespace test */

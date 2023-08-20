@@ -19,11 +19,16 @@ target_sources(${PROJECT_NAME} PRIVATE ${ResourceFiles})
 
 
 # Configure the compiler.
-target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
+if (WIN32 AND DATAVERSE_Unicode)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
+endif ()
 
 
 # Configure the linker.
-target_link_libraries(${PROJECT_NAME} dataverse nlohmann_json)
+target_link_libraries(${PROJECT_NAME} PRIVATE dataverse nlohmann_json)
+if (WIN32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE WIL)
+endif ()
 
 
 # Installation
