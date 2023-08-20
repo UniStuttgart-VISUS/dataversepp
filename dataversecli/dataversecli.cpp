@@ -75,7 +75,7 @@ int main(_In_ const int argc, const TCHAR **argv) {
             auto it = ::find_argument(cmd_line.begin(), cmd_line.end(),
                 _T("/endpoint"));
             if (it != cmd_line.end()) {
-                dataverse.base_path(_TT(it->c_str()));
+                dataverse.base_path(_TTS(it->c_str()));
             } else {
                 dataverse.base_path(L"https://darus.uni-stuttgart.de/api/");
             }
@@ -86,7 +86,7 @@ int main(_In_ const int argc, const TCHAR **argv) {
             auto it = ::find_argument(cmd_line.begin(), cmd_line.end(),
                 _T("/apikey"));
             if (it != cmd_line.end()) {
-                dataverse.api_key(_TT(it->c_str()));
+                dataverse.api_key(_TTS(it->c_str()));
             }
         }
 
@@ -152,7 +152,7 @@ int main(_In_ const int argc, const TCHAR **argv) {
         doi = _T("doi:") + doi;
 
         // Do the upload.
-        if (::is_directory(_TTS(file))) {
+        if (::is_directory(_TTC(file))) {
             ::upload(dataverse, doi, file, recurse,
                 std::chrono::milliseconds(100));
         } else {

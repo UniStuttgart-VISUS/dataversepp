@@ -55,23 +55,30 @@ void upload(_In_ visus::dataverse::dataverse_connection& dataverse,
         _In_ const std::basic_string<TCHAR>& file,
         _In_ const std::basic_string<TCHAR>& description,
         _In_ const std::basic_string<TCHAR>& path,
-        _In_ const std::vector< std::basic_string<TCHAR>>& tags,
+        _In_ const std::vector<std::basic_string<TCHAR>>& tags,
         _In_ const bool restricted) {
     using namespace visus::dataverse;
     auto evt_done = create_event();
     _MAKE_NARROW_VECTOR(tags);
 
-    dataverse.upload(_TT(doi), _TT(file), _TT(description), _TT(path),
-            _TTV(tags), restricted, [](const blob& r, void *e) {
-        ::print_response(r);
-        std::cout << std::endl;
-        set_event(*static_cast<event_type *>(e));
-        }, [](const int c, const char *m, const char *a,
+    dataverse.upload(_TTS(doi),
+        _TTS(file),
+        _TTS(description),
+        _TTS(path),
+        _TTV(tags),
+        restricted,
+        [](const blob& r, void *e) {
+            ::print_response(r);
+            std::cout << std::endl;
+            set_event(*static_cast<event_type *>(e));
+        },
+        [](const int c, const char *m, const char *a,
                 const narrow_string::code_page_type p, void *e) {
-        ::print_error(c, m, a, p);
-        std::cerr << std::endl;
-        set_event(*static_cast<event_type *>(e));
-    }, &evt_done);
+            ::print_error(c, m, a, p);
+            std::cerr << std::endl;
+            set_event(*static_cast<event_type *>(e));
+        },
+        &evt_done);
 
     wait_event(evt_done);
 }
@@ -86,20 +93,23 @@ void upload(_In_ visus::dataverse::dataverse_connection& dataverse,
         _In_ const bool recurse,
         _In_ const std::chrono::milliseconds wait) {
     using namespace visus::dataverse;
-    auto files = ::get_files(_TTS(directory), recurse);
+    auto files = ::get_files(_TTC(directory), recurse);
     std::atomic<std::size_t> remaining(files.size());
 
     for (auto& f : files) {
-        dataverse.upload(_TT(doi), _TTS(f), [](const blob& r, void *e) {
-            ::print_response(r);
-            std::cout << std::endl;
-            --(*static_cast<decltype(remaining) *>(e));
-        }, [](const int c, const char *m, const char *a,
-                const narrow_string::code_page_type p, void *e) {
-            ::print_error(c, m, a, p);
-            std::cerr << std::endl;
-            --(*static_cast<decltype(remaining) *>(e));
-        }, &remaining);
+        dataverse.upload(_TTC(doi),
+            _TTC(f),
+            [](const blob& r, void *e) {
+                ::print_response(r);
+                std::cout << std::endl;
+                --(*static_cast<decltype(remaining) *>(e));
+            },
+            [](const int c, const char *m, const char *a,
+                    const narrow_string::code_page_type p, void *e) {
+                ::print_error(c, m, a, p);
+                std::cerr << std::endl;
+                --(*static_cast<decltype(remaining) *>(e));
+            }, &remaining);
     }
 
     // Wait for all transfers to complete.

@@ -636,12 +636,17 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        template<class TAlloc>
-        inline dataverse_connection& upload(_In_ std::wstring& persistent_id,
-                _In_ std::wstring& path,
-                _In_ std::wstring& description,
-                _In_ std::wstring& directory,
-                _In_ const std::vector<std::wstring, TAlloc> categories,
+        template<class TTraits, class TSAlloc, class TVAlloc>
+        inline dataverse_connection& upload(
+                _In_ const std::basic_string<wchar_t, TTraits,
+                    TSAlloc>& persistent_id,
+                _In_ const std::basic_string<wchar_t, TTraits, TSAlloc>& path,
+                _In_ const std::basic_string<wchar_t, TTraits,
+                    TSAlloc>& description,
+                _In_ const std::basic_string<wchar_t, TTraits,
+                    TSAlloc>& directory,
+                _In_ const std::vector<std::basic_string<wchar_t, TTraits,
+                    TSAlloc>, TVAlloc> categories,
                 _In_ const bool restricted,
                 _In_ const on_response_type on_response,
                 _In_ const on_error_type on_error,
