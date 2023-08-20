@@ -20,7 +20,7 @@ schedules:
 
 
 jobs:
-- job: Windows-Unicode
+- job: Windows_Unicode
 
   variables:
     buildPlatform: 'x64'
@@ -68,7 +68,7 @@ jobs:
       pathToPublish: '$(Build.ArtifactStagingDirectory)'
       artifactName: '$(Build.Repository.Name)-win-$(Build.SourceVersion)'
 
-- job: Windows-ANSI
+- job: Windows_ANSI
 
   variables:
     buildPlatform: 'x64'
