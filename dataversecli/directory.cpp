@@ -48,7 +48,9 @@ std::vector<std::wstring> get_files(_In_ const std::wstring& path,
 
         do {
             if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
-                if (recurse) {
+                if (recurse
+                        && (::wcscmp(data.cFileName, L".") != 0)
+                        && (::wcscmp(data.cFileName, L"..") != 0)) {
                     stack.push((p + data.cFileName) + L"\\");
                 }
             } else {
@@ -109,7 +111,9 @@ std::vector<std::string> get_files(
 
         do {
             if ((data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
-                if (recurse) {
+                if (recurse
+                        && (::strcmp(data.cFileName, ".") != 0)
+                        && (::strcmp(data.cFileName, "..") != 0)) {
                     stack.push((p + data.cFileName) + "\\");
                 }
             } else {

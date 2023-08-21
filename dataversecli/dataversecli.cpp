@@ -53,7 +53,7 @@ TIterator find_argument(_In_ const TIterator begin,
 /// <param name="argc">The size of the argument list.</param>
 /// <param name="argv">The command line arguments.</param>
 /// <returns>Zero in case of success, -1 in case of an error.</returns>
-int main(_In_ const int argc, const TCHAR **argv) {
+int _tmain(_In_ const int argc, const TCHAR **argv) {
     typedef std::basic_string<TCHAR> string_type;
 
 #if (defined(_WIN32) && (defined(DEBUG) || defined(_DEBUG)))

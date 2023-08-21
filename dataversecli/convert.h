@@ -23,6 +23,7 @@
 #endif /* (defined(UNICODE) || defined(_UNICODE)) */
 
 #else /* defined(_WIN32) */
+#define _tmain main
 #define TCHAR char
 #define _T(s) (s)
 #define _TTS(s) visus::dataverse::make_narrow_string(s, nullptr)
