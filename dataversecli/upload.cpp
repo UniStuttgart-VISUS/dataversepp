@@ -62,18 +62,18 @@ void upload(_In_ visus::dataverse::dataverse_connection& dataverse,
     auto evt_done = create_event();
     _MAKE_NARROW_VECTOR(tags);
 
-    dataverse.direct_upload(_TTC(doi),
-        _TTC(file),
-        _TTC(description),
-        _TTC(path),
-        nullptr, 0,
-        restricted,
-    //dataverse.upload(_TTS(doi),
-    //    _TTS(file),
-    //    _TTS(description),
-    //    _TTS(path),
-    //    _TTV(tags),
+    //dataverse.direct_upload(_TTC(doi),
+    //    _TTC(file),
+    //    _TTC(description),
+    //    _TTC(path),
+    //    nullptr, 0,
     //    restricted,
+    dataverse.upload(_TTS(doi),
+        _TTS(file),
+        _TTS(description),
+        _TTS(path),
+        _TTV(tags),
+        restricted,
         [](const blob& r, void *e) {
             ::print_response(r);
             std::cout << std::endl;
