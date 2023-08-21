@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <cstring>
+#include <future>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -143,6 +145,17 @@ namespace dataverse {
         dataverse_connection& base_path(
             _In_ const const_narrow_string& base_path);
 
+        dataverse_connection& direct_upload(_In_z_ const wchar_t *persistent_id,
+            _In_z_ const wchar_t *path,
+            _In_z_ const wchar_t *description,
+            _In_z_ const wchar_t *directory,
+            const wchar_t **categories,
+            _In_ const std::size_t cnt_cats,
+            _In_ const bool restricted,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
         /// <summary>
         /// Retrieves the resource at the specified location using a GET
         /// request.
@@ -169,6 +182,22 @@ namespace dataverse {
             _In_opt_ void *context = nullptr);
 
         /// <summary>
+        /// Asynchronously retrieves the resource at the specified location
+        /// using a GET request and provides a future for the result.
+        /// </summary>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <returns>A future for the result of the opration.</returns>
+        inline std::future<blob> get(_In_ const std::wstring& resource) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const wchar_t *, const on_response_type, const on_error_type,
+                void *);
+            return invoke_async(
+                static_cast<actual_type>(&dataverse_connection::get),
+                *this, resource.c_str());
+        }
+
+        /// <summary>
         /// Retrieves the resource at the specified location using a GET
         /// request.
         /// </summary>
@@ -192,6 +221,22 @@ namespace dataverse {
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
             _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Asynchronously retrieves the resource at the specified location
+        /// using a GET request and provides a future for the result.
+        /// </summary>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <returns>A future for the result of the opration.</returns>
+        inline std::future<blob> get(_In_ const const_narrow_string& resource) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const const_narrow_string&, const on_response_type,
+                const on_error_type, void *);
+            return invoke_async(
+                static_cast<actual_type>(&dataverse_connection::get),
+                *this, resource);
+        }
 
         /// <summary>
         /// Create a new and empty form for a POST request.
@@ -226,6 +271,24 @@ namespace dataverse {
             _In_opt_ void *context = nullptr);
 
         /// <summary>
+        /// Posts the specified form to the specified resource location and
+        /// returns a future for the result.
+        /// </summary>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <param name="form">The form data to post.</param>
+        /// <returns>A future for the result of the opration.</returns>
+        inline std::future<blob> post(_In_opt_z_ const wchar_t *resource,
+                _In_ const form_data& form) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const wchar_t *, const form_data&, const on_response_type,
+                const on_error_type, void *);
+            return invoke_async(
+                static_cast<actual_type>(&dataverse_connection::post),
+                *this, resource, form);
+        }
+
+        /// <summary>
         /// Posts the specified form to the specified resource location.
         /// </summary>
         /// <param name="resource">The path to the resource. The
@@ -250,6 +313,25 @@ namespace dataverse {
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
             _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Posts the specified form to the specified resource location and
+        /// returns a future for the result.
+        /// </summary>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <param name="form">The form data to post.</param>
+        /// <returns>A future for the result of the opration.</returns>
+        inline std::future<blob> post(
+                _In_opt_z_ const const_narrow_string& resource,
+                _In_ const form_data& form) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const const_narrow_string&, const form_data&,
+                const on_response_type, const on_error_type, void *);
+            return invoke_async(
+                static_cast<actual_type>(&dataverse_connection::post),
+                *this, resource, form);
+        }
 
         /// <summary>
         /// Posts the given data to the given resource location.
@@ -293,6 +375,37 @@ namespace dataverse {
             _In_opt_ void *context = nullptr);
 
         /// <summary>
+        /// Posts the specified form to the specified resource location and
+        /// returns a future for the result.
+        /// </summary>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <param name="data">The data to post. The caller remains owner
+        /// of this memory if no <see cref="data_deleter" /> is set and must
+        /// make sure that the data remain valid until the request completed or
+        /// failed.</param>
+        /// <param name="cnt">The size of the data in bytes.</param>
+        /// <param name="data_deleter">If not <c>nullptr</c>, the object will
+        /// eventually free <paramref name="data" /> using this callback.
+        /// </param>
+        /// <param name="content_type">The MIME type of the data to be posted.
+        /// </param>
+        /// <returns>A future for the result of the opration.</returns>
+        inline std::future<blob> post(_In_opt_z_ const wchar_t *resource,
+                _In_reads_bytes_(cnt) const byte_type *data,
+                _In_ const std::size_t cnt,
+                _In_opt_ const data_deleter_type data_deleter,
+                _In_opt_z_ const wchar_t *content_type) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const wchar_t *, const byte_type *, const std::size_t,
+                const data_deleter_type, const wchar_t *,
+                const on_response_type, const on_error_type, void *);
+            return invoke_async(
+                static_cast<actual_type>(&dataverse_connection::post),
+                *this, resource, data, cnt, data_deleter, content_type);
+        }
+
+        /// <summary>
         /// Posts the given data to the given resource location.
         /// </summary>
         /// <remarks>
@@ -332,6 +445,39 @@ namespace dataverse {
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
             _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Posts the specified form to the specified resource location and
+        /// returns a future for the result.
+        /// </summary>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <param name="data">The data to post. The caller remains owner
+        /// of this memory if no <see cref="data_deleter" /> is set and must
+        /// make sure that the data remain valid until the request completed or
+        /// failed.</param>
+        /// <param name="cnt">The size of the data in bytes.</param>
+        /// <param name="data_deleter">If not <c>nullptr</c>, the object will
+        /// eventually free <paramref name="data" /> using this callback.
+        /// </param>
+        /// <param name="content_type">The MIME type of the data to be posted.
+        /// </param>
+        /// <returns>A future for the result of the opration.</returns>
+        inline std::future<blob> post(
+                _In_opt_z_ const const_narrow_string& resource,
+                _In_reads_bytes_(cnt) const byte_type *data,
+                _In_ const std::size_t cnt,
+                _In_opt_ const data_deleter_type data_deleter,
+                _In_opt_z_ const const_narrow_string& content_type) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const const_narrow_string&, const byte_type *,
+                const std::size_t, const data_deleter_type,
+                const const_narrow_string&, const on_response_type,
+                const on_error_type, void *);
+            return invoke_async(
+                static_cast<actual_type>(&dataverse_connection::post),
+                *this, resource, data, cnt, data_deleter, content_type);
+        }
 
 #if defined(DATAVERSE_WITH_JSON)
         /// <summary>
@@ -884,11 +1030,16 @@ namespace dataverse {
 
     private:
 
+        template<class TOperation, class... TArgs>
+        static std::future<blob> invoke_async(TOperation&& operation,
+            dataverse_connection& that, TArgs&&... arguments);
+
         detail::dataverse_connection_impl& check_not_disposed(void) const;
 
         detail::dataverse_connection_impl *_impl;
-
     };
 
 } /* namespace dataverse */
 } /* namespace visus */
+
+#include "dataverse/dataverse_connection.inl"

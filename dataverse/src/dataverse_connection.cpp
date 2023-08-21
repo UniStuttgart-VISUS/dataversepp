@@ -6,9 +6,12 @@
 #include <nlohmann/json.hpp>
 #include "dataverse/dataverse_connection.h"
 
+#include <cassert>
 #include <iterator>
 
 #include "dataverse_connection_impl.h"
+#include "direct_upload_context.h"
+#include "file_properties.h"
 #include "io_context.h"
 
 
@@ -17,6 +20,10 @@
 
 #define _CHECK_ON_ERROR if (on_error == nullptr) \
     throw std::invalid_argument("The error handler must be valid.")
+
+#define _DATAVERSE_HASH_ALGORITHMA "MD5"
+
+#define _DATAVERSE_HASH_ALGORITHMW L"MD5"
 
 
 
@@ -127,6 +134,125 @@ visus::dataverse::dataverse_connection::base_path(
     }
 
     return *this;
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::direct_upload
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::direct_upload(
+        _In_z_ const wchar_t *persistent_id,
+        _In_z_ const wchar_t *path,
+        _In_z_ const wchar_t *description,
+        _In_z_ const wchar_t *directory,
+        const wchar_t **categories,
+        _In_ const std::size_t cnt_cats,
+        _In_ const bool restricted,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    using detail::direct_upload_context;
+    _CHECK_ON_RESPONSE;
+    _CHECK_ON_ERROR;
+
+    // This is the generic error handler that forwards errors directly to
+    // the user-provided callback.
+    const auto on_error_forwarder = [](const int c, const char *m,
+            const char *a, const narrow_string::code_page_type p, void *u) {
+        auto ctx = static_cast<direct_upload_context *>(u);
+        assert(ctx != nullptr);
+        assert(ctx->on_error != nullptr);
+        ctx->on_error(c, m, a, p, ctx->user_context);
+        delete ctx;
+    };
+
+    // This is performed once the request for the one-time upload URL succeeded.
+    const auto on_upload_url = [](const blob &r, void *u) {
+        auto ctx = static_cast<direct_upload_context *>(u);
+        try {
+            const auto url = ctx->upload_url(r);
+            auto c = detail::io_context::create();
+            c->client_data = u;
+            //c->prepare_request(data, cnt, data_deleter);
+
+            //::curl_easy_setopt(i.curl.get(), CURLOPT_URL, url.c_str());
+            //::curl_easy_setopt(i.curl.get(), CURLOPT_UPLOAD, 1L);
+            //::curl_easy_setopt(i.curl.get(), CURLOPT_PUT, 1L);
+            ////::curl_easy_setopt(i.curl.get(), CURLOPT_INFILESIZE_LARGE, cnt);
+            //::curl_easy_setopt(i.curl.get(), CURLOPT_WRITEDATA, c.get());
+            //::curl_easy_setopt(i.curl.get(), CURLOPT_READDATA, c.get());
+            //::curl_easy_setopt(i.curl.get(), CURLOPT_READFUNCTION,
+            //    &detail::io_context::read_request);
+
+            //// Set the headers.
+            //if (content_type != nullptr) {
+            //    auto h = "Content-Type: " + to_ascii(content_type);
+            //    headers.reset(::curl_slist_append(headers.release(), h.c_str()));
+            //}
+            //::curl_easy_setopt(i.curl.get(), CURLOPT_HTTPHEADER, headers.get());
+
+            //auto status = ::curl_easy_perform(i.curl.get());
+            //if (status != CURLE_OK) {
+            //    throw std::system_error(status, detail::curl_category());
+            //}
+
+            //on_response(c->response, c->client_data);
+            //detail::io_context::recycle(std::move(c));
+
+
+            //curl -X PUT -H "x-amz-tagging: dv-state=temp" --upload-file <path-to-file> "<url>"
+        } catch (std::system_error ex) {
+            ctx->invoke_on_error(ex);
+            delete ctx;
+
+        } catch (std::exception& ex) {
+            ctx->invoke_on_error(ex);
+            delete ctx;
+
+        } catch (...) {
+            ctx->invoke_on_error();
+            delete ctx;
+        }
+    };
+
+    // Allocate the upload context which helps us tracking the progress through
+    // the individual stages of the process. From here on, the context must be
+    // successfully passed to the API or freed in case of any error, wherefore
+    // the following code must be enclosed in try/catch.
+    auto ctx = new direct_upload_context(this, on_response, on_error, context);
+
+    try {
+        // Prepare as much of the description as we can right now.
+        ctx->description = nlohmann::json::object({
+            { "description", to_utf8(description) },
+            { "directoryLabel", to_utf8(directory) },
+            { "restrict", restricted },
+            { "categories", nlohmann::json::array() },
+        });
+
+        if (categories != nullptr) {
+            auto &cats = ctx->description["categories"];
+            for (std::size_t i = 0; i < cnt_cats; ++i) {
+                cats.push_back(to_utf8(categories[i]));
+            }
+        }
+
+        // Add metadata about the file itself (size, name, etc.).
+        ctx->description.update(detail::get_file_properties(path));
+
+        // The URL we will later use to register the metadata.
+        ctx->registration_url = std::wstring(L"/datasets/:persistentId/add?"
+            L"?persistentId=") + persistent_id;
+
+        // Begin the chain of operations by retrieving the upload URL.
+        const auto url = std::wstring(L"/datasets/:persistentId/uploadsid/"
+            L"?persistentId=") + persistent_id;
+        return this->get(url.c_str(), on_upload_url, on_error_forwarder, ctx);
+    } catch (...) {
+        delete ctx;
+        throw;
+    }
 }
 
 
@@ -625,3 +751,5 @@ visus::dataverse::dataverse_connection::check_not_disposed(void) const {
 
 #undef _CHECK_ON_RESPONSE
 #undef _CHECK_ON_ERROR
+#undef _DATAVERSE_HASH_ALGORITHMA
+#undef _DATAVERSE_HASH_ALGORITHMW

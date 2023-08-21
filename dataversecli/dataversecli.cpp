@@ -10,8 +10,6 @@
 #include "directory.h"
 #include "upload.h"
 
-#include "dataverse/hash.h"
-
 
 /// <summary>
 /// Find the specified switch in the given range.

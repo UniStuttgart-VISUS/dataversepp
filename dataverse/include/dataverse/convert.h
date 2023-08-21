@@ -185,9 +185,9 @@ namespace dataverse {
     template<class TDstChar>
     inline std::basic_string<TDstChar> from_utf8(_In_z_ const char *src) {
 #if defined(_WIN32)
-        return convert<TDstChar>(src, CP_UTF8);
+        return convert<TDstChar>(src, 0,  CP_UTF8);
 #else /* defined(_WIN32) */
-        return convert<TDstChar>(src, "UTF-8");
+        return convert<TDstChar>(src, 0, "UTF-8");
 #endif /* defined(_WIN32) */
     }
 
