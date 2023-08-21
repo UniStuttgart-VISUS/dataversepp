@@ -177,3 +177,15 @@ std::size_t visus::dataverse::to_base64(
     throw "TODO"
 #endif /* defined(_WIN32) */
 }
+
+
+/*
+ * visus::dataverse::to_base64
+ */
+std::size_t visus::dataverse::to_base64(
+        _In_opt_ std::nullptr_t dst,
+        _In_ const std::size_t cnt_dst,
+        _In_reads_(cnt_src) const std::uint8_t *src,
+        _In_ const std::size_t cnt_src) {
+    return to_base64(static_cast<wchar_t *>(dst), 0, src, cnt_src);
+}

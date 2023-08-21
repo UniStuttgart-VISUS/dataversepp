@@ -86,5 +86,22 @@ namespace dataverse {
         _In_reads_(cnt_src) const std::uint8_t *src,
         _In_ const std::size_t cnt_src);
 
+    /// <summary>
+    /// Measures the buffer size required to store the given data in base64
+    /// encoding.
+    /// </summary>
+    /// <param name="dst"><c>nullptr</c>.</param>
+    /// <param name="cnt_dst">This parameter is ignored.</param>
+    /// <param name="src">The source to be converted.</param>
+    /// <param name="cnt_src">The length of the source data in bytes.</param>
+    /// <returns>The required output buffer size in number of characters.
+    /// </returns>
+    /// <exception cref="std::system_error">If the operation failed.</exception>
+    extern std::size_t DATAVERSE_API to_base64(
+        _In_opt_ std::nullptr_t dst,
+        _In_ const std::size_t cnt_dst,
+        _In_reads_(cnt_src) const std::uint8_t *src,
+        _In_ const std::size_t cnt_src);
+
 } /* namespace dataverse */
 } /* namespace visus */
