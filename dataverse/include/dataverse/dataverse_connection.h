@@ -445,6 +445,88 @@ namespace dataverse {
 #endif /* defined(DATAVERSE_WITH_JSON) */
 
         /// <summary>
+        /// Puts the given data to the given resource location.
+        /// </summary>
+        /// <remarks>
+        /// This method can be used to upload files using the S3 interface.
+        /// </remarks>
+        /// <param name="resource">The path to the resource to post. The
+        /// base path configured will be prepended if set.</param>
+        /// <param name="data">The data to post. The caller remains owner
+        /// of this memory if no <see cref="data_deleter" /> is set and must
+        /// make sure that the data remain valid until the request completed or
+        /// failed.</param>
+        /// <param name="cnt">The size of the data in bytes.</param>
+        /// <param name="data_deleter">If not <c>nullptr</c>, the object will
+        /// eventually free <paramref name="data" /> using this callback.
+        /// </param>
+        /// <param name="content_type">The MIME type of the data to be stored.
+        /// </param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& put(_In_opt_z_ const wchar_t *resource,
+            _In_reads_bytes_(cnt) const byte_type *data,
+            _In_ const std::size_t cnt,
+            _In_opt_ const data_deleter_type data_deleter,
+            _In_opt_z_ const wchar_t *content_type,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Puts the given data to the given resource location.
+        /// </summary>
+        /// <remarks>
+        /// This method can be used to upload files using the S3 interface.
+        /// </remarks>
+        /// <param name="resource">The path to the resource to post. The
+        /// base path configured will be prepended if set.</param>
+        /// <param name="data">The data to post. The caller remains owner
+        /// of this memory if no <see cref="data_deleter" /> is set and must
+        /// make sure that the data remain valid until the request completed or
+        /// failed.</param>
+        /// <param name="cnt">The size of the data in bytes.</param>
+        /// <param name="data_deleter">If not <c>nullptr</c>, the object will
+        /// eventually free <paramref name="data" /> using this callback.
+        /// </param>
+        /// <param name="content_type">The MIME type of the data to be stored.
+        /// </param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& put(_In_ const const_narrow_string& resource,
+            _In_reads_bytes_(cnt) const byte_type *data,
+            _In_ const std::size_t cnt,
+            _In_opt_ const data_deleter_type data_deleter,
+            _In_ const const_narrow_string& content_type,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+        /// <summary>
         /// Upload a file for the data set with the specified persistent ID.
         /// </summary>
         /// <param name="persistent_id">The persistent ID of the data set the

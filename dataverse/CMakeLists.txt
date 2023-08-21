@@ -42,7 +42,7 @@ endif ()
 
 
 # Configure the linker.
-target_link_libraries(${PROJECT_NAME} PRIVATE WIL nlohmann_json CURL::libcurl)
+target_link_libraries(${PROJECT_NAME} PRIVATE Bcrypt Crypt32 WIL nlohmann_json CURL::libcurl)
 
 if (WIN32)
 #    target_link_libraries(${PROJECT_NAME} )

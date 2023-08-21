@@ -341,6 +341,91 @@ visus::dataverse::dataverse_connection::post(
 
 
 /*
+ * visus::dataverse::dataverse_connection::put
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::put(
+        _In_opt_z_ const wchar_t *resource,
+        _In_reads_bytes_(cnt) const byte_type *data,
+        _In_ const std::size_t cnt,
+        _In_opt_ const data_deleter_type data_deleter,
+        _In_opt_z_ const wchar_t *content_type,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    _CHECK_ON_RESPONSE;
+    _CHECK_ON_ERROR;
+
+    if (data == nullptr) {
+        throw std::invalid_argument("The data to be uploaded must be valid.");
+    }
+
+    auto& i = this->check_not_disposed();
+
+    auto c = detail::io_context::create();
+    c->client_data = context;
+    c->prepare_request(data, cnt, data_deleter);
+
+    std::string url = i.make_url(resource);
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_URL, url.c_str());
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_UPLOAD, 1L);
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_PUT, 1L);
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_INFILESIZE_LARGE, cnt);
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_WRITEDATA, c.get());
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_READDATA, c.get());
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_READFUNCTION,
+        &detail::io_context::read_request);
+
+    // Set the headers.
+    auto headers = i.add_auth_header();
+    if (content_type != nullptr) {
+        auto h = "Content-Type: " + to_ascii(content_type);
+        headers.reset(::curl_slist_append(headers.release(), h.c_str()));
+    }
+    ::curl_easy_setopt(i.curl.get(), CURLOPT_HTTPHEADER, headers.get());
+
+    auto status = ::curl_easy_perform(i.curl.get());
+    if (status != CURLE_OK) {
+        throw std::system_error(status, detail::curl_category());
+    }
+
+    on_response(c->response, c->client_data);
+    detail::io_context::recycle(std::move(c));
+
+    return *this;
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::put
+ */
+visus::dataverse::dataverse_connection &
+visus::dataverse::dataverse_connection::put(
+        _In_ const const_narrow_string& resource,
+        _In_reads_bytes_(cnt) const byte_type *data,
+        _In_ const std::size_t cnt,
+        _In_opt_ const data_deleter_type data_deleter,
+        _In_ const const_narrow_string& content_type,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto c = (content_type != nullptr)
+        ? convert<wchar_t>(content_type)
+        : std::wstring();
+    const auto r = (resource != nullptr)
+        ? convert<wchar_t>(resource)
+        : std::wstring();
+
+    return this->post((resource != nullptr) ? r.c_str() : nullptr,
+        data, cnt, data_deleter,
+        (content_type != nullptr) ? c.c_str() : nullptr,
+        on_response,
+        on_error,
+        context);
+}
+
+
+/*
  * visus::dataverse::dataverse_connection::upload
  */
 visus::dataverse::dataverse_connection &

@@ -10,6 +10,8 @@
 #include "directory.h"
 #include "upload.h"
 
+#include "dataverse/hash.h"
+
 
 /// <summary>
 /// Find the specified switch in the given range.
@@ -157,6 +159,11 @@ int _tmain(_In_ const int argc, const TCHAR **argv) {
                 std::chrono::milliseconds(100));
         } else {
             ::upload(dataverse, doi, file, description, path, tags, restricted);
+
+            std::vector<std::uint8_t> hash(visus::dataverse::hash(nullptr, 0, _TTC(file)));
+            visus::dataverse::hash(hash.data(), hash.size(), _TTC(file));
+            std::vector<wchar_t> base64(visus::dataverse::to_base64(nullptr, 0, hash.data(), hash.size()));
+            visus::dataverse::to_base64(base64.data(), base64.size(), hash.data(), hash.size());
         }
 
         return 0;
