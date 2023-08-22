@@ -10,12 +10,77 @@
 #include <stdexcept>
 #include <system_error>
 
+#include <fcntl.h>
+#include <io.h>
+
 #include <curl/curl.h>
 
 #include "dataverse/convert.h"
 
 #include "curl_error_category.h"
 #include "errors.h"
+
+
+/*
+ * visus::dataverse::form_data::posix_close
+ */
+void visus::dataverse::form_data::posix_close(_In_ void *fd) {
+#if defined(_WIN32)
+    ::_close(reinterpret_cast<std::intptr_t>(fd));
+#else /* defined(_WIN32) */
+    ::close(reinterpret_cast<std::intptr_t>(fd));
+#endif /* defined(_WIN32) */
+}
+
+
+/*
+ * visus::dataverse::form_data::posix_read
+ */
+std::size_t visus::dataverse::form_data::posix_read(
+        _Out_writes_bytes_(cnt *size) char *dst,
+        _In_ const size_t size,
+        _In_ const size_t cnt,
+        _In_opt_ void *fd) {
+#if defined(_WIN32)
+    auto retval = ::_read(reinterpret_cast<std::intptr_t>(fd), dst, size * cnt);
+#else /* defined(_WIN32) */
+    auto retval = ::read(reinterpret_cast<std::intptr_t>(fd), dst, size * cnt);
+#endif /* defined(_WIN32) */
+
+    if (retval == -1) {
+        return CURL_READFUNC_ABORT;
+    } else {
+        return retval;
+    }
+}
+
+
+/*
+ * visus::dataverse::form_data::posix_seek
+ */
+int visus::dataverse::form_data::posix_seek(_In_ void *fd,
+        _In_ const std::streamoff offset,
+        _In_ const int origin) {
+#if defined(_WIN32)
+    auto status = ::_lseeki64(reinterpret_cast<std::intptr_t>(fd), offset,
+        origin);
+#else /* defined(_WIN32) */
+    auto status = ::lseek(reinterpret_cast<std::intptr_t>(fd), offset,
+        origin);
+#endif /* defined(_WIN32) */
+    return (status != -1) ? CURL_SEEKFUNC_OK : CURL_SEEKFUNC_FAIL;
+}
+
+
+#if defined(_WIN32)
+/*
+ * visus::dataverse::form_data::win32_close
+ */
+void CALLBACK visus::dataverse::form_data::win32_close(_In_ void *handle) {
+    ::CloseHandle(reinterpret_cast<HANDLE>(handle));
+}
+#endif /* defined(_WIN32) */
+
 
 
 #if defined(_WIN32)
@@ -58,16 +123,6 @@ int CALLBACK visus::dataverse::form_data::win32_seek(_In_opt_ void *handle,
     return ::SetFilePointerEx(h, o, nullptr, origin)
         ? CURL_SEEKFUNC_OK
         : CURL_SEEKFUNC_FAIL;
-}
-#endif /* defined(_WIN32) */
-
-
-#if defined(_WIN32)
-/*
- * visus::dataverse::form_data::win32_close
- */
-void CALLBACK visus::dataverse::form_data::win32_close(_In_ void *handle) {
-    ::CloseHandle(reinterpret_cast<HANDLE>(handle));
 }
 #endif /* defined(_WIN32) */
 

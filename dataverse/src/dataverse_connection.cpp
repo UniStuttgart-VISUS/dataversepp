@@ -209,9 +209,17 @@ visus::dataverse::dataverse_connection::direct_upload(
             c->option(CURLOPT_UPLOAD, 1L);
             c->option(CURLOPT_PUT, 1L);
             c->option(CURLOPT_INFILESIZE_LARGE, size);
+#if defined(_WIN32)
             c->option(CURLOPT_READFUNCTION, form_data::win32_read);
+#else /* defined(_WIN32) */
+            c->option(CURLOPT_READFUNCTION, form_data::posix_read);
+#endif /* defined(_WIN32) */
             c->option(CURLOPT_READDATA, ctx->file.get());
+#if defined(_WIN32)
             c->option(CURLOPT_SEEKFUNCTION, form_data::win32_seek);
+#else /* defined(_WIN32) */
+            c->option(CURLOPT_SEEKFUNCTION, form_data::posix_seek);
+#endif /* defined(_WIN32) */
             c->option(CURLOPT_SEEKDATA, ctx->file.get());
 
             c->add_header("x-amz-tagging: dv-state=temp");

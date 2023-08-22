@@ -65,15 +65,54 @@ namespace dataverse {
         /// </summary>
         typedef void (*on_close_type)(_In_opt_ void *);
 
+        /// <summary>
+        /// An implementation of <see cref="on_close_type" /> for use with POSIX
+        /// file handles.
+        /// </summary>
+        /// <param name="fd"></param>
+        static void posix_close(_In_ void *fd);
+
+        /// <summary>
+        /// An implementation of <see cref="on_read_type" /> for use with POSIX
+        /// file handles.
+        /// </summary>
+        /// <param name="dst"></param>
+        /// <param name="size"></param>
+        /// <param name="cnt"></param>
+        /// <param name="fd"></param>
+        /// <returns></returns>
+        static std::size_t CALLBACK posix_read(
+            _Out_writes_bytes_(cnt *size) char *dst,
+            _In_ const size_t size,
+            _In_ const size_t cnt,
+            _In_opt_ void *fd);
+
+        /// <summary>
+        /// An implementation of <see cref="on_seek_type" /> for use with POSIX
+        /// file handles.
+        /// </summary>
+        /// <param name="fd"></param>
+        /// <param name="offset"></param>
+        /// <param name="origin"></param>
+        /// <returns></returns>
+        static int CALLBACK posix_seek(_In_ void *fd,
+            _In_ const std::streamoff offset,
+            _In_ const int origin);
+
+#if defined(_WIN32)
+        /// <summary>
+        /// An implementation of <see cref="on_close_type" /> for use with Win32
+        /// <see cref="HANDLE" />s.
+        /// </summary>
+        /// <param name="handle"></param>
+        static void win32_close(_In_ void *handle);
+#endif /* defined(_WIN32) */
+
 #if defined(_WIN32)
         /// <summary>
         /// An implementation of <see cref="on_read_type" /> for use with Win32
         /// <see cref="HANDLE" />s.
         /// </summary>
-        /// <remarks>
-        /// If you use a <see cref="FILE" /> pointer, you can also use
-        /// <see cref="fread" /> without any modifications-
-        /// </remarks>
         /// <param name="dst"></param>
         /// <param name="size"></param>
         /// <param name="cnt"></param>
@@ -91,10 +130,6 @@ namespace dataverse {
         /// An implementation of <see cref="on_seek_type" /> for use with Win32
         /// <see cref="HANDLE" />s.
         /// </summary>
-        /// <remarks>
-        /// If you use a <see cref="FILE" /> pointer, you can also use
-        /// <see cref="fseek" /> without any modifications-
-        /// </remarks>
         /// <param name="handle"></param>
         /// <param name="offset"></param>
         /// <param name="origin"></param>
@@ -102,19 +137,6 @@ namespace dataverse {
         static int CALLBACK win32_seek(_In_ void *handle,
             _In_ const std::streamoff offset,
             _In_ const int origin);
-#endif /* defined(_WIN32) */
-
-#if defined(_WIN32)
-        /// <summary>
-        /// An implementation of <see cref="on_close_type" /> for use with Win32
-        /// <see cref="HANDLE" />s.
-        /// </summary>
-        /// <remarks>
-        /// If you use a <see cref="FILE" /> pointer, you can also use
-        /// <see cref="fclose" /> without any modifications-
-        /// </remarks>
-        /// <param name="handle"></param>
-        static void win32_close(_In_ void *handle);
 #endif /* defined(_WIN32) */
 
         /// <summary>
