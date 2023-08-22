@@ -193,6 +193,7 @@ namespace dataverse {
 
         void check_not_disposed(void);
 
+        mutable void *_curl;
         curl_mime *_form;
 
         friend class dataverse_connection;

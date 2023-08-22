@@ -249,7 +249,8 @@ namespace dataverse {
         /// </summary>
         /// <param name="resource">The path to the resource. The
         /// <see cref="base_path" /> will be prepended if it is set.</param>
-        /// <param name="form">The form data to post.</param>
+        /// <param name="form">The form data to post. The connection object
+        /// takes ownership of the form.</param>
         /// <param name="on_response">A callback to be invoked if the response
         /// to the request was received.</param>
         /// <param name="on_error">A callback to be invoked if the request
@@ -265,7 +266,7 @@ namespace dataverse {
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
         dataverse_connection& post(_In_opt_z_ const wchar_t *resource,
-            _In_ const form_data& form,
+            _Inout_ form_data&& form,
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
             _In_opt_ void *context = nullptr);
@@ -276,16 +277,17 @@ namespace dataverse {
         /// </summary>
         /// <param name="resource">The path to the resource. The
         /// <see cref="base_path" /> will be prepended if it is set.</param>
-        /// <param name="form">The form data to post.</param>
+        /// <param name="form">The form data to post. The connection object
+        /// takes ownership of the form.</param>
         /// <returns>A future for the result of the opration.</returns>
         inline std::future<blob> post(_In_opt_z_ const wchar_t *resource,
-                _In_ const form_data& form) {
+                _Inout_ form_data&& form) {
             typedef dataverse_connection& (dataverse_connection:: *actual_type)(
-                const wchar_t *, const form_data&, const on_response_type,
+                const wchar_t *, form_data&&, const on_response_type,
                 const on_error_type, void *);
             return invoke_async(
                 static_cast<actual_type>(&dataverse_connection::post),
-                *this, resource, form);
+                *this, resource, std::move(form));
         }
 
         /// <summary>
@@ -293,7 +295,8 @@ namespace dataverse {
         /// </summary>
         /// <param name="resource">The path to the resource. The
         /// <see cref="base_path" /> will be prepended if it is set.</param>
-        /// <param name="form">The form data to post.</param>
+        /// <param name="form">The form data to post. The connection object
+        /// takes ownership of the form.</param>
         /// <param name="on_response">A callback to be invoked if the response
         /// to the request was received.</param>
         /// <param name="on_error">A callback to be invoked if the request
@@ -309,7 +312,7 @@ namespace dataverse {
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
         dataverse_connection& post(_In_ const const_narrow_string& resource,
-            _In_ const form_data& form,
+            _Inout_ form_data&& form,
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
             _In_opt_ void *context = nullptr);
@@ -324,13 +327,13 @@ namespace dataverse {
         /// <returns>A future for the result of the opration.</returns>
         inline std::future<blob> post(
                 _In_opt_z_ const const_narrow_string& resource,
-                _In_ const form_data& form) {
+                _Inout_ form_data&& form) {
             typedef dataverse_connection& (dataverse_connection:: *actual_type)(
-                const const_narrow_string&, const form_data&,
+                const const_narrow_string&, form_data&&,
                 const on_response_type, const on_error_type, void *);
             return invoke_async(
                 static_cast<actual_type>(&dataverse_connection::post),
-                *this, resource, form);
+                *this, resource, std::move(form));
         }
 
         /// <summary>
@@ -977,9 +980,9 @@ namespace dataverse {
             const auto d = reinterpret_cast<const std::uint8_t *>(dump.data());
             const auto s = dump.size();
             return this->post(url.c_str(),
-                this->make_form()
+                std::move(this->make_form()
                     .add_file(L"file", path.c_str())
-                    .add_field(L"jsonData", d, s),
+                    .add_field(L"jsonData", d, s)),
                 on_response,
                 on_error,
                 context);

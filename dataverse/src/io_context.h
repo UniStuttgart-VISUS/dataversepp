@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "dataverse/blob.h"
+#include "dataverse/form_data.h"
 #include "dataverse/dataverse_connection.h"
 
 #include "dataverse_connection_impl.h"
@@ -31,7 +32,37 @@ namespace detail {
         /// </summary>
         typedef dataverse_connection::byte_type byte_type;
 
-        static _Ret_valid_ std::unique_ptr<io_context> create(void);
+        /// <summary>
+        /// Creates or reuses a context without configuring it except for the
+        /// output callback.
+        /// </summary>
+        static _Ret_valid_ std::unique_ptr<io_context> create(
+            _In_ CURL *curl = nullptr);
+
+        /// <summary>
+        /// Creates or reuses a context and partially configures it using the
+        /// specified cURL handle
+        /// </summary>
+        static _Ret_valid_ std::unique_ptr<io_context> create(
+            _In_ CURL *curl,
+            _In_z_ const std::string& url,
+            _In_ dataverse_connection::on_response_type on_response,
+            _In_ dataverse_connection::on_error_type on_error,
+            _In_opt_ void *client_data);
+
+        /// <summary>
+        /// Creates or reuses a context and partially configures it.
+        /// </summary>
+        static _Ret_valid_ std::unique_ptr<io_context> create(
+            _In_z_ const std::string& url,
+            _In_ dataverse_connection::on_response_type on_response,
+            _In_ dataverse_connection::on_error_type on_error,
+            _In_opt_ void *client_data);
+
+        /// <summary>
+        /// Retrieves the context embedded in the easy handle.
+        /// </summary>
+        static std::unique_ptr<io_context> get(_In_ CURL *curl);
 
         /// <summary>
         /// I/O callback to read the response from our buffer.
@@ -42,7 +73,11 @@ namespace detail {
             _In_ const size_t cnt,
             _In_opt_ void *context);
 
-        static void recycle(_Inout_ std::unique_ptr<io_context> &&context);
+        /// <summary>
+        /// Put the given context into the pool of recycleable context if it is
+        /// a valid pointer.
+        /// </summary>
+        static void recycle(_Inout_ std::unique_ptr<io_context>&& context);
 
         /// <summary>
         /// The I/O callback passed to cURL for writing the response to our
@@ -60,9 +95,30 @@ namespace detail {
         void *client_data;
 
         /// <summary>
-        /// The library handle used for the connection.
+        /// The library handle used for the request.
         /// </summary>
-        dataverse_connection_impl::curlm_type curl;
+        dataverse_connection_impl::curl_type curl;
+
+        /// <summary>
+        /// The form to be sent, if any.
+        /// </summary>
+        form_data form;
+
+        /// <summary>
+        /// The HTTP headers associated with the request, which must be stored
+        /// until the request has been processed asynchronously.
+        /// </summary>
+        dataverse_connection_impl::string_list_type headers;
+
+        /// <summary>
+        /// The user-provided error callback.
+        /// </summary>
+        dataverse_connection::on_error_type on_error;
+
+        /// <summary>
+        /// The user-provided response callback.
+        /// </summary>
+        dataverse_connection::on_response_type on_response;
 
         /// <summary>
         /// A pointer to the caller-provided request data.
@@ -100,6 +156,16 @@ namespace detail {
         /// Finalises the instance.
         /// </summary>
         ~io_context(void);
+
+        /// <summary>
+        /// Applies <see cref="headers" /> to <see cref="curl" />.
+        /// </summary>
+        void apply_headers(void);
+
+        /// <summary>
+        /// Adds a content type header.
+        /// </summary>
+        void content_type(_In_ const wchar_t *content_type);
 
         /// <summary>
         /// Runs the <see cref="request_deleter" /> if one is set.

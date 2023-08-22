@@ -5,6 +5,8 @@
 
 #include "io_context.h"
 
+#include <cassert>
+
 #include "dataverse/convert.h"
 
 
@@ -12,16 +14,97 @@
  * visus::dataverse::detail::io_context::create
  */
 std::unique_ptr<visus::dataverse::detail::io_context>
-visus::dataverse::detail::io_context::create(void) {
+visus::dataverse::detail::io_context::create(_In_ CURL *curl) {
     std::lock_guard<decltype(lock)> l(lock);
+    std::unique_ptr<visus::dataverse::detail::io_context> retval;
+
     if (cache.empty()) {
-        return std::unique_ptr<io_context>(new io_context());
+        retval.reset(new io_context());
     } else {
-        auto retval = std::move(cache.back());
+        retval = std::move(cache.back());
+        retval->headers.reset();
+        retval->on_error = nullptr;
+        retval->on_response = nullptr;
         retval->response.clear();
         cache.pop_back();
         return retval;
     }
+
+    if (curl != nullptr) {
+        // If requested, use the given cURL handle instead of our own.
+        retval->curl.reset(curl);
+    }
+
+    // Set the output callback and the context for it.
+    dataverse_connection_impl::check_code(::curl_easy_setopt(
+        retval->curl.get(),
+        CURLOPT_WRITEFUNCTION,
+        detail::io_context::write_response));
+    dataverse_connection_impl::check_code(::curl_easy_setopt(
+        retval->curl.get(),
+        CURLOPT_WRITEDATA,
+        retval.get()));
+
+    // Set the private pointer such that we can extract the context from
+    // the CURLM processing thread.
+    dataverse_connection_impl::check_code(::curl_easy_setopt(
+        retval->curl.get(),
+        CURLOPT_PRIVATE,
+        retval.get()));
+
+    return retval;
+}
+
+
+/*
+ * visus::dataverse::detail::io_context::create
+ */
+std::unique_ptr<visus::dataverse::detail::io_context>
+visus::dataverse::detail::io_context::create(_In_ CURL *curl,
+            _In_z_ const std::string& url,
+            _In_ dataverse_connection::on_response_type on_response,
+            _In_ dataverse_connection::on_error_type on_error,
+            _In_opt_ void *client_data) {
+    auto retval = create(curl);
+    assert(retval != nullptr);
+    retval->client_data = client_data;
+    retval->on_error = on_error;
+    retval->on_response = on_response;
+    dataverse_connection_impl::check_code(::curl_easy_setopt(
+        retval->curl.get(), CURLOPT_URL, url.c_str()));
+    return retval;
+}
+
+
+/*
+ * visus::dataverse::detail::io_context::create
+ */
+std::unique_ptr<visus::dataverse::detail::io_context>
+visus::dataverse::detail::io_context::create(_In_z_ const std::string& url,
+        _In_ dataverse_connection::on_response_type on_response,
+        _In_ dataverse_connection::on_error_type on_error,
+        _In_opt_ void *client_data) {
+    return create(nullptr, url, on_response, on_error, client_data);
+}
+
+
+/*
+ * visus::dataverse::detail::io_context::get
+ */
+std::unique_ptr<visus::dataverse::detail::io_context>
+visus::dataverse::detail::io_context::get(_In_ CURL *curl) {
+    std::unique_ptr<io_context> retval;
+
+    if (curl != nullptr) {
+        io_context *tmp;
+        dataverse_connection_impl::check_code(::curl_easy_getinfo(
+            curl,
+            CURLINFO_PRIVATE,
+            &tmp));
+        retval.reset(tmp);
+    }
+
+    return retval;
 }
 
 
@@ -56,6 +139,7 @@ void visus::dataverse::detail::io_context::recycle(
         _Inout_ std::unique_ptr<io_context>&& context) {
     if (context != nullptr) {
         context->delete_request();
+        context->curl.reset();
         std::lock_guard<decltype(lock)> l(lock);
         cache.push_back(std::move(context));
     }
@@ -86,11 +170,14 @@ std::size_t CALLBACK visus::dataverse::detail::io_context::write_response(
  */
 visus::dataverse::detail::io_context::io_context(void)
     : client_data(nullptr),
-    curl(nullptr, &::curl_multi_cleanup),
-    request(nullptr),
-    request_deleter(nullptr),
-    request_remaining(0),
-    request_size(0) { }
+        curl(std::move(dataverse_connection_impl::make_curl())),
+        headers(nullptr, &::curl_slist_free_all),
+        on_error(nullptr),
+        on_response(nullptr),
+        request(nullptr),
+        request_deleter(nullptr),
+        request_remaining(0),
+        request_size(0) { }
 
 
 /*
@@ -98,6 +185,36 @@ visus::dataverse::detail::io_context::io_context(void)
  */
 visus::dataverse::detail::io_context::~io_context(void) {
     this->delete_request();
+}
+
+
+/*
+ * visus::dataverse::detail::io_context::apply_headers
+ */
+void visus::dataverse::detail::io_context::apply_headers(void) {
+    if (this->curl) {
+        detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
+            this->curl.get(), CURLOPT_HTTPHEADER, this->headers.get()));
+    }
+}
+
+
+/*
+ * visus::dataverse::detail::dataverse_connection_impl::add_content_type
+ */
+void visus::dataverse::detail::io_context::content_type(
+        _In_ const wchar_t *content_type) {
+    if (content_type != nullptr) {
+        auto h = "Content-Type: " + to_ascii(content_type);
+
+        auto old_headers = this->headers.release();
+        this->headers.reset(::curl_slist_append(old_headers, h.c_str()));
+
+        if (!this->headers) {
+            this->headers.reset(old_headers);
+            throw std::bad_alloc();
+        }
+    }
 }
 
 
@@ -125,6 +242,13 @@ void visus::dataverse::detail::io_context::prepare_request(
     this->request = data;
     this->request_size = cnt;
     this->request_remaining = cnt;
+
+    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
+        this->curl.get(), CURLOPT_READFUNCTION,
+        &detail::io_context::read_request));
+    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
+        this->curl.get(), CURLOPT_READDATA, this));
+
 }
 
 

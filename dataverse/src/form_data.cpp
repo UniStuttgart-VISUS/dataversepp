@@ -75,14 +75,16 @@ void CALLBACK visus::dataverse::form_data::win32_close(_In_ void *handle) {
 /*
  * visus::dataverse::form_data::form_data
  */
-visus::dataverse::form_data::form_data(void) : _form(nullptr) { }
+visus::dataverse::form_data::form_data(void)
+    : _curl(nullptr), _form(nullptr) { }
 
 
 /*
  * visus::dataverse::form_data::form_data
  */
 visus::dataverse::form_data::form_data(_Inout_ form_data&& rhs) noexcept
-        : _form(rhs._form) {
+        : _curl(rhs._curl), _form(rhs._form) {
+    rhs._curl = nullptr;
     rhs._form = nullptr;
 }
 
@@ -91,6 +93,10 @@ visus::dataverse::form_data::form_data(_Inout_ form_data&& rhs) noexcept
  * visus::dataverse::form_data::~form_data
  */
 visus::dataverse::form_data::~form_data(void) noexcept {
+    if (this->_curl != nullptr) {
+        ::curl_easy_cleanup(this->_curl);
+    }
+
     if (this->_form != nullptr) {
         ::curl_mime_free(this->_form);
     }
@@ -278,9 +284,15 @@ visus::dataverse::form_data& visus::dataverse::form_data::add_file(
 visus::dataverse::form_data&
 visus::dataverse::form_data::operator =(_Inout_ form_data&& rhs) noexcept {
     if (this != std::addressof(rhs)) {
+        if (this->_curl != nullptr) {
+            ::curl_easy_cleanup(this->_curl);
+        }
         if (this->_form != nullptr) {
             ::curl_mime_free(this->_form);
         }
+
+        this->_curl = rhs._curl;
+        rhs._curl = nullptr;
 
         this->_form = rhs._form;
         rhs._form = nullptr;
@@ -293,7 +305,8 @@ visus::dataverse::form_data::operator =(_Inout_ form_data&& rhs) noexcept {
 /*
  * visus::dataverse::form_data::form_data
  */
-visus::dataverse::form_data::form_data(_In_ void *curl) : _form(nullptr) {
+visus::dataverse::form_data::form_data(_In_ void *curl)
+        : _curl(curl), _form(nullptr) {
     if (curl == nullptr) {
         throw std::invalid_argument("A valid CURL handle must be provided.");
     }

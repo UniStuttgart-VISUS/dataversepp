@@ -5,16 +5,19 @@
 
 #pragma once
 
+#include <atomic>
 #include <cstring>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <system_error>
+#include <thread>
 #include <vector>
 
 #include <curl/curl.h>
 
 #include "dataverse/convert.h"
+#include "dataverse/event.h"
 
 #include "curl_error_category.h"
 #include "curlm_error_category.h"
@@ -24,6 +27,10 @@
 namespace visus {
 namespace dataverse {
 namespace detail {
+
+    /* Forward declarations. */
+    struct io_context;
+
 
     /// <summary>
     /// The head of an in-flight context of an asynchronous I/O operation.
@@ -36,9 +43,27 @@ namespace detail {
         typedef std::unique_ptr<curl_slist, decltype(&::curl_slist_free_all)>
             string_list_type;
 
-        std::vector<char> api_key;
-        std::string base_path;
-        curl_type curl;
+        /// <summary>
+        /// Creates a new cURL easy handle.
+        /// </summary>
+        static curl_type make_curl(void);
+
+        /// <summary>
+        /// Creates a new MIME handle.
+        /// </summary>
+        static mime_type make_mime(_In_ const curl_type& curl);
+
+        /// <summary>
+        /// Checks the code and throws a exception if it does not indicate
+        ///  success.
+        /// </summary>
+        static void check_code(_In_ const CURLcode code);
+
+        /// <summary>
+        /// Checks the code and throws a exception if it does not indicate
+        ///  success.
+        /// </summary>
+        static void check_code(_In_ const CURLMcode code);
 
         /// <summary>
         /// Overwrites <paramref name="vector" /> with zeros.
@@ -58,22 +83,47 @@ namespace detail {
         /// </summary>
         static void secure_zero(_Inout_ string_list_type& list);
 
+        std::vector<char> api_key;
+        std::string base_path;
+        curlm_type curlm;
+        event_type curlm_event;
+        std::atomic<bool> curlm_running;
+        std::thread curlm_worker;
+
+        /// <summary>
+        /// Initialises a new instance.
+        /// </summary>
         dataverse_connection_impl(void);
 
-        string_list_type add_auth_header(_In_opt_ string_list_type&& headers
-            = string_list_type(nullptr, &::curl_slist_free_all)) const;
+        /// <summary>
+        /// Finalises the instance.
+        /// </summary>
+        ~dataverse_connection_impl(void);
 
-        inline ~dataverse_connection_impl(void) {
-            secure_zero(this->api_key);
-        }
+        /// <summary>
+        /// Add the Dataverse authentication header to the given request.
+        /// </summary>
+        void add_auth_header(_In_ std::unique_ptr<io_context>& ctx) const;
 
-        curlm_type make_curlm(void) const;
-
-        mime_type make_mime(void) const;
-
+        /// <summary>
+        /// Makes an ASCII URL string from the given input.
+        /// </summary>
         std::string make_url(_In_opt_z_ const wchar_t *resource) const;
 
+        /// <summary>
+        /// Makes an ASCII URL string from the given input.
+        /// </summary>
         std::string make_url(_In_ const const_narrow_string& resource) const;
+
+        /// <summary>
+        /// Process the given I/O using curlm.
+        /// </summary>
+        void process(_Inout_ std::unique_ptr<io_context>&& request);
+
+        /// <summary>
+        /// The entry point of the curlm thread.
+        /// </summary>
+        void run_curlm(void);
     };
 
 } /* namespace detail */

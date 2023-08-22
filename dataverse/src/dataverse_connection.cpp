@@ -269,23 +269,18 @@ visus::dataverse::dataverse_connection::get(
     _CHECK_ON_ERROR;
     auto& i = this->check_not_disposed();
 
-    auto c = detail::io_context::create();
-    c->client_data = context;
+    // Prepare the request.
+    auto ctx = detail::io_context::create(i.make_url(resource),
+        on_response, on_error, context);
+    assert(ctx->curl != nullptr);
+    assert(ctx->client_data == context);
 
-    std::string url = i.make_url(resource);
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_URL, url.c_str());
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_WRITEDATA, c.get());
+    // Set the authentication header.
+    i.add_auth_header(ctx);
+    ctx->apply_headers();
 
-    auto headers = i.add_auth_header();
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_HTTPHEADER, headers.get());
-
-    auto status = ::curl_easy_perform(i.curl.get());
-    if (status != CURLE_OK) {
-        throw std::system_error(status, detail::curl_category());
-    }
-
-    on_response(c->response, c->client_data);
-    detail::io_context::recycle(std::move(c));
+    // Send the request to asynchronous processing.
+    i.process(std::move(ctx));
 
     return *this;
 }
@@ -300,6 +295,8 @@ visus::dataverse::dataverse_connection::get(
         _In_ const on_response_type on_response,
         _In_ const on_error_type on_error,
         _In_opt_ void *context) {
+    // Note: The ASCII conversion would go via wchar_t anyway, so this is
+    // basically for free.
     if (resource == nullptr) {
         auto r = static_cast<wchar_t *>(nullptr);
         return this->get(r, on_response, on_error, context);
@@ -315,7 +312,7 @@ visus::dataverse::dataverse_connection::get(
  */
 visus::dataverse::form_data visus::dataverse::dataverse_connection::make_form(
         void) const {
-    return form_data(this->check_not_disposed().curl.get());
+    return form_data(detail::dataverse_connection_impl::make_curl().release());
 }
 
 
@@ -325,7 +322,7 @@ visus::dataverse::form_data visus::dataverse::dataverse_connection::make_form(
 visus::dataverse::dataverse_connection&
 visus::dataverse::dataverse_connection::post(
         _In_opt_z_ const wchar_t *resource,
-        _In_ const form_data& form,
+        _Inout_ form_data&& form,
         _In_ const on_response_type on_response,
         _In_ const on_error_type on_error,
         _In_opt_ void *context) {
@@ -338,24 +335,24 @@ visus::dataverse::dataverse_connection::post(
 
     auto& i = this->check_not_disposed();
 
-    auto c = detail::io_context::create();
-    c->client_data = context;
+    // Prepare the request.
+    auto ctx = detail::io_context::create(form._curl, i.make_url(resource),
+        on_response, on_error, context);
+    ctx->form = std::move(form);
+    assert(!form);
 
-    std::string url = i.make_url(resource);
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_URL, url.c_str());
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_WRITEDATA, c.get());
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_MIMEPOST, form._form);
+    // Context has taken ownership of CURL object, so erase it from form.
+    form._curl = nullptr;
 
-    auto headers = i.add_auth_header();
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_HTTPHEADER, headers.get());
+    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
+        ctx->curl.get(), CURLOPT_MIMEPOST, ctx->form._form));
 
-    auto status = ::curl_easy_perform(i.curl.get());
-    if (status != CURLE_OK) {
-        throw std::system_error(status, detail::curl_category());
-    }
+    // Set the authentication header.
+    i.add_auth_header(ctx);
+    ctx->apply_headers();
 
-    on_response(c->response, c->client_data);
-    detail::io_context::recycle(std::move(c));
+    // Send the request to asynchronous processing.
+    i.process(std::move(ctx));
 
     return *this;
 }
@@ -367,16 +364,19 @@ visus::dataverse::dataverse_connection::post(
 visus::dataverse::dataverse_connection&
 visus::dataverse::dataverse_connection::post(
         _In_ const const_narrow_string& resource,
-        _In_ const form_data& form,
+        _Inout_ form_data&& form,
         _In_ const on_response_type on_response,
         _In_ const on_error_type on_error,
         _In_opt_ void *context) {
+    // Note: The ASCII conversion would go via wchar_t anyway, so this is
+    // basically for free.
     if (resource == nullptr) {
         auto r = static_cast<wchar_t *>(nullptr);
-        return this->post(r, form, on_response, on_error, context);
+        return this->post(r, std::move(form), on_response, on_error, context);
     } else {
         auto r = convert<wchar_t>(resource);
-        return this->post(r.c_str(), form, on_response, on_error, context);
+        return this->post(r.c_str(), std::move(form), on_response, on_error,
+            context);
     }
 }
 
@@ -403,35 +403,28 @@ visus::dataverse::dataverse_connection::post(
 
     auto& i = this->check_not_disposed();
 
-    auto c = detail::io_context::create();
-    c->client_data = context;
-    c->prepare_request(data, cnt, data_deleter);
+    // Prepare the request.
+    auto ctx = detail::io_context::create(i.make_url(resource),
+        on_response, on_error, context);
+    assert(ctx->client_data == context);
 
-    std::string url = i.make_url(resource);
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_URL, url.c_str());
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_UPLOAD, 1L);
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_POST, 1L);
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_INFILESIZE_LARGE, cnt);
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_WRITEDATA, c.get());
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_READDATA, c.get());
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_READFUNCTION,
-        &detail::io_context::read_request);
+    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
+        ctx->curl.get(), CURLOPT_UPLOAD, 1L));
+    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
+        ctx->curl.get(), CURLOPT_POST, 1L));
+    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
+        ctx->curl.get(), CURLOPT_INFILESIZE_LARGE, cnt));
 
-    // Set the headers.
-    auto headers = i.add_auth_header();
-    if (content_type != nullptr) {
-        auto h = "Content-Type: " + to_ascii(content_type);
-        headers.reset(::curl_slist_append(headers.release(), h.c_str()));
-    }
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_HTTPHEADER, headers.get());
+    // Move the data to the context.
+    ctx->prepare_request(data, cnt, data_deleter);
 
-    auto status = ::curl_easy_perform(i.curl.get());
-    if (status != CURLE_OK) {
-        throw std::system_error(status, detail::curl_category());
-    }
+    // Set the HTTP headers.
+    i.add_auth_header(ctx);
+    ctx->content_type(content_type);
+    ctx->apply_headers();
 
-    on_response(c->response, c->client_data);
-    detail::io_context::recycle(std::move(c));
+    // Send the request to asynchronous processing.
+    i.process(std::move(ctx));
 
     return *this;
 }
@@ -488,35 +481,28 @@ visus::dataverse::dataverse_connection::put(
 
     auto& i = this->check_not_disposed();
 
-    auto c = detail::io_context::create();
-    c->client_data = context;
-    c->prepare_request(data, cnt, data_deleter);
+    // Prepare the request.
+    auto ctx = detail::io_context::create(i.make_url(resource),
+        on_response, on_error, context);
+    assert(ctx->client_data == context);
 
-    std::string url = i.make_url(resource);
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_URL, url.c_str());
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_UPLOAD, 1L);
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_PUT, 1L);
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_INFILESIZE_LARGE, cnt);
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_WRITEDATA, c.get());
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_READDATA, c.get());
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_READFUNCTION,
-        &detail::io_context::read_request);
+    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
+        ctx->curl.get(), CURLOPT_UPLOAD, 1L));
+    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
+        ctx->curl.get(), CURLOPT_PUT, 1L));
+    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
+        ctx->curl.get(), CURLOPT_INFILESIZE_LARGE, cnt));
 
-    // Set the headers.
-    auto headers = i.add_auth_header();
-    if (content_type != nullptr) {
-        auto h = "Content-Type: " + to_ascii(content_type);
-        headers.reset(::curl_slist_append(headers.release(), h.c_str()));
-    }
-    ::curl_easy_setopt(i.curl.get(), CURLOPT_HTTPHEADER, headers.get());
+    // Move the data to the context.
+    ctx->prepare_request(data, cnt, data_deleter);
 
-    auto status = ::curl_easy_perform(i.curl.get());
-    if (status != CURLE_OK) {
-        throw std::system_error(status, detail::curl_category());
-    }
+    // Set the HTTP headers.
+    i.add_auth_header(ctx);
+    ctx->content_type(content_type);
+    ctx->apply_headers();
 
-    on_response(c->response, c->client_data);
-    detail::io_context::recycle(std::move(c));
+    // Send the request to asynchronous processing.
+    i.process(std::move(ctx));
 
     return *this;
 }
@@ -564,7 +550,7 @@ visus::dataverse::dataverse_connection::upload(
     const auto url = std::wstring(L"/datasets/:persistentId/add?"
         L"persistentId=") + persistent_id;
     return this->post(url.c_str(),
-        this->make_form().add_file(L"file", path),
+        std::move(this->make_form().add_file(L"file", path)),
         on_response,
         on_error,
         context);
@@ -585,9 +571,11 @@ visus::dataverse::dataverse_connection::upload(
         "persistentId=") + to_ascii(persistent_id);
     return this->post(const_narrow_string(url.c_str(), CP_ACP),
 #if defined(_WIN32)
-        this->make_form().add_file(narrow_string("file", CP_OEMCP), path),
+        std::move(this->make_form().add_file(narrow_string("file", CP_OEMCP),
+            path)),
 #else /* defined(_WIN32) */
-        this->make_form().add_file(narrow_string("file", nullptr), path),
+        std::move(this->make_form().add_file(narrow_string("file", nullptr),
+            path)),
 #endif /* defined(_WIN32) */
         on_response,
         on_error,
@@ -634,9 +622,9 @@ visus::dataverse::dataverse_connection::upload(
     const auto size = dump.size();
 
     return this->post(url.c_str(),
-        this->make_form()
+        std::move(this->make_form()
             .add_file(L"file", path)
-            .add_field(L"jsonData", desc, size),
+            .add_field(L"jsonData", desc, size)),
         on_response,
         on_error,
         context);
@@ -711,9 +699,9 @@ visus::dataverse::dataverse_connection::upload(
     const auto s = dump.size();
     const auto p = convert<wchar_t>(path);
     return this->post(url.c_str(),
-        this->make_form()
+        std::move(this->make_form()
             .add_file(L"file", p.c_str())
-            .add_field(L"jsonData", d, s),
+            .add_field(L"jsonData", d, s)),
         on_response,
         on_error,
         context);
