@@ -228,15 +228,28 @@ visus::dataverse::dataverse_connection::direct_upload(
     auto ctx = new direct_upload_context(this->_impl, on_response, on_error,
         context);
 
-    // This is the variant where we read ourselves, so we need to remember the
-    // path to the input file for the callback later.
-    ctx->file.reset(::CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, nullptr,
-        OPEN_EXISTING, 0, NULL));
-    if (!ctx->file) {
-        throw std::system_error(::GetLastError(), std::system_category());
-    }
-
     try {
+        // This is the variant where we read ourselves, so we need to open the
+        // file and remember the handle in the context.
+#if defined(_WIN32)
+        ctx->file.reset(::CreateFileW(path, GENERIC_READ, FILE_SHARE_READ,
+            nullptr, OPEN_EXISTING, 0, NULL));
+        if (!ctx->file) {
+            throw std::system_error(::GetLastError(), std::system_category());
+        }
+#else /* defined(_WIN32) */
+        if (ctx->file != -1) {
+            ::close(ctx->file);
+        }
+        {
+            auto p = convert<char>(path, 0, nullptr);
+            ctx->file = ::open(p.c_str(), O_RDONLY);
+        }
+        if (ctx->file == -1) {
+            throw std::system_error(errno, std::system_category());
+        }
+#endif /* defined(_WIN32) */
+
         // Prepare as much of the description as we can right now.
         ctx->description = nlohmann::json::object({
             { "description", to_utf8(description) },
