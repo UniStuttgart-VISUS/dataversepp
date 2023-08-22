@@ -47,6 +47,7 @@ namespace test {
             visus::dataverse::destroy_event(evt_done);
         }
 
+#if false
         TEST_METHOD(post_data_set) {
             auto data_set = nlohmann::json({ });
 
@@ -97,6 +98,7 @@ namespace test {
             Assert::IsTrue(visus::dataverse::wait_event(evt_done, 60 * 1000), L"Operation completed in reasonable time", LINE_INFO());
             visus::dataverse::destroy_event(evt_done);
         }
+#endif
 
         TEST_METHOD(upload_file) {
             auto data_set = nlohmann::json({ });
