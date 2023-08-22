@@ -113,6 +113,13 @@ namespace detail {
         /// <summary>
         /// Makes an ASCII URL string from the given input.
         /// </summary>
+        inline std::string make_url(_In_ const std::wstring& resource) const {
+            return this->make_url(resource.c_str());
+        }
+
+        /// <summary>
+        /// Makes an ASCII URL string from the given input.
+        /// </summary>
         std::string make_url(_In_ const const_narrow_string& resource) const;
 
         /// <summary>

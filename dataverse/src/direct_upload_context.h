@@ -9,10 +9,17 @@
 #include <stdexcept>
 #include <system_error>
 
+#if defined(_WIN32)
+#include <Windows.h>
+
+#include <wil/resource.h>
+#endif /* defined(_WIN32) */
+
 #include <nlohmann/json.hpp>
 
 #include "dataverse/dataverse_connection.h"
 
+#include "dataverse_connection_impl.h"
 #include "io_context.h"
 
 
@@ -27,14 +34,33 @@ namespace detail {
     struct direct_upload_context final {
 
         /// <summary>
+        /// Forwards the error to <see cref="on_error" /> and deletes the
+        /// <paramref name="context" />.
+        /// </summary>
+        static void forward_error(_In_ const int error_code,
+            _In_z_ const char *message,
+            _In_z_ const char *category,
+            _In_ const narrow_string::code_page_type code_page,
+            _In_opt_ void *context);
+
+        /// <summary>
         /// The connection to use for follow-up requests.
         /// </summary>
-        dataverse_connection *connection;
+        dataverse_connection_impl *connection;
 
         /// <summary>
         /// The description posted when registering the file.
         /// </summary>
         nlohmann::json description;
+
+#if defined(_WIN32)
+        /// <summary>
+        /// The handle of the file to upload.
+        /// </summary>
+        wil::unique_hfile file;
+#else  /* defined(_WIN32) */
+        int file;
+#endif /* defined(_WIN32) */
 
         /// <summary>
         /// The error handler installed by the caller.
@@ -49,7 +75,7 @@ namespace detail {
         /// <summary>
         /// The registration URL where the metadata need to be posted to.
         /// </summary>
-        std::wstring registration_url;
+        std::string registration_url;
 
         /// <summary>
         /// The user-specified context pointer to be passed to
@@ -60,10 +86,35 @@ namespace detail {
         /// <summary>
         /// Initialises a new instance.
         /// </summary>
-        direct_upload_context(_In_ dataverse_connection *connection,
+        direct_upload_context(_In_ dataverse_connection_impl *connection,
             _In_ const dataverse_connection::on_response_type on_response,
             _In_ dataverse_connection::on_error_type on_error,
             _In_opt_ void *context);
+
+        /// <summary>
+        /// Finalises the instance.
+        /// </summary>
+        ~direct_upload_context(void);
+
+        /// <summary>
+        /// Runs <paramref name="function" /> in a try/catch and self-deletes
+        /// in case of an error after invoking the error handler.
+        /// </summary>
+        template<class TFunction>
+        inline void handle_errors(TFunction function) {
+            try {
+                function();
+            } catch (std::system_error ex) {
+                this->invoke_on_error(ex);
+                delete this;
+            } catch (std::exception &ex) {
+                this->invoke_on_error(ex);
+                delete this;
+            } catch (...) {
+                this->invoke_on_error();
+                delete this;
+            }
+        }
 
         /// <summary>
         /// Invokes <see cref="on_error" />.
@@ -85,7 +136,7 @@ namespace detail {
         /// setting the remaining data in the description and returning the URL
         /// itself.
         /// </summary>
-        std::wstring upload_url(_In_ const blob& response);
+        std::string upload_url(_In_ const blob& response);
     };
 
 } /* namespace detail */

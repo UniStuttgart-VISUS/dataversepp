@@ -147,6 +147,7 @@ namespace dataverse {
 
         dataverse_connection& direct_upload(_In_z_ const wchar_t *persistent_id,
             _In_z_ const wchar_t *path,
+            _In_opt_z_ const wchar_t *mime_type,
             _In_z_ const wchar_t *description,
             _In_z_ const wchar_t *directory,
             const wchar_t **categories,

@@ -9,6 +9,12 @@
 #include <cassert>
 #include <iterator>
 
+#if defined(_WIN32)
+#include <Windows.h>
+#else /* defined(_WIN32) */
+#include <fcntl.h>
+#endif /* defined(_WIN32) */
+
 #include "dataverse_connection_impl.h"
 #include "direct_upload_context.h"
 #include "file_properties.h"
@@ -144,6 +150,7 @@ visus::dataverse::dataverse_connection&
 visus::dataverse::dataverse_connection::direct_upload(
         _In_z_ const wchar_t *persistent_id,
         _In_z_ const wchar_t *path,
+        _In_opt_z_ const wchar_t *mime_type,
         _In_z_ const wchar_t *description,
         _In_z_ const wchar_t *directory,
         const wchar_t **categories,
@@ -156,71 +163,78 @@ visus::dataverse::dataverse_connection::direct_upload(
     _CHECK_ON_RESPONSE;
     _CHECK_ON_ERROR;
 
-    // This is the generic error handler that forwards errors directly to
-    // the user-provided callback.
-    const auto on_error_forwarder = [](const int c, const char *m,
-            const char *a, const narrow_string::code_page_type p, void *u) {
-        auto ctx = static_cast<direct_upload_context *>(u);
-        assert(ctx != nullptr);
-        assert(ctx->on_error != nullptr);
-        ctx->on_error(c, m, a, p, ctx->user_context);
-        delete ctx;
-    };
-
     // This is performed once the request for the one-time upload URL succeeded.
-    const auto on_upload_url = [](const blob &r, void *u) {
+    const auto on_upload_url = [](const blob& r, void *u) {
         auto ctx = static_cast<direct_upload_context *>(u);
-        try {
+        ctx->handle_errors([ctx, &r](void) {
+            // Retrieve the upload URL from the response and store the storage
+            // identifier from the response in the context.
             const auto url = ctx->upload_url(r);
-            auto c = detail::io_context::create();
-            c->client_data = u;
-            //c->prepare_request(data, cnt, data_deleter);
+            const auto size = ctx->description["fileSize"].get<std::uint64_t>();
 
-            //::curl_easy_setopt(i.curl.get(), CURLOPT_URL, url.c_str());
-            //::curl_easy_setopt(i.curl.get(), CURLOPT_UPLOAD, 1L);
-            //::curl_easy_setopt(i.curl.get(), CURLOPT_PUT, 1L);
-            ////::curl_easy_setopt(i.curl.get(), CURLOPT_INFILESIZE_LARGE, cnt);
-            //::curl_easy_setopt(i.curl.get(), CURLOPT_WRITEDATA, c.get());
-            //::curl_easy_setopt(i.curl.get(), CURLOPT_READDATA, c.get());
-            //::curl_easy_setopt(i.curl.get(), CURLOPT_READFUNCTION,
-            //    &detail::io_context::read_request);
+            // Create an I/O context for posting the continuation.
+            auto c = detail::io_context::create(url,
+                    [](const blob& r, void *u) {
+                auto ctx = static_cast<direct_upload_context *>(u);
+                ctx->handle_errors([ctx](void) {
+                    const auto desc = ctx->description.dump();
 
-            //// Set the headers.
-            //if (content_type != nullptr) {
-            //    auto h = "Content-Type: " + to_ascii(content_type);
-            //    headers.reset(::curl_slist_append(headers.release(), h.c_str()));
-            //}
-            //::curl_easy_setopt(i.curl.get(), CURLOPT_HTTPHEADER, headers.get());
+                    // Create the final request, which uses the user-facing
+                    // callbacks directly.
+                    auto c = detail::io_context::create(ctx->registration_url,
+                        ctx->on_response, ctx->on_error, ctx->user_context);
 
-            //auto status = ::curl_easy_perform(i.curl.get());
-            //if (status != CURLE_OK) {
-            //    throw std::system_error(status, detail::curl_category());
-            //}
+                    // Add the previously compiled JSON data to the request.
+                    c->form = form_data(c->curl.get());
+                    c->form._curl = nullptr;    // Owned by context!
+                    c->form.add_field("jsonData", desc.c_str());
+                    c->option(CURLOPT_MIMEPOST, c->form._form);
 
-            //on_response(c->response, c->client_data);
-            //detail::io_context::recycle(std::move(c));
+                    // This time, we need the Dataverse authentication.
+                    ctx->connection->add_auth_header(c);
+                    c->apply_headers();
 
+                    // Post the final request.
+                    ctx->connection->process(std::move(c));
 
-            //curl -X PUT -H "x-amz-tagging: dv-state=temp" --upload-file <path-to-file> "<url>"
-        } catch (std::system_error ex) {
-            ctx->invoke_on_error(ex);
-            delete ctx;
+                    // We do not need the context anymore. Note that
+                    // 'handle_errors' will delete it in case of an exception
+                    // in the code above, so we do not have to care about this.
+                    delete ctx;
+                });
+            }, direct_upload_context::forward_error, ctx);
 
-        } catch (std::exception& ex) {
-            ctx->invoke_on_error(ex);
-            delete ctx;
+            // This one is special, because it is an S3 request and not a
+            // Dataverse API call.
+            c->option(CURLOPT_UPLOAD, 1L);
+            c->option(CURLOPT_PUT, 1L);
+            c->option(CURLOPT_INFILESIZE_LARGE, size);
+            c->option(CURLOPT_READFUNCTION, form_data::win32_read);
+            c->option(CURLOPT_READDATA, ctx->file.get());
+            c->option(CURLOPT_SEEKFUNCTION, form_data::win32_seek);
+            c->option(CURLOPT_SEEKDATA, ctx->file.get());
 
-        } catch (...) {
-            ctx->invoke_on_error();
-            delete ctx;
-        }
+            c->add_header("x-amz-tagging: dv-state=temp");
+            c->apply_headers();
+
+            ctx->connection->process(std::move(c));
+        });
     };
 
     // Allocate the upload context which helps us tracking the progress through
     // the individual stages of the process. From here on, the context must be
     // successfully passed to the API or freed in case of any error, wherefore
     // the following code must be enclosed in try/catch.
-    auto ctx = new direct_upload_context(this, on_response, on_error, context);
+    auto ctx = new direct_upload_context(this->_impl, on_response, on_error,
+        context);
+
+    // This is the variant where we read ourselves, so we need to remember the
+    // path to the input file for the callback later.
+    ctx->file.reset(::CreateFileW(path, GENERIC_READ, FILE_SHARE_READ, nullptr,
+        OPEN_EXISTING, 0, NULL));
+    if (!ctx->file) {
+        throw std::system_error(::GetLastError(), std::system_category());
+    }
 
     try {
         // Prepare as much of the description as we can right now.
@@ -238,17 +252,23 @@ visus::dataverse::dataverse_connection::direct_upload(
             }
         }
 
+        if (mime_type != nullptr) {
+            ctx->description["mimeType"] = to_utf8(mime_type);
+        }
+
         // Add metadata about the file itself (size, name, etc.).
         ctx->description.update(detail::get_file_properties(path));
 
         // The URL we will later use to register the metadata.
-        ctx->registration_url = std::wstring(L"/datasets/:persistentId/add?"
-            L"?persistentId=") + persistent_id;
+        ctx->registration_url = this->_impl->make_url(std::wstring(
+            L"/datasets/:persistentId/add?persistentId=")
+            + persistent_id);
 
         // Begin the chain of operations by retrieving the upload URL.
         const auto url = std::wstring(L"/datasets/:persistentId/uploadsid/"
             L"?persistentId=") + persistent_id;
-        return this->get(url.c_str(), on_upload_url, on_error_forwarder, ctx);
+        return this->get(url.c_str(), on_upload_url,
+            direct_upload_context::forward_error, ctx);
     } catch (...) {
         delete ctx;
         throw;
@@ -344,8 +364,7 @@ visus::dataverse::dataverse_connection::post(
     // Context has taken ownership of CURL object, so erase it from form.
     form._curl = nullptr;
 
-    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
-        ctx->curl.get(), CURLOPT_MIMEPOST, ctx->form._form));
+    ctx->option(CURLOPT_MIMEPOST, ctx->form._form);
 
     // Set the authentication header.
     i.add_auth_header(ctx);
@@ -408,12 +427,9 @@ visus::dataverse::dataverse_connection::post(
         on_response, on_error, context);
     assert(ctx->client_data == context);
 
-    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
-        ctx->curl.get(), CURLOPT_UPLOAD, 1L));
-    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
-        ctx->curl.get(), CURLOPT_POST, 1L));
-    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
-        ctx->curl.get(), CURLOPT_INFILESIZE_LARGE, cnt));
+    ctx->option(CURLOPT_UPLOAD, 1L);
+    ctx->option(CURLOPT_POST, 1L);
+    ctx->option(CURLOPT_INFILESIZE_LARGE, cnt);
 
     // Move the data to the context.
     ctx->prepare_request(data, cnt, data_deleter);
@@ -486,12 +502,9 @@ visus::dataverse::dataverse_connection::put(
         on_response, on_error, context);
     assert(ctx->client_data == context);
 
-    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
-        ctx->curl.get(), CURLOPT_UPLOAD, 1L));
-    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
-        ctx->curl.get(), CURLOPT_PUT, 1L));
-    detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
-        ctx->curl.get(), CURLOPT_INFILESIZE_LARGE, cnt));
+    ctx->option(CURLOPT_UPLOAD, 1L);
+    ctx->option(CURLOPT_PUT, 1L);
+    ctx->option(CURLOPT_INFILESIZE_LARGE, cnt);
 
     // Move the data to the context.
     ctx->prepare_request(data, cnt, data_deleter);

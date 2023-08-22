@@ -158,6 +158,11 @@ namespace detail {
         ~io_context(void);
 
         /// <summary>
+        /// Adds the given header to the header list.
+        /// </summary>
+        void add_header(_In_opt_z_ const char *header);
+
+        /// <summary>
         /// Applies <see cref="headers" /> to <see cref="curl" />.
         /// </summary>
         void apply_headers(void);
@@ -171,6 +176,15 @@ namespace detail {
         /// Runs the <see cref="request_deleter" /> if one is set.
         /// </summary>
         void delete_request(void);
+
+        /// <summary>
+        /// Sets a cURL option on the handle of the context.
+        /// </summary>
+        template<class... TArgs>
+        inline void option(_In_ const CURLoption option, TArgs&&... arguments) {
+            detail::dataverse_connection_impl::check_code(::curl_easy_setopt(
+                this->curl.get(), option, std::forward<TArgs>(arguments)...));
+        }
 
         void prepare_request(_In_reads_bytes_(cnt) const byte_type *data,
             _In_ const std::size_t cnt,
