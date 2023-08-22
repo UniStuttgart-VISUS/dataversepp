@@ -23,7 +23,6 @@ namespace test {
 
         api(void) {
             this->_connection.api_key(visus::dataverse::make_narrow_string(std::getenv("ApiKey"), CP_OEMCP));
-            Logger::WriteMessage(std::getenv("ApiEndPoint"));
             this->_connection.base_path(visus::dataverse::make_narrow_string(std::getenv("ApiEndPoint"), CP_OEMCP));
         }
 
