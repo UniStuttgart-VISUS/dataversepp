@@ -44,7 +44,7 @@ namespace test {
                 Assert::Fail(L"Error callback invoked", LINE_INFO());
             }, &evt_done);
 
-            visus::dataverse::wait_event(evt_done);
+            Assert::IsTrue(visus::dataverse::wait_event(evt_done, 60 * 10000), L"Operation completed in reasonable time", LINE_INFO());
             visus::dataverse::destroy_event(evt_done);
         }
 
@@ -95,7 +95,7 @@ namespace test {
                     Assert::Fail(L"Error callback invoked", LINE_INFO());
                 }, &evt_done);
 
-            visus::dataverse::wait_event(evt_done);
+            Assert::IsTrue(visus::dataverse::wait_event(evt_done, 60 * 10000), L"Operation completed in reasonable time", LINE_INFO());
             visus::dataverse::destroy_event(evt_done);
         }
 
@@ -184,7 +184,7 @@ namespace test {
                     Assert::Fail(L"Error callback invoked for data set creation", LINE_INFO());
                 }, &context);
 
-            visus::dataverse::wait_event(context.evt_done);
+            Assert::IsTrue(visus::dataverse::wait_event(context.evt_done, 60 * 10000), L"Operation completed in reasonable time", LINE_INFO());
             visus::dataverse::destroy_event(context.evt_done);
         }
 
