@@ -47,7 +47,15 @@ namespace test {
             visus::dataverse::destroy_event(evt_done);
         }
 
-#if false
+        TEST_METHOD(get_dataverse_future) {
+            auto future = this->_connection.get(L"/dataverses/visus");
+            future.wait();
+            const auto json = nlohmann::json::parse(future.get());
+            Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
+            Assert::AreEqual(visus::dataverse::to_utf8(L"visus"), json["data"]["alias"].get<std::string>(), L"Dataverse alias", LINE_INFO());
+
+        }
+
         TEST_METHOD(post_data_set) {
             auto data_set = nlohmann::json({ });
 
@@ -98,7 +106,6 @@ namespace test {
             Assert::IsTrue(visus::dataverse::wait_event(evt_done, 60 * 1000), L"Operation completed in reasonable time", LINE_INFO());
             visus::dataverse::destroy_event(evt_done);
         }
-#endif
 
         TEST_METHOD(upload_file) {
             auto data_set = nlohmann::json({ });

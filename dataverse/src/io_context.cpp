@@ -27,7 +27,6 @@ visus::dataverse::detail::io_context::create(_In_ CURL *curl) {
         retval->on_response = nullptr;
         retval->response.clear();
         cache.pop_back();
-        return retval;
     }
 
     if (curl != nullptr) {
@@ -109,7 +108,7 @@ std::size_t CALLBACK visus::dataverse::detail::io_context::read_request(
         _In_opt_ void *context) {
     auto that = static_cast<detail::io_context *>(context);
     const auto requested = size * cnt;
-    const auto offset = that->request_size- that->request_remaining;
+    const auto offset = that->request_size - that->request_remaining;
     const auto retval = (std::min)(requested, that->request_remaining);
 
     if (retval > 0) {
@@ -245,6 +244,7 @@ void visus::dataverse::detail::io_context::prepare_request(
 
     this->option(CURLOPT_READFUNCTION, &detail::io_context::read_request);
     this->option(CURLOPT_READDATA, this);
+    this->option(CURLOPT_INFILESIZE_LARGE, cnt);
 
 }
 

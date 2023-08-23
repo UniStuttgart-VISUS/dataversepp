@@ -5,6 +5,10 @@
 
 #include "dataverse_connection_impl.h"
 
+#if defined(_WIN32)
+#include <tchar.h>
+#endif /* defined(_WIN32) */
+
 #include <cassert>
 #include <stdexcept>
 
@@ -113,11 +117,13 @@ visus::dataverse::detail::dataverse_connection_impl::~dataverse_connection_impl(
         void) {
     secure_zero(this->api_key);
 
+    ::OutputDebugString(_T("Requesting cURLm worker to exit.\r\n"));
     this->curlm_running = false;        // Disable the worker
     set_event(this->curlm_event);       // Make sure the worker reads the state.
 
     // Wait for the worker.
     if (this->curlm_worker.joinable()) {
+        ::OutputDebugString(_T("Waiting for cURLm worker to exit ...\r\n"));
         this->curlm_worker.join();
     }
 
@@ -179,6 +185,7 @@ void visus::dataverse::detail::dataverse_connection_impl::process(
 
     auto expected = false;
     if (this->curlm_running.compare_exchange_strong(expected, true)) {
+        ::OutputDebugString(_T("Starting cURLm worker thread ...\r\n"));
         this->curlm_worker = std::thread(&dataverse_connection_impl::run_curlm,
             this);
     }
@@ -196,6 +203,7 @@ void visus::dataverse::detail::dataverse_connection_impl::process(
  */
 void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
     set_thread_name("Dataverse++ I/O thread");
+    ::OutputDebugString(_T("cURLm worker thread is running.\r\n"));
 
     while (this->curlm_running.load()) {
         CURLMsg *msg = nullptr;
@@ -203,6 +211,7 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
 
         // Have cURL do its stuff as long as there is work left.
         do {
+            ::OutputDebugString(_T("Performing transfers.\r\n"));
             auto status = ::curl_multi_perform(this->curlm.get(), &remaining);
             if (remaining != 0) {
                 // If there is work left, wait for it to become ready.
@@ -221,12 +230,15 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
         while ((msg = ::curl_multi_info_read(this->curlm.get(), &remaining))
                 != nullptr) {
             if (msg->msg == CURLMSG_DONE) {
+                ::OutputDebugString(_T("Checking transfer results.\r\n"));
                 auto ctx = io_context::get(msg->easy_handle);
 
                 if (ctx) {
                     if (msg->data.result == CURLE_OK) {
+                        ::OutputDebugString(_T("Transfer succeeded.\r\n"));
                         ctx->on_response(ctx->response, ctx->client_data);
                     } else {
+                        ::OutputDebugString(_T("Transfer failed.\r\n"));
                         std::system_error e(msg->data.result, curl_category());
                         ctx->on_error(msg->data.result, e.what(), e.what(),
 #if defined(_WIN32)
@@ -246,4 +258,7 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
         // Wait for new I/O being queued or the thread is asked to exit.
         //wait_event(this->curlm_event, 1000);
     } /* while (this->curlm_running.load()) */
+
+    ::OutputDebugString(_T("cURLm worker thread is exiting.\r\n"));
+    assert(!this->curlm_running.load());
 }
