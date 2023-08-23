@@ -86,7 +86,6 @@ namespace detail {
         std::vector<char> api_key;
         std::string base_path;
         curlm_type curlm;
-        event_type curlm_event;
         std::atomic<bool> curlm_running;
         std::thread curlm_worker;
         int timeout;
