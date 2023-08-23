@@ -55,7 +55,7 @@ jobs:
       configuration: '$(buildConfiguration)'
     env:
       ApiKey: $(ApiKey)
-      TestID: $(Build.BuildNumber)
+      TestID: '$(Build.BuildNumber) Unicode'
 
   - task: CMake@1
     displayName: 'Stage'
@@ -104,7 +104,7 @@ jobs:
       configuration: '$(buildConfiguration)'
     env:
       ApiKey: $(ApiKey)
-      TestID: $(Build.BuildNumber)
+      TestID: '$(Build.BuildNumber) ANSI'
 
 
 #- job: Linux
