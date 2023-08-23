@@ -14,6 +14,7 @@
 
 #include "dataverse/convert.h"
 
+#include "invoke_handler.h"
 #include "io_context.h"
 #include "curl_error_category.h"
 #include "curlm_error_category.h"
@@ -225,13 +226,7 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
                         ctx->on_response(ctx->response, ctx->client_data);
                     } else {
                         std::system_error e(msg->data.result, curl_category());
-                        ctx->on_error(msg->data.result, e.what(), e.what(),
-#if defined(_WIN32)
-                            CP_ACP,
-#else /* defined(_WIN32) */
-                            nullptr,
-#endif /* defined(_WIN32) */
-                            ctx->client_data);
+                        invoke_handler(ctx->on_error, e, ctx->client_data);
                     }
                 }
 

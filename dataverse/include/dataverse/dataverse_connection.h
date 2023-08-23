@@ -50,8 +50,8 @@ namespace dataverse {
         /// <summary>
         /// The callback to be invoked for a parsed API response.
         /// </summary>
-        typedef void (*on_api_response_type(_In_ const nlohmann::json&,
-            _In_opt_ void *));
+        typedef void (*on_api_response_type)(_In_ const nlohmann::json&,
+            _In_opt_ void *);
 #endif /* defined(DATAVERSE_WITH_JSON) */
 
         /// <summary>

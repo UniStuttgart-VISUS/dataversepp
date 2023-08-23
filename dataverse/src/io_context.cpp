@@ -13,8 +13,8 @@
 /*
  * visus::dataverse::detail::io_context::create
  */
-std::unique_ptr<visus::dataverse::detail::io_context>
-visus::dataverse::detail::io_context::create(_In_ CURL *curl) {
+_Ret_valid_ std::unique_ptr<visus::dataverse::detail::io_context>
+visus::dataverse::detail::io_context::create(_In_opt_ CURL *curl) {
     std::lock_guard<decltype(lock)> l(lock);
     std::unique_ptr<visus::dataverse::detail::io_context> retval;
 
@@ -50,9 +50,9 @@ visus::dataverse::detail::io_context::create(_In_ CURL *curl) {
 /*
  * visus::dataverse::detail::io_context::create
  */
-std::unique_ptr<visus::dataverse::detail::io_context>
-visus::dataverse::detail::io_context::create(_In_ CURL *curl,
-            _In_z_ const std::string& url,
+_Ret_valid_ std::unique_ptr<visus::dataverse::detail::io_context>
+visus::dataverse::detail::io_context::create(_In_opt_ CURL *curl,
+            _In_ const std::string& url,
             _In_ dataverse_connection::on_response_type on_response,
             _In_ dataverse_connection::on_error_type on_error,
             _In_opt_ void *client_data) {
@@ -72,8 +72,8 @@ visus::dataverse::detail::io_context::create(_In_ CURL *curl,
 /*
  * visus::dataverse::detail::io_context::create
  */
-std::unique_ptr<visus::dataverse::detail::io_context>
-visus::dataverse::detail::io_context::create(_In_z_ const std::string& url,
+_Ret_valid_ std::unique_ptr<visus::dataverse::detail::io_context>
+visus::dataverse::detail::io_context::create(_In_ const std::string& url,
         _In_ dataverse_connection::on_response_type on_response,
         _In_ dataverse_connection::on_error_type on_error,
         _In_opt_ void *client_data) {
@@ -84,8 +84,8 @@ visus::dataverse::detail::io_context::create(_In_z_ const std::string& url,
 /*
  * visus::dataverse::detail::io_context::get
  */
-std::unique_ptr<visus::dataverse::detail::io_context>
-visus::dataverse::detail::io_context::get(_In_ CURL *curl) {
+_Ret_maybenull_ std::unique_ptr<visus::dataverse::detail::io_context>
+visus::dataverse::detail::io_context::get(_In_opt_ CURL *curl) {
     std::unique_ptr<io_context> retval;
 
     if (curl != nullptr) {
@@ -165,6 +165,9 @@ visus::dataverse::detail::io_context::io_context(void)
     : client_data(nullptr),
         curl(std::move(dataverse_connection_impl::make_curl())),
         headers(nullptr, &::curl_slist_free_all),
+#if defined(DATAVERSE_WITH_JSON)
+        on_api_response(nullptr),
+#endif /* defined(DATAVERSE_WITH_JSON) */
         on_error(nullptr),
         on_response(nullptr),
         request(nullptr),

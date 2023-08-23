@@ -11,6 +11,8 @@
 #include <system_error>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 #include "dataverse/blob.h"
 #include "dataverse/form_data.h"
 #include "dataverse/dataverse_connection.h"
@@ -37,15 +39,15 @@ namespace detail {
         /// output callback.
         /// </summary>
         static _Ret_valid_ std::unique_ptr<io_context> create(
-            _In_ CURL *curl = nullptr);
+            _In_opt_ CURL *curl = nullptr);
 
         /// <summary>
         /// Creates or reuses a context and partially configures it using the
         /// specified cURL handle
         /// </summary>
         static _Ret_valid_ std::unique_ptr<io_context> create(
-            _In_ CURL *curl,
-            _In_z_ const std::string& url,
+            _In_opt_ CURL *curl,
+            _In_ const std::string& url,
             _In_ dataverse_connection::on_response_type on_response,
             _In_ dataverse_connection::on_error_type on_error,
             _In_opt_ void *client_data);
@@ -54,7 +56,7 @@ namespace detail {
         /// Creates or reuses a context and partially configures it.
         /// </summary>
         static _Ret_valid_ std::unique_ptr<io_context> create(
-            _In_z_ const std::string& url,
+            _In_ const std::string& url,
             _In_ dataverse_connection::on_response_type on_response,
             _In_ dataverse_connection::on_error_type on_error,
             _In_opt_ void *client_data);
@@ -62,7 +64,8 @@ namespace detail {
         /// <summary>
         /// Retrieves the context embedded in the easy handle.
         /// </summary>
-        static std::unique_ptr<io_context> get(_In_ CURL *curl);
+        static _Ret_maybenull_ std::unique_ptr<io_context> get(
+            _In_opt_ CURL *curl);
 
         /// <summary>
         /// I/O callback to read the response from our buffer.
@@ -119,7 +122,7 @@ namespace detail {
         /// Only one of <see cref="on_api_response" /> or
         /// <see cref="on_response" /> can be non-<c>nullptr</c>.
         /// </remarks>
-        typedef dataverse_connection::on_api_response_type on_api_response;
+        dataverse_connection::on_api_response_type on_api_response;
 #endif /* defined(DATAVERSE_WITH_JSON) */
 
         /// <summary>

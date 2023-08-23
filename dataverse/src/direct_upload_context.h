@@ -20,6 +20,7 @@
 #include "dataverse/dataverse_connection.h"
 
 #include "dataverse_connection_impl.h"
+#include "invoke_handler.h"
 #include "io_context.h"
 
 
@@ -105,31 +106,16 @@ namespace detail {
             try {
                 function();
             } catch (std::system_error ex) {
-                this->invoke_on_error(ex);
+                invoke_handler(this->on_error, ex, this->user_context);
                 delete this;
             } catch (std::exception &ex) {
-                this->invoke_on_error(ex);
+                invoke_handler(this->on_error, ex, this->user_context);
                 delete this;
             } catch (...) {
-                this->invoke_on_error();
+                invoke_handler(this->on_error, this->user_context);
                 delete this;
             }
         }
-
-        /// <summary>
-        /// Invokes <see cref="on_error" />.
-        /// </summary>
-        void invoke_on_error(_In_ const std::system_error& ex);
-
-        /// <summary>
-        /// Invokes <see cref="on_error" />.
-        /// </summary>
-        void invoke_on_error(_In_ const std::exception& ex);
-
-        /// <summary>
-        /// Invokes <see cref="on_error" />.
-        /// </summary>
-        void invoke_on_error(void);
 
         /// <summary>
         /// Process the response we received on the request for an upload URL by
