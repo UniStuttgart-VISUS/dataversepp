@@ -953,6 +953,63 @@ namespace dataverse {
                 on_response, on_error, context);
         }
 
+        /// <summary>
+        /// Posts the specified JSON data to the specified resource location and
+        /// returns a future for the operation.
+        /// </summary>
+        /// <remarks>
+        /// This method can be used to create data sets.
+        /// </remarks>
+        /// <param name="resource">The path to the resource to post. The
+        /// base path configured will be prepended if set.</param>
+        /// <param name="json">The JSON object to post.</param>
+        /// <returns>A future for the operation.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<blob> post(_In_opt_z_ const wchar_t *resource,
+                _In_ const nlohmann::json& json) {
+            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+                const wchar_t *, const nlohmann::json&, const on_response_type,
+                const on_error_type, void *);
+            return invoke_async(
+                static_cast<actual_type>(&dataverse_connection::post),
+                *this, resource, json);
+        }
+
+        /// <summary>
+        /// Posts the specified JSON data to the specified resource location and
+        /// returns a future for the operation.
+        /// </summary>
+        /// <remarks>
+        /// This method can be used to create data sets.
+        /// </remarks>
+        /// <param name="resource">The path to the resource to post. The
+        /// base path configured will be prepended if set.</param>
+        /// <param name="json">The JSON object to post.</param>
+        /// <returns>A future for the operation.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<blob> post(
+                _In_ const const_narrow_string& resource,
+                _In_ const nlohmann::json& json) {
+            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+                const const_narrow_string&, const nlohmann::json&,
+                const on_response_type, const on_error_type,void *);
+            return invoke_async(
+                static_cast<actual_type>(&dataverse_connection::post),
+                *this, resource, json);
+        }
+
         ///// <summary>
         ///// Posts the specified JSON data to the specified resource location.
         ///// </summary>
