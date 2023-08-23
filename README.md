@@ -6,6 +6,8 @@
 
 This library provides a C++ API for uploading files to a [Dataverse](https://github.com/IQSS/dataverse) instance. Its main purpose is enabling direct archival of research data from your simulation code or benchmarking experiments.
 
+**Note that this library is currently in development.** We eventually plan to support Windows and Linux, but it is currently only running on Windows.
+
 ## Building
 [CMake](https://cmake.org/) is required for building. It should obtain all dependencies automatically when configuring.
 
