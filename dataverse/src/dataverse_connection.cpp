@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 #include "dataverse/dataverse_connection.h"
 
+#include <algorithm>
 #include <cassert>
 #include <iterator>
 
@@ -347,6 +348,15 @@ visus::dataverse::dataverse_connection::get(
     }
 }
 
+
+/*
+ * visus::dataverse::dataverse_connection::io_timeout
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::io_timeout(_In_ const int millis) {
+    this->check_not_disposed().timeout = (std::max)(0, millis);
+    return *this;
+}
 
 /*
  * visus::dataverse::dataverse_connection::make_form

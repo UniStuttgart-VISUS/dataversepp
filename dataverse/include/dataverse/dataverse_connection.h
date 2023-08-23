@@ -6,6 +6,7 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <cstring>
 #include <future>
 #include <stdexcept>
@@ -237,6 +238,40 @@ namespace dataverse {
             return invoke_async(
                 static_cast<actual_type>(&dataverse_connection::get),
                 *this, resource);
+        }
+
+        /// <summary>
+        /// Sets the wait timeout of the I/O thread in milliseconds.
+        /// </summary>
+        /// <remarks>
+        /// This should only be done before making the first request.
+        /// </remarks>
+        /// <param name="millis">The timeout of the I/O thread in milliseconds.
+        /// </param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        dataverse_connection& io_timeout(_In_ const int millis);
+
+        /// <summary>
+        /// Sets the wait timeout of the I/O thread in milliseconds.
+        /// </summary>
+        /// <remarks>
+        /// This should only be done before making the first request.
+        /// </remarks>
+        /// <typeparam name="TRep"></typeparam>
+        /// <typeparam name="TRatio"></typeparam>
+        /// <param name="millis">The timeout of the I/O thread in milliseconds.
+        /// </param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        template<class TRep, class TRatio>
+        inline dataverse_connection& io_timeout(
+                _In_ std::chrono::duration<TRep, TRatio> timeout) {
+            typedef std::chrono::duration<int, std::milli> millis_type;
+            auto millis = std::chrono::duration_cast<millis_type>(timeout);
+            return this->io_timeout(millis.count());
         }
 
         /// <summary>

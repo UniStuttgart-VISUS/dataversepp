@@ -102,7 +102,8 @@ void visus::dataverse::detail::dataverse_connection_impl::secure_zero(
 visus::dataverse::detail::dataverse_connection_impl::dataverse_connection_impl(
         void)
     : curlm(::curl_multi_init(), &::curl_multi_cleanup),
-        curlm_event(create_event()) { }
+        curlm_event(create_event()),
+        timeout(1000) { }
 
 
 /*
@@ -205,8 +206,8 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
             auto status = ::curl_multi_perform(this->curlm.get(), &remaining);
             if (remaining != 0) {
                 // If there is work left, wait for it to become ready.
-                status = ::curl_multi_poll(this->curlm.get(), nullptr, 0, 1000,
-                    nullptr);
+                status = ::curl_multi_poll(this->curlm.get(), nullptr, 0,
+                    this->timeout, nullptr);
             }
 
             if (status != CURLM_OK) {
@@ -243,7 +244,6 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
         }
 
         // Wait for new I/O being queued or the thread is asked to exit.
-        wait_event(this->curlm_event, 1000);
-    }
-
+        //wait_event(this->curlm_event, 1000);
+    } /* while (this->curlm_running.load()) */
 }

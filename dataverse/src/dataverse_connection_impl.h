@@ -89,6 +89,7 @@ namespace detail {
         event_type curlm_event;
         std::atomic<bool> curlm_running;
         std::thread curlm_worker;
+        int timeout;
 
         /// <summary>
         /// Initialises a new instance.
