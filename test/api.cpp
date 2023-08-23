@@ -61,6 +61,12 @@ namespace test {
         TEST_METHOD(post_data_set) {
             auto data_set = nlohmann::json({ });
 
+            auto env_test_id = std::getenv("TestID");
+            auto test_id = (env_test_id != nullptr)
+                ? std::wstring(L" - ") + visus::dataverse::convert<wchar_t>(env_test_id, 0, CP_OEMCP)
+                : std::wstring();
+            
+
             data_set["datasetVersion"]["license"]["name"] = "CC BY 4.0";
             data_set["datasetVersion"]["license"]["uri"] = "http://creativecommons.org/licenses/by/4.0/";
             data_set["datasetVersion"]["metadataBlocks"]["citation"] = visus::dataverse::json::make_citation_metadata(
@@ -68,7 +74,8 @@ namespace test {
                     L"title",
                     L"primitive",
                     false,
-                    visus::dataverse::to_utf8(L"Energy consumption of scientific visualisation and data visualisation algorithms")),
+                    visus::dataverse::to_utf8(L"Energy consumption of scientific visualisation and data visualisation algorithms")
+                    + visus::dataverse::to_utf8(test_id)),
 
                 visus::dataverse::json::make_meta_field(L"author", L"compound", true,
                     visus::dataverse::json::make_author(L"Müller, Christoph"),
