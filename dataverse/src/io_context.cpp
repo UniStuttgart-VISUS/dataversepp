@@ -59,6 +59,9 @@ visus::dataverse::detail::io_context::create(_In_ CURL *curl,
     auto retval = create(curl);
     assert(retval != nullptr);
     retval->client_data = client_data;
+#if defined(DATAVERSE_WITH_JSON)
+    retval->on_api_response = nullptr;
+#endif /* defined(DATAVERSE_WITH_JSON) */
     retval->on_error = on_error;
     retval->on_response = on_response;
     retval->option(CURLOPT_URL, url.c_str());
