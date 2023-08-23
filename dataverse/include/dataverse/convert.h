@@ -426,15 +426,14 @@ namespace dataverse {
     /// <summary>
     /// Converts the given string to UTF-8.
     /// </summary>
-    /// <typeparam name="TSrcChar"></typeparam>
-    /// <typeparam name="TSrcTraits"></typeparam>
-    /// <typeparam name="TSrcAlloc"></typeparam>
-    /// <param name="src"></param>
-    /// <returns></returns>
-    template<class TSrcChar, class TSrcTraits, class TSrcAlloc>
-    inline std::string to_utf8(_In_ const std::basic_string<TSrcChar,
+    /// <typeparam name="TSrcTraits">The traits of the string.</typeparam>
+    /// <typeparam name="TSrcAlloc">The allocator of the string.</typeparam>
+    /// <param name="src">The string to be converted.</param>
+    /// <returns>The string in UTF-8 encoding.</returns>
+    template<class TSrcTraits, class TSrcAlloc>
+    inline std::string to_utf8(_In_ const std::basic_string<wchar_t,
             TSrcTraits, TSrcAlloc>& src) {
-        return to_utf8<TDstChar>(src.c_str());
+        return to_utf8(src.c_str());
     }
 
 } /* namespace dataverse */
