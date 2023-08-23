@@ -299,6 +299,57 @@ visus::dataverse::dataverse_connection::direct_upload(
 
 
 /*
+ * visus::dataverse::dataverse_connection::direct_upload
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::direct_upload(
+        _In_ const const_narrow_string& persistent_id,
+        _In_ const const_narrow_string& path,
+        _In_ const const_narrow_string& mime_type,
+        _In_ const const_narrow_string& description,
+        _In_ const const_narrow_string& directory,
+        _In_reads_opt_(cnt_cats) const const_narrow_string *categories,
+        _In_ const std::size_t cnt_cats,
+        _In_ const bool restricted,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    auto i = convert<wchar_t>(persistent_id);
+    auto p = convert<wchar_t>(path);
+    auto m = convert<wchar_t>(mime_type);
+    auto d = convert<wchar_t>(description);
+    auto f = convert<wchar_t>(directory);
+
+    std::vector<std::wstring> cats;
+    if (categories != nullptr) {
+        cats.reserve(cnt_cats);
+        std::transform(categories,
+            categories + cnt_cats,
+            std::back_inserter(cats),
+            [](const const_narrow_string& s) { return convert<wchar_t>(s); });
+    }
+
+    std::vector<const wchar_t *> cat_ptrs;
+    cat_ptrs.reserve(cats.size());
+    std::transform(cats.begin(),
+        cats.end(),
+        std::back_inserter(cat_ptrs),
+        [](const std::wstring& s ) { return s.c_str(); });
+
+    return this->upload(i.c_str(),
+        p.c_str(),
+        d.c_str(),
+        f.c_str(),
+        cat_ptrs.data(),
+        cat_ptrs.size(),
+        restricted,
+        on_response,
+        on_error,
+        context);
+}
+
+
+/*
  * visus::dataverse::dataverse_connection::get
  */
 visus::dataverse::dataverse_connection&

@@ -146,6 +146,49 @@ namespace dataverse {
         dataverse_connection& base_path(
             _In_ const const_narrow_string& base_path);
 
+        /// <summary>
+        /// Performs a &quot;direct upload&quot; of a data set to the S3
+        /// backend.
+        /// </summary>
+        /// <remarks>
+        /// <para>This method will only work if the administrator of the target
+        /// Dataverse has enabled direct uploads.</para>
+        /// </remarks>
+        /// <param name="persistent_id">The persistent ID of the data set the
+        /// file should be added to, which typically has the form
+        /// &quot;doi:the-doi&quot;.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="mime_type">The MIME type of the file to be uploaded.
+        /// This must be manually set for direct uploads, because the Dataverse
+        /// cannot determine this on its own using this upload path.</param>
+        /// <param name="description">A description of the file.</param>
+        /// <param name="directory">The name of the folder to organise the file
+        /// in a tree structure. If this is an empty string, the file will be
+        /// placed at root level. Make sure to terminate the path with a
+        /// slash.</param>
+        /// <param name="categories">A list of
+        /// <paramref name="cnt_cats" /> categories to be assigned to
+        /// the file. It is safe to pass <c>nullptr</c>.</param>
+        /// <param name="cnt_cats">The number of categories to add.
+        /// </param>
+        /// <param name="restricted"><c>true</c> for marking the file as
+        /// restricted such that it can only be uploaded when registering in
+        /// the guestbook. <c>false</c> for making the file freely available.
+        /// </param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
         dataverse_connection& direct_upload(_In_z_ const wchar_t *persistent_id,
             _In_z_ const wchar_t *path,
             _In_opt_z_ const wchar_t *mime_type,
@@ -157,6 +200,191 @@ namespace dataverse {
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
             _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Performs a &quot;direct upload&quot; of a data set to the S3
+        /// backend.
+        /// </summary>
+        /// <remarks>
+        /// <para>This method will only work if the administrator of the target
+        /// Dataverse has enabled direct uploads.</para>
+        /// </remarks>
+        /// <typeparam name="TTraits">The type of the character traits of a
+        /// string.</typeparam>
+        /// <typeparam name="TSAlloc">The allocator of a string.</typeparam>
+        /// <typeparam name="TVAlloc">The allocator of a vector.</typeparam>
+        /// <param name="persistent_id">The persistent ID of the data set the
+        /// file should be added to, which typically has the form
+        /// &quot;doi:the-doi&quot;.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="mime_type">The MIME type of the file to be uploaded.
+        /// This must be manually set for direct uploads, because the Dataverse
+        /// cannot determine this on its own using this upload path.</param>
+        /// <param name="description">A description of the file.</param>
+        /// <param name="directory">The name of the folder to organise the file
+        /// in a tree structure. If this is an empty string, the file will be
+        /// placed at root level. Make sure to terminate the path with a
+        /// slash.</param>
+        /// <param name="categories">A list of
+        /// <paramref name="cnt_cats" /> categories to be assigned to
+        /// the file. It is safe to pass <c>nullptr</c>.</param>
+        /// <param name="cnt_cats">The number of categories to add.
+        /// </param>
+        /// <param name="restricted"><c>true</c> for marking the file as
+        /// restricted such that it can only be uploaded when registering in
+        /// the guestbook. <c>false</c> for making the file freely available.
+        /// </param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline dataverse_connection& direct_upload(
+            _In_ const const_narrow_string& persistent_id,
+            _In_ const const_narrow_string& path,
+            _In_ const const_narrow_string& mime_type,
+            _In_ const const_narrow_string& description,
+            _In_ const const_narrow_string& directory,
+            _In_reads_opt_(cnt_cats) const const_narrow_string *categories,
+            _In_ const std::size_t cnt_cats,
+            _In_ const bool restricted,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+
+        /// <summary>
+        /// Performs a &quot;direct upload&quot; of a data set to the S3
+        /// backend.
+        /// </summary>
+        /// <remarks>
+        /// <para>This method will only work if the administrator of the target
+        /// Dataverse has enabled direct uploads.</para>
+        /// </remarks>
+        /// <param name="persistent_id">The persistent ID of the data set the
+        /// file should be added to, which typically has the form
+        /// &quot;doi:the-doi&quot;.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="mime_type">The MIME type of the file to be uploaded.
+        /// This must be manually set for direct uploads, because the Dataverse
+        /// cannot determine this on its own using this upload path.</param>
+        /// <param name="description">A description of the file.</param>
+        /// <param name="directory">The name of the folder to organise the file
+        /// in a tree structure. If this is an empty string, the file will be
+        /// placed at root level. Make sure to terminate the path with a
+        /// slash.</param>
+        /// <param name="categories">A list of categories to be assigned to
+        /// the file.</param>
+        /// <param name="restricted"><c>true</c> for marking the file as
+        /// restricted such that it can only be uploaded when registering in
+        /// the guestbook. <c>false</c> for making the file freely available.
+        /// </param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        template<class TTraits, class TSAlloc, class TVAlloc>
+        inline dataverse_connection& direct_upload(
+                _In_ const std::basic_string<wchar_t, TTraits,
+                    TSAlloc>& persistent_id,
+                _In_ const std::basic_string<wchar_t, TTraits, TSAlloc>& path,
+                _In_ const std::basic_string<wchar_t, TTraits,
+                    TSAlloc>& mime_type,
+                _In_ const std::basic_string<wchar_t, TTraits,
+                    TSAlloc>& description,
+                _In_ const std::basic_string<wchar_t, TTraits,
+                    TSAlloc>& directory,
+                _In_ const std::vector<std::basic_string<wchar_t, TTraits,
+                    TSAlloc>, TVAlloc> categories,
+                _In_ const bool restricted,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            std::vector<const wchar_t *> cats(categories.size());
+            std::transform(categories.begin(), categories.end(), cats.begin(),
+                [](const std::wstring& c) { return c.c_str();  });
+            return this->direct_upload(persistent_id.c_str(), path.c_str(),
+                mime_type.c_str(), description.c_str(), directory.c_str(),
+                cats.data(), cats.size(), restricted, on_response, on_error,
+                context);
+        }
+
+        /// <summary>
+        /// Performs a &quot;direct upload&quot; of a data set to the S3
+        /// backend.
+        /// </summary>
+        /// <remarks>
+        /// <para>This method will only work if the administrator of the target
+        /// Dataverse has enabled direct uploads.</para>
+        /// </remarks>
+        /// <typeparam name="TAlloc">The allocator of a vector.</typeparam>
+        /// <param name="persistent_id">The persistent ID of the data set the
+        /// file should be added to, which typically has the form
+        /// &quot;doi:the-doi&quot;.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="mime_type">The MIME type of the file to be uploaded.
+        /// This must be manually set for direct uploads, because the Dataverse
+        /// cannot determine this on its own using this upload path.</param>
+        /// <param name="description">A description of the file.</param>
+        /// <param name="directory">The name of the folder to organise the file
+        /// in a tree structure. If this is an empty string, the file will be
+        /// placed at root level. Make sure to terminate the path with a
+        /// slash.</param>
+        /// <param name="categories">A list of categories to be assigned to
+        /// the file.</param>
+        /// restricted such that it can only be uploaded when registering in
+        /// the guestbook. <c>false</c> for making the file freely available.
+        /// </param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        template<class TAlloc>
+        inline dataverse_connection& direct_upload(
+                _In_ const const_narrow_string& persistent_id,
+                _In_ const const_narrow_string& path,
+                _In_ const const_narrow_string& mime_type,
+                _In_ const const_narrow_string& description,
+                _In_ const const_narrow_string& directory,
+                _In_ const std::vector<const_narrow_string>& categories,
+                _In_ const std::size_t cnt_cats,
+                _In_ const bool restricted,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            return this->direct_upload(persistent_id, path, mime_type,
+                description, directory, categories.data(), categories.size(),
+                restricted, on_response, on_error, context);
+        }
 
         /// <summary>
         /// Retrieves the resource at the specified location using a GET
@@ -632,9 +860,6 @@ namespace dataverse {
         /// <summary>
         /// Puts the given data to the given resource location.
         /// </summary>
-        /// <remarks>
-        /// This method can be used to upload files using the S3 interface.
-        /// </remarks>
         /// <param name="resource">The path to the resource to post. The
         /// base path configured will be prepended if set.</param>
         /// <param name="data">The data to post. The caller remains owner
@@ -673,9 +898,6 @@ namespace dataverse {
         /// <summary>
         /// Puts the given data to the given resource location.
         /// </summary>
-        /// <remarks>
-        /// This method can be used to upload files using the S3 interface.
-        /// </remarks>
         /// <param name="resource">The path to the resource to post. The
         /// base path configured will be prepended if set.</param>
         /// <param name="data">The data to post. The caller remains owner
@@ -718,12 +940,6 @@ namespace dataverse {
         /// file should be added to, which typically has the form
         /// &quot;doi:the-doi&quot;.</param>
         /// <param name="path">The path to the file to be uploaded.</param>
-        /// <summary>
-        /// Posts the specified form to the specified resource location.
-        /// </summary>
-        /// <param name="resource">The path to the resource. The
-        /// <see cref="base_path" /> will be prepended if it is set.</param>
-        /// <param name="form">The form data to post.</param>
         /// <param name="on_response">A callback to be invoked if the response
         /// to the request was received.</param>
         /// <param name="on_error">A callback to be invoked if the request
@@ -751,12 +967,6 @@ namespace dataverse {
         /// file should be added to, which typically has the form
         /// &quot;doi:the-doi&quot;.</param>
         /// <param name="path">The path to the file to be uploaded.</param>
-        /// <summary>
-        /// Posts the specified form to the specified resource location.
-        /// </summary>
-        /// <param name="resource">The path to the resource. The
-        /// <see cref="base_path" /> will be prepended if it is set.</param>
-        /// <param name="form">The form data to post.</param>
         /// <param name="on_response">A callback to be invoked if the response
         /// to the request was received.</param>
         /// <param name="on_error">A callback to be invoked if the request
@@ -874,6 +1084,10 @@ namespace dataverse {
         /// <summary>
         /// Upload a file for the data set with the specified persistent ID.
         /// </summary>
+        /// <typeparam name="TTraits">The type of the character traits of a
+        /// string.</typeparam>
+        /// <typeparam name="TSAlloc">The allocator of a string.</typeparam>
+        /// <typeparam name="TVAlloc">The allocator of a vector.</tyepparam>
         /// <param name="persistent_id">The persistent ID of the data set the
         /// file should be added to, which typically has the form
         /// &quot;doi:the-doi&quot;.</param>
@@ -930,6 +1144,7 @@ namespace dataverse {
         /// <summary>
         /// Upload a file for the data set with the specified persistent ID.
         /// </summary>
+        /// <typeparam name="TAlloc">The allocator of a vector.</typeparam>
         /// <param name="persistent_id">The persistent ID of the data set the
         /// file should be added to, which typically has the form
         /// &quot;doi:the-doi&quot;.</param>
