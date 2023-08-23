@@ -50,7 +50,9 @@ namespace test {
         TEST_METHOD(get_dataverse_future) {
             auto future = this->_connection.get(L"/dataverses/visus");
             future.wait();
-            const auto json = nlohmann::json::parse(future.get());
+            const auto response = future.get();
+            const auto json_text = std::string(response.as<char>(), response.size());
+            const auto json = nlohmann::json::parse(json_text);
             Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
             Assert::AreEqual(visus::dataverse::to_utf8(L"visus"), json["data"]["alias"].get<std::string>(), L"Dataverse alias", LINE_INFO());
 
@@ -194,6 +196,65 @@ namespace test {
 
             Assert::IsTrue(visus::dataverse::wait_event(context.evt_done, 60 * 1000), L"Operation completed in reasonable time", LINE_INFO());
             visus::dataverse::destroy_event(context.evt_done);
+        }
+
+        TEST_METHOD(direct_upload) {
+            const std::wstring persistend_id(L"doi:10.15770/darus-1679");
+            std::wstring path;
+
+            {
+                std::array<wchar_t, MAX_PATH> p;
+                Assert::IsTrue(::GetModuleFileNameW(NULL, p.data(), static_cast<DWORD>(p.size())), L"GetModuleFileName", LINE_INFO());
+                path = p.data();
+            }
+
+            auto evt_done = visus::dataverse::create_event();
+
+            this->_connection.direct_upload(persistend_id,
+                path, std::wstring(L"application/octet"),
+                std::wstring(L"A test file"),
+                std::wstring(),
+                std::vector<std::wstring> { L"test", L"azure-devops" },
+                true,
+                [](const visus::dataverse::blob& r, void *e) {
+                    const auto response = std::string(r.as<char>(), r.size());
+                    Logger::WriteMessage(response.c_str());
+                    const auto json = nlohmann::json::parse(response);
+                    Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
+                    visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
+                    Assert::IsTrue(true, L"Response callback invoked", LINE_INFO());
+                } , [](const int c, const char *m, const char *t, const visus::dataverse::narrow_string::code_page_type p, void *e) {
+                    Logger::WriteMessage(m);
+                    visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
+                    Assert::Fail(L"Error callback invoked", LINE_INFO());
+                }, &evt_done);
+
+            Assert::IsTrue(visus::dataverse::wait_event(evt_done, 60 * 1000), L"Operation completed in reasonable time", LINE_INFO());
+            visus::dataverse::destroy_event(evt_done);
+        }
+
+        TEST_METHOD(direct_upload_future) {
+            const std::wstring persistend_id(L"doi:10.15770/darus-1679");
+            std::wstring path;
+
+            {
+                std::array<wchar_t, MAX_PATH> p;
+                Assert::IsTrue(::GetModuleFileNameW(NULL, p.data(), static_cast<DWORD>(p.size())), L"GetModuleFileName", LINE_INFO());
+                path = p.data();
+            }
+
+            auto future = this->_connection.direct_upload(persistend_id,
+                path, std::wstring(L"application/octet"),
+                std::wstring(L"A test file"),
+                std::wstring(),
+                std::vector<std::wstring> { L"test", L"future", L"azure-devops" },
+                true);
+
+            future.wait();
+            const auto response = future.get();
+            const auto json_text = std::string(response.as<char>(), response.size());
+            const auto json = nlohmann::json::parse(json_text);
+            Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
         }
 
     private:

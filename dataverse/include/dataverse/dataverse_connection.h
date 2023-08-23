@@ -261,7 +261,6 @@ namespace dataverse {
             _In_ const on_error_type on_error,
             _In_opt_ void *context = nullptr);
 
-
         /// <summary>
         /// Performs a &quot;direct upload&quot; of a data set to the S3
         /// backend.
@@ -314,7 +313,7 @@ namespace dataverse {
                 _In_ const std::basic_string<wchar_t, TTraits,
                     TSAlloc>& directory,
                 _In_ const std::vector<std::basic_string<wchar_t, TTraits,
-                    TSAlloc>, TVAlloc> categories,
+                    TSAlloc>, TVAlloc>& categories,
                 _In_ const bool restricted,
                 _In_ const on_response_type on_response,
                 _In_ const on_error_type on_error,
@@ -384,6 +383,135 @@ namespace dataverse {
             return this->direct_upload(persistent_id, path, mime_type,
                 description, directory, categories.data(), categories.size(),
                 restricted, on_response, on_error, context);
+        }
+
+        /// <summary>
+        /// Performs a &quot;direct upload&quot; of a data set to the S3
+        /// backend and returns a future for the operation.
+        /// </summary>
+        /// <remarks>
+        /// <para>This method will only work if the administrator of the target
+        /// Dataverse has enabled direct uploads.</para>
+        /// </remarks>
+        /// <param name="persistent_id">The persistent ID of the data set the
+        /// file should be added to, which typically has the form
+        /// &quot;doi:the-doi&quot;.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="mime_type">The MIME type of the file to be uploaded.
+        /// This must be manually set for direct uploads, because the Dataverse
+        /// cannot determine this on its own using this upload path.</param>
+        /// <param name="description">A description of the file.</param>
+        /// <param name="directory">The name of the folder to organise the file
+        /// in a tree structure. If this is an empty string, the file will be
+        /// placed at root level. Make sure to terminate the path with a
+        /// slash.</param>
+        /// <param name="categories">A list of categories to be assigned to
+        /// the file.</param>
+        /// <param name="restricted"><c>true</c> for marking the file as
+        /// restricted such that it can only be uploaded when registering in
+        /// the guestbook. <c>false</c> for making the file freely available.
+        /// </param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        template<class TTraits, class TSAlloc, class TVAlloc>
+        inline std::future<blob> direct_upload(
+                _In_ const std::basic_string<wchar_t, TTraits,
+                    TSAlloc>& persistent_id,
+                _In_ const std::basic_string<wchar_t, TTraits, TSAlloc>& path,
+                _In_ const std::basic_string<wchar_t, TTraits,
+                    TSAlloc>& mime_type,
+                _In_ const std::basic_string<wchar_t, TTraits,
+                    TSAlloc>& description,
+                _In_ const std::basic_string<wchar_t, TTraits,
+                    TSAlloc>& directory,
+                _In_ const std::vector<std::basic_string<wchar_t, TTraits,
+                    TSAlloc>, TVAlloc> categories,
+                _In_ const bool restricted) {
+            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+                const std::basic_string<wchar_t, TTraits, TSAlloc>&,
+                const std::basic_string<wchar_t, TTraits, TSAlloc>&,
+                const std::basic_string<wchar_t, TTraits, TSAlloc>&,
+                const std::basic_string<wchar_t, TTraits, TSAlloc>&,
+                const std::basic_string<wchar_t, TTraits, TSAlloc>&,
+                const std::vector<std::basic_string<wchar_t, TTraits,TSAlloc>,
+                    TVAlloc>&,
+                const bool,
+                const on_response_type, const on_error_type, void *);
+            return invoke_async(
+                static_cast<actual_type>(&dataverse_connection::direct_upload),
+                *this, persistent_id, path, mime_type, description, directory,
+                categories, restricted);
+        }
+
+        /// <summary>
+        /// Performs a &quot;direct upload&quot; of a data set to the S3
+        /// backend and returns a future for the operation.
+        /// </summary>
+        /// <remarks>
+        /// <para>This method will only work if the administrator of the target
+        /// Dataverse has enabled direct uploads.</para>
+        /// </remarks>
+        /// <typeparam name="TAlloc">The allocator of a vector.</typeparam>
+        /// <param name="persistent_id">The persistent ID of the data set the
+        /// file should be added to, which typically has the form
+        /// &quot;doi:the-doi&quot;.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="mime_type">The MIME type of the file to be uploaded.
+        /// This must be manually set for direct uploads, because the Dataverse
+        /// cannot determine this on its own using this upload path.</param>
+        /// <param name="description">A description of the file.</param>
+        /// <param name="directory">The name of the folder to organise the file
+        /// in a tree structure. If this is an empty string, the file will be
+        /// placed at root level. Make sure to terminate the path with a
+        /// slash.</param>
+        /// <param name="categories">A list of categories to be assigned to
+        /// the file.</param>
+        /// restricted such that it can only be uploaded when registering in
+        /// the guestbook. <c>false</c> for making the file freely available.
+        /// </param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        template<class TAlloc>
+        inline std::future<blob> direct_upload(
+                _In_ const const_narrow_string& persistent_id,
+                _In_ const const_narrow_string& path,
+                _In_ const const_narrow_string& mime_type,
+                _In_ const const_narrow_string& description,
+                _In_ const const_narrow_string& directory,
+                _In_ const std::vector<const_narrow_string>& categories,
+                _In_ const std::size_t cnt_cats,
+                _In_ const bool restricted) {
+            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+                const const_narrow_string&,
+                const const_narrow_string&,
+                const const_narrow_string&,
+                const const_narrow_string&,
+                const const_narrow_string&,
+                const std::vector<const_narrow_string, TVAlloc>&,
+                const bool,
+                const on_response_type, const on_error_type, void *);
+            return invoke_async(
+                static_cast<actual_type>(&dataverse_connection::direct_upload),
+                *this, persistent_id, path, mime_type, description, directory,
+                categories, restricted);
         }
 
         /// <summary>
@@ -1127,7 +1255,7 @@ namespace dataverse {
                 _In_ const std::basic_string<wchar_t, TTraits,
                     TSAlloc>& directory,
                 _In_ const std::vector<std::basic_string<wchar_t, TTraits,
-                    TSAlloc>, TVAlloc> categories,
+                    TSAlloc>, TVAlloc>& categories,
                 _In_ const bool restricted,
                 _In_ const on_response_type on_response,
                 _In_ const on_error_type on_error,
