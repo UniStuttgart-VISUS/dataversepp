@@ -191,7 +191,7 @@ namespace test {
             }
 
             {
-                auto future = this->_connection.post(L"/dataverses/visus/datasets",
+                auto future = this->_connection.post(L"/dataverses/visus_directupload/datasets",
                     this->create_test_data_set(L"Upload Test (std::future)"));
                 future.wait();
                 const auto json = future.get();
@@ -216,8 +216,6 @@ namespace test {
         }
 
         TEST_METHOD(direct_upload) {
-            auto data_set = this->create_test_data_set(L"Direct Upload Test");
-
             struct {
                 visus::dataverse::dataverse_connection *connection;
                 visus::dataverse::event_type evt_done;
@@ -233,7 +231,7 @@ namespace test {
             }
 
             this->_connection.post(L"/dataverses/visus_directupload/datasets",
-                data_set,
+                this->create_test_data_set(L"Direct Upload Test (Callback)"),
                 [](const visus::dataverse::blob& r, void *c) {
                     auto cc = static_cast<decltype(context) *>(c);
 
@@ -288,7 +286,6 @@ namespace test {
                 Assert::IsTrue(::GetModuleFileNameW(NULL, p.data(), static_cast<DWORD>(p.size())), L"GetModuleFileName", LINE_INFO());
                 path = p.data();
             }
-
 
             {
                 auto future = this->_connection.post(L"/dataverses/visus_directupload/datasets",
