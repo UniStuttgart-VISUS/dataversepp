@@ -25,11 +25,14 @@
 #include <winternl.h>
 
 #include <wil/resource.h>
+#else /* defined(_WIN32) */
+#include <openssl/md5.h>
 #endif /* defined(_WIN32) */
 
 #include "dataverse/convert.h"
 
 #include "ntstatus_error_category.h"
+//#include "openssl_e"
 #include "posix_handle.h"
 
 
@@ -212,16 +215,47 @@ nlohmann::json visus::dataverse::detail::get_file_properties(
 #else /* defined(_WIN32) */
     nlohmann::json retval;
 
-    posix_handle file(::open(path.value(), O_RDONLY));
-    if (!file) {
-        throw std::system_error(errno, std::system_category());
+    // Compute the hash.
+    {
+        std::array<unsigned char, 8 * MD5_DIGEST_LENGTH> buffer;
+        int cnt_read = 0;
+        MD5_CTX ctx;
+        std::array<unsigned char, MD5_DIGEST_LENGTH> hash;
+        std::stringstream ss;
+
+        posix_handle file(::open(path.value(), O_RDONLY));
+        if (!file) {
+            throw std::system_error(errno, std::system_category());
+        }
+
+        if (!::MD5_Init(&ctx)) {
+            throw "TODO";
+        }
+
+        do {
+            cnt_read = ::read(file, buffer.data(), buffer.size());
+            if (cnt_read < 0) {
+                throw std::system_error(errno, std::system_category());
+            }
+
+            if (!::MD5_Update(&ctx, buffer.data(), cnt_read)) {
+                throw "TODO";
+            }
+        } while (cnt_read > 0);
+
+        if (!::MD5_Final(hash.data(), &context)) {
+            throw "TODO";
+        }
+
+        for (auto c : buffer) {
+            ss << std::hex
+                << std::setw(2)
+                << std::setfill('0')
+                << static_cast<int>(c);
+        }
+
+        retval["md5Hash"] = ss.str();
     }
-
-
-
-    throw "TODO: compute md5";
-
-
 
     // Determine the file size.
     {
