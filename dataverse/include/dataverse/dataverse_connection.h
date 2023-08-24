@@ -50,8 +50,8 @@ namespace dataverse {
         /// <summary>
         /// The callback to be invoked for a parsed API response.
         /// </summary>
-        typedef void (*on_api_response_type(_In_ const nlohmann::json&,
-            _In_opt_ void *));
+        typedef void (*on_api_response_type)(_In_ const nlohmann::json&,
+            _In_opt_ void *);
 #endif /* defined(DATAVERSE_WITH_JSON) */
 
         /// <summary>
@@ -248,7 +248,7 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        inline dataverse_connection& direct_upload(
+        dataverse_connection& direct_upload(
             _In_ const const_narrow_string& persistent_id,
             _In_ const const_narrow_string& path,
             _In_ const const_narrow_string& mime_type,
@@ -318,9 +318,10 @@ namespace dataverse {
                 _In_ const on_response_type on_response,
                 _In_ const on_error_type on_error,
                 _In_opt_ void *context = nullptr) {
+            typedef std::basic_string<wchar_t, TTraits, TSAlloc> string_type;
             std::vector<const wchar_t *> cats(categories.size());
             std::transform(categories.begin(), categories.end(), cats.begin(),
-                [](const std::wstring& c) { return c.c_str();  });
+                [](const string_type& c) { return c.c_str();  });
             return this->direct_upload(persistent_id.c_str(), path.c_str(),
                 mime_type.c_str(), description.c_str(), directory.c_str(),
                 cats.data(), cats.size(), restricted, on_response, on_error,
@@ -1317,9 +1318,10 @@ namespace dataverse {
                 _In_ const on_response_type on_response,
                 _In_ const on_error_type on_error,
                 _In_opt_ void *context = nullptr) {
+            typdef std::basic_string<wchar_t, TTraits, TSAlloc> string_type;
             std::vector<const wchar_t *> cats(categories.size());
             std::transform(categories.begin(), categories.end(), cats.begin(),
-                [](const std::wstring& c) { return c.c_str();  });
+                [](const string_type& c) { return c.c_str();  });
             return this->upload(persistent_id.c_str(), path.c_str(),
                 description.c_str(), directory.c_str(),
                 cats.data(), cats.size(), restricted, on_response, on_error,

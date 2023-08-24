@@ -58,62 +58,6 @@ visus::dataverse::detail::direct_upload_context::~direct_upload_context(
 
 
 /*
- * visus::dataverse::detail::direct_upload_context::invoke_on_error
- */
-void visus::dataverse::detail::direct_upload_context::invoke_on_error(
-        _In_ const std::system_error& ex) {
-    if (this->on_error != nullptr) {
-        this->on_error(ex.code().value(),
-            ex.what(),
-            ex.code().category().name(),
-#if defined(_WIN32)
-            CP_OEMCP,
-#else /* defined(_WIN32) */
-            nullptr,
-#endif /* defined(_WIN32) */
-            this->user_context);
-    }
-}
-
-
-/*
- * visus::dataverse::detail::direct_upload_context::invoke_on_error
- */
-void visus::dataverse::detail::direct_upload_context::invoke_on_error(
-        _In_ const std::exception& ex) {
-    if (this->on_error != nullptr) {
-        this->on_error(0,
-            ex.what(),
-            "Generic STL Exception",
-#if defined(_WIN32)
-            CP_OEMCP,
-#else /* defined(_WIN32) */
-            nullptr,
-#endif /* defined(_WIN32) */
-            this->user_context);
-    }
-}
-
-
-/*
- * visus::dataverse::detail::direct_upload_context::invoke_on_error
- */
-void visus::dataverse::detail::direct_upload_context::invoke_on_error(void) {
-    if (this->on_error != nullptr) {
-        this->on_error(0,
-            "An unexpected error was encountered while processing the request.",
-            "Unexpected Exception",
-#if defined(_WIN32)
-            CP_OEMCP,
-#else /* defined(_WIN32) */
-            nullptr,
-#endif /* defined(_WIN32) */
-            this->user_context);
-    }
-}
-
-
-/*
  * visus::dataverse::detail::direct_upload_context::upload_url
  */
 std::string visus::dataverse::detail::direct_upload_context::upload_url(

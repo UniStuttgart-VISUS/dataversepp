@@ -11,6 +11,8 @@
 #include <system_error>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 #include "dataverse/blob.h"
 #include "dataverse/form_data.h"
 #include "dataverse/dataverse_connection.h"
@@ -36,16 +38,16 @@ namespace detail {
         /// Creates or reuses a context without configuring it except for the
         /// output callback.
         /// </summary>
-        static _Ret_valid_ std::unique_ptr<io_context> create(
-            _In_ CURL *curl = nullptr);
+        static std::unique_ptr<io_context> create(
+            _In_opt_ CURL *curl = nullptr);
 
         /// <summary>
         /// Creates or reuses a context and partially configures it using the
         /// specified cURL handle
         /// </summary>
-        static _Ret_valid_ std::unique_ptr<io_context> create(
-            _In_ CURL *curl,
-            _In_z_ const std::string& url,
+        static std::unique_ptr<io_context> create(
+            _In_opt_ CURL *curl,
+            _In_ const std::string& url,
             _In_ dataverse_connection::on_response_type on_response,
             _In_ dataverse_connection::on_error_type on_error,
             _In_opt_ void *client_data);
@@ -53,8 +55,8 @@ namespace detail {
         /// <summary>
         /// Creates or reuses a context and partially configures it.
         /// </summary>
-        static _Ret_valid_ std::unique_ptr<io_context> create(
-            _In_z_ const std::string& url,
+        static std::unique_ptr<io_context> create(
+            _In_ const std::string& url,
             _In_ dataverse_connection::on_response_type on_response,
             _In_ dataverse_connection::on_error_type on_error,
             _In_opt_ void *client_data);
@@ -62,7 +64,7 @@ namespace detail {
         /// <summary>
         /// Retrieves the context embedded in the easy handle.
         /// </summary>
-        static std::unique_ptr<io_context> get(_In_ CURL *curl);
+        static std::unique_ptr<io_context> get(_In_opt_ CURL *curl);
 
         /// <summary>
         /// I/O callback to read the response from our buffer.
@@ -110,6 +112,18 @@ namespace detail {
         /// </summary>
         dataverse_connection_impl::string_list_type headers;
 
+#if defined(DATAVERSE_WITH_JSON)
+        /// <summary>
+        /// The user-defined callback if the user requested a parsed API
+        /// response.
+        /// </summary>
+        /// <remarks>
+        /// Only one of <see cref="on_api_response" /> or
+        /// <see cref="on_response" /> can be non-<c>nullptr</c>.
+        /// </remarks>
+        dataverse_connection::on_api_response_type on_api_response;
+#endif /* defined(DATAVERSE_WITH_JSON) */
+
         /// <summary>
         /// The user-provided error callback.
         /// </summary>
@@ -118,6 +132,10 @@ namespace detail {
         /// <summary>
         /// The user-provided response callback.
         /// </summary>
+        /// <remarks>
+        /// Only one of <see cref="on_api_response" /> or
+        /// <see cref="on_response" /> can be non-<c>nullptr</c>.
+        /// </remarks>
         dataverse_connection::on_response_type on_response;
 
         /// <summary>
@@ -186,6 +204,12 @@ namespace detail {
                 this->curl.get(), option, std::forward<TArgs>(arguments)...));
         }
 
+        /// <summary>
+        /// Prepares the I/O context for uploading the specifie data.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="cnt"></param>
+        /// <param name="deleter"></param>
         void prepare_request(_In_reads_bytes_(cnt) const byte_type *data,
             _In_ const std::size_t cnt,
             _In_opt_ const dataverse_connection::data_deleter_type deleter);
@@ -194,94 +218,6 @@ namespace detail {
 
         static std::vector<std::unique_ptr<io_context>> cache;
         static std::mutex lock;
-
-        ///// <summary>
-        ///// The user-defined handler to be invoked in case of an I/O error.
-        ///// </summary>
-        //std::function<void(_In_ dataverse_connection *,
-        //    _In_ const std::system_error&,
-        //    _In_ io_context *)> on_failed;
-
-        ///// <summary>
-        ///// The opration-specific handler for a successful operation.
-        ///// </summary>
-        ///// <remarks>
-        ///// The current state of this unrestricted union is tracked by the
-        ///// <see cref="operation" /> field. Make sure to keep both fields
-        ///// consistent all the time. See
-        ///// https://learn.microsoft.com/en-us/cpp/cpp/unions?view=msvc-160.
-        ///// This is achieved by setting the operation and callback using
-        ///// <see cref="operation_receive" /> etc.
-        ///// </remarks>
-        //union {
-        //    std::function<std::size_t(_In_ dataverse_connection *,
-        //        _In_ const std::size_t cnt,
-        //        _In_ io_context *)> on_received;
-        //    std::function<void(_In_ dataverse_connection *,
-        //        _In_ io_context *)> on_sent;
-        //};
-
-        ///// <summary>
-        ///// The requested kind of I/O operation.
-        ///// </summary>
-        ///// <remarks>
-        ///// <b>Do not modify this field directly as it is used to track the
-        ///// contents of <see cref="on_succeeded" />!</b>
-        ///// </remarks>
-        //io_operation operation;
-
-        ///// <summary>
-        ///// The actual size of the payload buffer directly following this
-        ///// structure, in bytes.
-        ///// </summary>
-        //std::size_t size;
-
-        ///// <summary>
-        ///// Initialises a new instance.
-        ///// </summary>
-        //io_context(_In_ const std::size_t size = 0) noexcept;
-
-        ///// <summary>
-        ///// Finalises the instance.
-        ///// </summary>
-        //~io_context(void) noexcept;
-
-        ///// <summary>
-        ///// Invoke <see cref="on_failed" /> if it is set.
-        ///// </summary>
-        //void invoke_on_failed(_In_ dataverse_connection *connection,
-        //    _In_ const std::system_error& ex);
-
-        ///// <summary>
-        ///// Invoke <see cref="on_succeeded::received" /> if it is set.
-        ///// </summary>
-        //std::size_t invoke_on_received(_In_ dataverse_connection *connection,
-        //    _In_ const std::size_t cnt);
-
-        ///// <summary>
-        ///// Invoke <see cref="on_succeeded::sent" /> if it is set.
-        ///// </summary>
-        //void invoke_on_sent(_In_ dataverse_connection *connection);
-
-        ///// <summary>
-        ///// Mark the context as a receive context and set the specified
-        ///// callback, which may be invalid.
-        ///// </summary>
-        //void operation_receive(
-        //    _In_ const decltype(io_context::on_received)& on_received);
-
-        ///// <summary>
-        ///// Mark the context as a send context and set the specified
-        ///// callback, which may be invalid.
-        ///// </summary>
-        //void operation_send(_In_ const decltype(io_context::on_sent)& on_sent);
-
-        ///// <summary>
-        ///// Resets the operation to <see cref="io_operation::unknown" /> and
-        ///// clears <see cref="on_succeeded" />.
-        ///// </summary>
-        //void operation_unknown(void) noexcept;
-
     };
 
 } /* namespace detail */
