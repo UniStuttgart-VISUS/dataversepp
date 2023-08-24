@@ -51,7 +51,7 @@ else ()
     find_package(ICU REQUIRED)
     target_link_libraries(${PROJECT_NAME}
         PUBLIC ${CMAKE_DL_LIBS} Threads::Threads
-        PRIVATE ${ICU_LIBRARIES})
+        PRIVATE ICU::uc)
     set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif ()
 

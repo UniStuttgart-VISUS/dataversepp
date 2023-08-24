@@ -32,7 +32,7 @@ mark_as_advanced(FORCE
     WIL_BUILD_TESTS)
 
 
-# Open SSL (On Windows, we use SChannel)
+# OpenSSL for use with cURL (On Windows, we use SChannel)
 if (NOT WIN32)
     find_package(OpenSSL REQUIRED)
 endif ()
@@ -113,3 +113,9 @@ mark_as_advanced(FORCE
     JSON_LegacyDiscardedValueComparison
     JSON_MultipleHeaders
     JSON_SystemInclude)
+
+
+# libicu for conversion on Linux
+if (NOT WIN32)
+    find_package(ICU COMPONENTS uc REQUIRED)
+endif()
