@@ -59,6 +59,7 @@ namespace test {
             future.wait();
             const auto response = future.get();
             const auto json_text = std::string(response.as<char>(), response.size());
+            Logger::WriteMessage(json_text.c_str());
             const auto json = nlohmann::json::parse(json_text);
             Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
             Assert::AreEqual(visus::dataverse::to_utf8(L"visus"), json["data"]["alias"].get<std::string>(), L"Dataverse alias", LINE_INFO());
