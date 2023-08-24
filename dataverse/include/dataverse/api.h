@@ -33,6 +33,7 @@
 // Empty SAL annotations for rancid platforms.
 #define _Analysis_assume_(expr)
 #define _Check_return_
+#define _Field_z_
 #define _In_
 #define _Inout_
 #define _Inout_opt_

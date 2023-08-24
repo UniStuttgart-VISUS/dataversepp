@@ -53,6 +53,21 @@ void visus::dataverse::detail::invoke_handler(
  */
 void visus::dataverse::detail::invoke_handler(
         _In_opt_ const dataverse_connection::on_error_type on_error,
+        _In_z_ const char *message,
+        _In_z_ const char *category,
+        _In_ narrow_string::code_page_type code_page,
+        _In_opt_ void *client_data) {
+    if (on_error != nullptr) {
+        on_error(0, message, category, code_page, client_data);
+    }
+}
+
+
+/*
+ * visus::dataverse::detail::invoke_handler
+ */
+void visus::dataverse::detail::invoke_handler(
+        _In_opt_ const dataverse_connection::on_error_type on_error,
         _In_opt_ void *client_data) {
     if (on_error != nullptr) {
         on_error(0, "An unexpected error was encountered while processing a "

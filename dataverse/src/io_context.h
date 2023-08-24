@@ -55,11 +55,13 @@ namespace detail {
         /// <summary>
         /// Creates or reuses a context and partially configures it.
         /// </summary>
-        static std::unique_ptr<io_context> create(
-            _In_ const std::string& url,
-            _In_ dataverse_connection::on_response_type on_response,
-            _In_ dataverse_connection::on_error_type on_error,
-            _In_opt_ void *client_data);
+        static inline std::unique_ptr<io_context> create(
+                _In_ const std::string& url,
+                _In_ dataverse_connection::on_response_type on_response,
+                _In_ dataverse_connection::on_error_type on_error,
+                _In_opt_ void *client_data) {
+            return create(nullptr, url, on_response, on_error, client_data);
+        }
 
         /// <summary>
         /// Retrieves the context embedded in the easy handle.
@@ -92,6 +94,12 @@ namespace detail {
             _In_ void *context);
 
         /// <summary>
+        /// An internal data pointer that the API can use to transport arbitraty
+        /// data along the request.
+        /// </summary>
+        void *api_data;
+
+        /// <summary>
         /// The user data to be passed to the final callback.
         /// </summary>
         void *client_data;
@@ -112,17 +120,16 @@ namespace detail {
         /// </summary>
         dataverse_connection_impl::string_list_type headers;
 
-#if defined(DATAVERSE_WITH_JSON)
         /// <summary>
         /// The user-defined callback if the user requested a parsed API
         /// response.
         /// </summary>
         /// <remarks>
-        /// Only one of <see cref="on_api_response" /> or
-        /// <see cref="on_response" /> can be non-<c>nullptr</c>.
+        /// <para>The type of this pointer must be created <c>inline</c> in the
+        /// client programme to account for the expected version of the JSON
+        /// object. It therefore cannot be type-safe.</para>
         /// </remarks>
-        dataverse_connection::on_api_response_type on_api_response;
-#endif /* defined(DATAVERSE_WITH_JSON) */
+        void *on_api_response;
 
         /// <summary>
         /// The user-provided error callback.
@@ -132,10 +139,6 @@ namespace detail {
         /// <summary>
         /// The user-provided response callback.
         /// </summary>
-        /// <remarks>
-        /// Only one of <see cref="on_api_response" /> or
-        /// <see cref="on_response" /> can be non-<c>nullptr</c>.
-        /// </remarks>
         dataverse_connection::on_response_type on_response;
 
         /// <summary>

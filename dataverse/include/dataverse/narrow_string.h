@@ -193,7 +193,7 @@ namespace dataverse {
     private:
 
         code_page_type _code_page;
-        value_type _value;
+        _Field_z_ value_type _value;
     };
 
 

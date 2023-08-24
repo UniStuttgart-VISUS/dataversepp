@@ -430,55 +430,9 @@ visus::dataverse::dataverse_connection::post(
         _In_opt_ void *context) {
     _CHECK_ON_RESPONSE;
     _CHECK_ON_ERROR;
-
-    if (!form) {
-        throw std::invalid_argument("The form must be valid.");
-    }
-
-    auto& i = this->check_not_disposed();
-
-    // Prepare the request.
-    auto ctx = detail::io_context::create(form._curl, i.make_url(resource),
-        on_response, on_error, context);
-    ctx->form = std::move(form);
-    assert(!form);
-
-    // Context has taken ownership of CURL object, so erase it from form.
-    form._curl = nullptr;
-
-    ctx->option(CURLOPT_MIMEPOST, ctx->form._form);
-
-    // Set the authentication header.
-    i.add_auth_header(ctx);
-    ctx->apply_headers();
-
-    // Send the request to asynchronous processing.
-    i.process(std::move(ctx));
-
+    this->post(resource, std::move(form), on_response, nullptr, on_error,
+        context);
     return *this;
-}
-
-
-/*
- * visus::dataverse::dataverse_connection::post
- */
-visus::dataverse::dataverse_connection&
-visus::dataverse::dataverse_connection::post(
-        _In_ const const_narrow_string& resource,
-        _Inout_ form_data&& form,
-        _In_ const on_response_type on_response,
-        _In_ const on_error_type on_error,
-        _In_opt_ void *context) {
-    // Note: The ASCII conversion would go via wchar_t anyway, so this is
-    // basically for free.
-    if (resource == nullptr) {
-        auto r = static_cast<wchar_t *>(nullptr);
-        return this->post(r, std::move(form), on_response, on_error, context);
-    } else {
-        auto r = convert<wchar_t>(resource);
-        return this->post(r.c_str(), std::move(form), on_response, on_error,
-            context);
-    }
 }
 
 
@@ -635,7 +589,7 @@ visus::dataverse::dataverse_connection::put(
 /*
  * visus::dataverse::dataverse_connection::upload
  */
-visus::dataverse::dataverse_connection &
+visus::dataverse::dataverse_connection&
 visus::dataverse::dataverse_connection::upload(
         _In_z_ const wchar_t *persistent_id,
         _In_z_ const wchar_t *path,
@@ -792,6 +746,42 @@ visus::dataverse::dataverse_connection::operator =(
 
 
 /*
+ * visus::dataverse::dataverse_connection::get_api_response_client_data
+ */
+void *visus::dataverse::dataverse_connection::get_api_response_client_data(
+        _In_ void *client_data) {
+    auto context = static_cast<detail::io_context *>(client_data);
+    return context->api_data;
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::get_on_api_response
+ */
+void *visus::dataverse::dataverse_connection::get_on_api_response(
+        _In_ void *client_data) {
+    auto context = static_cast<detail::io_context *>(client_data);
+    return context->on_api_response;
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::report_api_error
+ */
+void visus::dataverse::dataverse_connection::report_api_error(
+        _In_ void *client_data, _In_z_ const char *error) {
+    auto context = static_cast<detail::io_context *>(client_data);
+    detail::invoke_handler(context->on_error, error, "API",
+#if defined(_WIN32)
+        CP_UTF8,
+#else /* defined(_WIN32) */
+        "UTF-8",
+#endif /* defined(_WIN32) */
+        context->api_data);
+}
+
+
+/*
  * visus::dataverse::dataverse_connection::check_not_disposed
  */
 visus::dataverse::detail::dataverse_connection_impl&
@@ -800,6 +790,74 @@ visus::dataverse::dataverse_connection::check_not_disposed(void) const {
         throw std::system_error(ERROR_INVALID_STATE, std::system_category());
     } else {
         return *this->_impl;
+    }
+}
+
+/*
+ * visus::dataverse::dataverse_connection::post
+ */
+void visus::dataverse::dataverse_connection::post(
+        _In_opt_z_ const wchar_t *resource,
+        _Inout_ form_data&& form,
+        _In_ const on_response_type on_response,
+        _In_opt_ const void *on_api_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    if (!form) {
+        throw std::invalid_argument("The form must be valid.");
+    }
+
+    auto &i = this->check_not_disposed();
+
+    // Prepare the request.
+    auto ctx = detail::io_context::create(form._curl, i.make_url(resource),
+        on_response, on_error, context);
+    ctx->form = std::move(form);
+    assert(!form);
+
+    assert(ctx->on_api_response == nullptr);
+    ctx->on_api_response = const_cast<void *>(on_api_response);
+    if (ctx->on_api_response != nullptr) {
+        // Replace the client data such that the template/inline implementation
+        // can swap the callback and the client data.
+        ctx->api_data = context;
+        ctx->client_data = ctx.get();
+    }
+
+    // Context has taken ownership of CURL object, so erase it from form.
+    form._curl = nullptr;
+
+    ctx->option(CURLOPT_MIMEPOST, ctx->form._form);
+
+    // Set the authentication header.
+    i.add_auth_header(ctx);
+    ctx->apply_headers();
+
+    // Send the request to asynchronous processing.
+    i.process(std::move(ctx));
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::post
+ */
+void visus::dataverse::dataverse_connection::post(
+        _In_ const const_narrow_string &resource,
+        _Inout_ form_data &&form,
+        _In_ const on_response_type on_response,
+        _In_opt_ const void *on_api_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    // Note: The ASCII conversion would go via wchar_t anyway, so this is
+    // basically for free.
+    if (resource == nullptr) {
+        auto r = static_cast<wchar_t *>(nullptr);
+        return this->post(r, std::move(form), on_response, on_api_response,
+            on_error, context);
+    } else {
+        auto r = convert<wchar_t>(resource);
+        return this->post(r.c_str(), std::move(form), on_response,
+            on_api_response, on_error, context);
     }
 }
 

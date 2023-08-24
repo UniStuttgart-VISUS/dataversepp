@@ -38,6 +38,21 @@ namespace detail {
         _In_opt_ void *client_data);
 
     /// <summary>
+    /// Invokes the given error handler if it is valid.
+    /// </summary>
+    /// <param name="on_error"></param>
+    /// <param name="message"></param>
+    /// <param name="category"></param>
+    /// <param name="code_page"></param>
+    /// <param name="client_data"></param>
+    void invoke_handler(
+        _In_opt_ const dataverse_connection::on_error_type on_error,
+        _In_z_ const char *message,
+        _In_z_ const char *category,
+        _In_ narrow_string::code_page_type code_page,
+        _In_opt_ void *client_data);
+
+    /// <summary>
     /// Invokes the given error handler specifying that an unexpected error
     /// occurred.
     /// </summary>

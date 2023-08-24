@@ -11,6 +11,7 @@
 #include <future>
 #include <stdexcept>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #include "dataverse/blob.h"
@@ -444,7 +445,7 @@ namespace dataverse {
                     TVAlloc>&,
                 const bool,
                 const on_response_type, const on_error_type, void *);
-            return invoke_async(
+            return invoke_async<blob>(
                 static_cast<actual_type>(&dataverse_connection::direct_upload),
                 *this, persistent_id, path, mime_type, description, directory,
                 categories, restricted);
@@ -509,7 +510,7 @@ namespace dataverse {
                 const std::vector<const_narrow_string, TVAlloc>&,
                 const bool,
                 const on_response_type, const on_error_type, void *);
-            return invoke_async(
+            return invoke_async<blob>(
                 static_cast<actual_type>(&dataverse_connection::direct_upload),
                 *this, persistent_id, path, mime_type, description, directory,
                 categories, restricted);
@@ -551,7 +552,7 @@ namespace dataverse {
             typedef dataverse_connection& (dataverse_connection:: *actual_type)(
                 const wchar_t *, const on_response_type, const on_error_type,
                 void *);
-            return invoke_async(
+            return invoke_async<blob>(
                 static_cast<actual_type>(&dataverse_connection::get),
                 *this, resource.c_str());
         }
@@ -592,7 +593,7 @@ namespace dataverse {
             typedef dataverse_connection& (dataverse_connection:: *actual_type)(
                 const const_narrow_string&, const on_response_type,
                 const on_error_type, void *);
-            return invoke_async(
+            return invoke_async<blob>(
                 static_cast<actual_type>(&dataverse_connection::get),
                 *this, resource);
         }
@@ -678,7 +679,7 @@ namespace dataverse {
             typedef dataverse_connection& (dataverse_connection:: *actual_type)(
                 const wchar_t *, form_data&&, const on_response_type,
                 const on_error_type, void *);
-            return invoke_async(
+            return invoke_async<blob>(
                 static_cast<actual_type>(&dataverse_connection::post),
                 *this, resource, std::move(form));
         }
@@ -704,11 +705,16 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        dataverse_connection& post(_In_ const const_narrow_string& resource,
-            _Inout_ form_data&& form,
-            _In_ const on_response_type on_response,
-            _In_ const on_error_type on_error,
-            _In_opt_ void *context = nullptr);
+        inline dataverse_connection& post(
+                _In_ const const_narrow_string& resource,
+                _Inout_ form_data&& form,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            this->post(resource, std::move(form), on_response, nullptr,
+                on_error, context);
+            return *this;
+        }
 
         /// <summary>
         /// Posts the specified form to the specified resource location and
@@ -724,7 +730,7 @@ namespace dataverse {
             typedef dataverse_connection& (dataverse_connection:: *actual_type)(
                 const const_narrow_string&, form_data&&,
                 const on_response_type, const on_error_type, void *);
-            return invoke_async(
+            return invoke_async<blob>(
                 static_cast<actual_type>(&dataverse_connection::post),
                 *this, resource, std::move(form));
         }
@@ -796,7 +802,7 @@ namespace dataverse {
                 const wchar_t *, const byte_type *, const std::size_t,
                 const data_deleter_type, const wchar_t *,
                 const on_response_type, const on_error_type, void *);
-            return invoke_async(
+            return invoke_async<blob>(
                 static_cast<actual_type>(&dataverse_connection::post),
                 *this, resource, data, cnt, data_deleter, content_type);
         }
@@ -860,17 +866,17 @@ namespace dataverse {
         /// </param>
         /// <returns>A future for the result of the opration.</returns>
         inline std::future<blob> post(
-                _In_opt_z_ const const_narrow_string& resource,
+                _In_ const const_narrow_string& resource,
                 _In_reads_bytes_(cnt) const byte_type *data,
                 _In_ const std::size_t cnt,
                 _In_opt_ const data_deleter_type data_deleter,
-                _In_opt_z_ const const_narrow_string& content_type) {
+                _In_ const const_narrow_string& content_type) {
             typedef dataverse_connection& (dataverse_connection:: *actual_type)(
                 const const_narrow_string&, const byte_type *,
                 const std::size_t, const data_deleter_type,
                 const const_narrow_string&, const on_response_type,
                 const on_error_type, void *);
-            return invoke_async(
+            return invoke_async<blob>(
                 static_cast<actual_type>(&dataverse_connection::post),
                 *this, resource, data, cnt, data_deleter, content_type);
         }
@@ -972,41 +978,13 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        inline std::future<blob> post(_In_opt_z_ const wchar_t *resource,
-                _In_ const nlohmann::json& json) {
-            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
-                const wchar_t *, const nlohmann::json&, const on_response_type,
-                const on_error_type, void *);
-            return invoke_async(
-                static_cast<actual_type>(&dataverse_connection::post),
-                *this, resource, json);
-        }
-
-        /// <summary>
-        /// Posts the specified JSON data to the specified resource location and
-        /// returns a future for the operation.
-        /// </summary>
-        /// <remarks>
-        /// This method can be used to create data sets.
-        /// </remarks>
-        /// <param name="resource">The path to the resource to post. The
-        /// base path configured will be prepended if set.</param>
-        /// <param name="json">The JSON object to post.</param>
-        /// <returns>A future for the operation.</returns>
-        /// <exception cref="std::system_error">If the method was called on an
-        /// object that has been moved.</exception>
-        /// <exception cref="std::system_error">If the request failed right away.
-        /// Note that even if the request initially succeeded, it might still
-        /// fail and call <paramref name="on_error" /> later.</exception>
-        /// <exception cref="std::bad_alloc">If the memory required to build the
-        /// request could not be alloctated.</exception>
         inline std::future<blob> post(
                 _In_ const const_narrow_string& resource,
                 _In_ const nlohmann::json& json) {
             typedef dataverse_connection &(dataverse_connection:: *actual_type)(
                 const const_narrow_string&, const nlohmann::json&,
                 const on_response_type, const on_error_type,void *);
-            return invoke_async(
+            return invoke_async<blob>(
                 static_cast<actual_type>(&dataverse_connection::post),
                 *this, resource, json);
         }
@@ -1318,7 +1296,7 @@ namespace dataverse {
                 _In_ const on_response_type on_response,
                 _In_ const on_error_type on_error,
                 _In_opt_ void *context = nullptr) {
-            typdef std::basic_string<wchar_t, TTraits, TSAlloc> string_type;
+            typedef std::basic_string<wchar_t, TTraits, TSAlloc> string_type;
             std::vector<const wchar_t *> cats(categories.size());
             std::transform(categories.begin(), categories.end(), cats.begin(),
                 [](const string_type& c) { return c.c_str();  });
@@ -1409,7 +1387,7 @@ namespace dataverse {
                     wchar_t, TTraits, TAlloc>& persistent_id,
                 _In_ const std::basic_string<wchar_t, TTraits, TAlloc>& path,
                 _In_ const nlohmann::json& description,
-                _In_ const on_response_type on_response,
+                _In_ const on_api_response_type on_response,
                 _In_ const on_error_type on_error,
                 _In_opt_ void *context = nullptr) {
             const auto url = std::wstring(L"/datasets/:persistentId/add?"
@@ -1417,13 +1395,15 @@ namespace dataverse {
             const auto dump = description.dump();
             const auto d = reinterpret_cast<const std::uint8_t *>(dump.data());
             const auto s = dump.size();
-            return this->post(url.c_str(),
+            this->post(url.c_str(),
                 std::move(this->make_form()
                     .add_file(L"file", path.c_str())
                     .add_field(L"jsonData", d, s)),
-                on_response,
+                translate_api_reponse<nlohmann::json>,
+                static_cast<const void *>(on_response),
                 on_error,
                 context);
+            return *this;
         }
 
         /// <summary>
@@ -1456,7 +1436,7 @@ namespace dataverse {
                 _In_ const const_narrow_string& persistent_id,
                 _In_ const const_narrow_string& path,
                 _In_ const nlohmann::json& description,
-                _In_ const on_response_type on_response,
+                _In_ const on_api_response_type on_response,
                 _In_ const on_error_type on_error,
                 _In_opt_ void *context = nullptr) {
             const auto url = std::wstring(L"/datasets/:persistentId/add?"
@@ -1465,13 +1445,86 @@ namespace dataverse {
             const auto d = reinterpret_cast<const std::uint8_t *>(dump.data());
             const auto s = dump.size();
             const auto p = convert<wchar_t>(path);
-            return this->post(url.c_str(),
+            this->post(url.c_str(),
                 std::move(this->make_form()
                     .add_file(L"file", p.c_str())
                     .add_field(L"jsonData", d, s)),
-                on_response,
+                translate_api_reponse<nlohmann::json>,
+                static_cast<const void *>(on_response),
                 on_error,
                 context);
+            return *this;
+        }
+
+        /// <summary>
+        /// Upload a file for the data set with the specified persistent ID and
+        /// returns a future for the response.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set the
+        /// file should be added to, which typically has the form
+        /// &quot;doi:the-doi&quot;.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="description">The JSON-formatted description of the
+        /// file. See
+        /// <a href="https://guides.dataverse.org/en/latest/api/native-api.html">
+        /// the Dataverse documentation</a> for details on how to format this
+        /// JSON object.</param>
+        /// <returns>A future for the response.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        template<class TTraits, class TAlloc>
+        inline std::future<nlohmann::json> upload(_In_ const std::basic_string<
+                    wchar_t, TTraits, TAlloc>& persistent_id,
+                _In_ const std::basic_string<wchar_t, TTraits, TAlloc>& path,
+                _In_ const nlohmann::json& description) {
+            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+                const std::basic_string<wchar_t, TTraits, TAlloc>&,
+                const std::basic_string<wchar_t, TTraits, TAlloc>&,
+                const const nlohmann::json&,
+                const on_api_response_type, const on_error_type, void *);
+            return invoke_async<nlohmann::json>(
+                static_cast<actual_type>(&dataverse_connection::upload), *this,
+                persistent_id, path, description);
+        }
+
+        /// <summary>
+        /// Upload a file for the data set with the specified persistent ID and
+        /// returns a future for the response.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set the
+        /// file should be added to, which typically has the form
+        /// &quot;doi:the-doi&quot;.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="description">The JSON-formatted description of the
+        /// file. See
+        /// <a href="https://guides.dataverse.org/en/latest/api/native-api.html">
+        /// the Dataverse documentation</a> for details on how to format this
+        /// JSON object.</param>
+        /// <returns>A future for the response.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<nlohmann::json> upload(
+                _In_ const const_narrow_string& persistent_id,
+                _In_ const const_narrow_string& path,
+                _In_ const nlohmann::json& description) {
+            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+                const const_narrow_string&,
+                const const_narrow_string&,
+                const nlohmann::json&,
+                const on_api_response_type, const on_error_type, void *);
+            return invoke_async<nlohmann::json>(
+                static_cast<actual_type>(&dataverse_connection::upload), *this,
+                persistent_id, path, description);
         }
 #endif /* defined(DATAVERSE_WITH_JSON) */
 
@@ -1485,11 +1538,61 @@ namespace dataverse {
 
     private:
 
-        template<class TOperation, class... TArgs>
-        static std::future<blob> invoke_async(TOperation&& operation,
+        /// <summary>
+        /// Assuming <paramref name="client_data" /> is a
+        /// <see cref="details::io_context" />, retrieve the actual client
+        /// data.
+        /// </summary>
+        static void *get_api_response_client_data(_In_ void *client_data);
+
+        /// <summary>
+        /// Assuming <paramref name="client_data" /> is an
+        /// <see cref="details::io_context" />, retrieve the JSON callback.
+        /// </summary>
+        static void *get_on_api_response(_In_ void *client_data);
+
+        /// <summary>
+        /// Assuming <paramref name="client_data" /> is an
+        /// <see cref="details::io_context" />, report the specified API error
+        /// to the error handler.
+        /// </summary>
+        static void report_api_error(_In_ void *client_data,
+            _In_z_ const char *error);
+
+        /// <summary>
+        /// Converts an asynchronous call to <paramref name="operation" /> to
+        /// an <see cref="std::future" />.
+        /// </summary>
+        template<class TResult, class TOperation, class... TArgs>
+        static std::future<TResult> invoke_async(TOperation&& operation,
             dataverse_connection& that, TArgs&&... arguments);
 
+        /// <summary>
+        /// The callback to convert the native callback to a JSON callback.
+        /// </summary>
+        template<class TJson>
+        static void translate_api_reponse(_In_ const blob& response,
+            _In_ void *client_data);
+
+        /// <summary>
+        /// Checks that the API has not been disposed and returns its
+        /// implementation if this is the case.
+        /// </summary>
         detail::dataverse_connection_impl& check_not_disposed(void) const;
+
+        void post(_In_opt_z_ const wchar_t *resource,
+            _Inout_ form_data&& form,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        void post(_In_ const const_narrow_string& resource,
+            _Inout_ form_data&& form,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
 
         detail::dataverse_connection_impl *_impl;
     };

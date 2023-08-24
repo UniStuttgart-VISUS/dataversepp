@@ -48,6 +48,21 @@ void print_response(_In_ const visus::dataverse::blob& response) {
 }
 
 
+/// <summary>
+/// Print the the API response on the console.
+/// </summary>
+void print_response(_In_ const nlohmann::json& response) {
+    using visus::dataverse::convert;
+    const auto r = response.dump();
+#if defined(_WIN32)
+    auto rr = convert<char>(convert<wchar_t>(r, CP_UTF8), CP_OEMCP);
+#else /* defined(_WIN32) */
+    auto& rr = r;
+#endif /* defined(_WIN32) */
+    std::cout << rr << std::endl;
+}
+
+
 /*
  * ::upload
  */
@@ -105,7 +120,13 @@ void upload(_In_ visus::dataverse::dataverse_connection& dataverse,
     auto files = ::get_files(_TTC(directory), recurse);
     std::atomic<std::size_t> remaining(files.size());
 
-    const auto on_success = [](const blob &r, void *e) {
+    const auto on_api_success = [](const nlohmann::json& r, void *e) {
+        ::print_response(r);
+        std::cout << std::endl;
+        --(*static_cast<decltype(remaining) *>(e));
+    };
+
+    const auto on_success = [](const blob& r, void *e) {
         ::print_response(r);
         std::cout << std::endl;
         --(*static_cast<decltype(remaining) *>(e));
@@ -130,8 +151,8 @@ void upload(_In_ visus::dataverse::dataverse_connection& dataverse,
         if (desc_source.good()) {
             // Parse the JSON description and upload it along with the data.
             const auto desc = nlohmann::json::parse(desc_source);
-            dataverse.upload(_TTS(doi), _TTS(f), desc, on_success, on_failure,
-                &remaining);
+            dataverse.upload(_TTS(doi), _TTS(f), desc, on_api_success,
+                on_failure, &remaining);
 
         } else {
             // Have no description file, so just upload the data.

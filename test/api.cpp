@@ -118,7 +118,7 @@ namespace test {
         }
 
         TEST_METHOD(upload_file) {
-            auto data_set = this->create_test_data_set(L"Dataverse++ Test");
+            auto data_set = this->create_test_data_set(L"Upload Test");
 
             struct {
                 visus::dataverse::dataverse_connection *connection;
@@ -153,10 +153,9 @@ namespace test {
                     cc->connection->upload(persistent_id,
                         cc->upload,
                         description,
-                        [](const visus::dataverse::blob &r, void *c) {
+                        [](const nlohmann::json& r, void *c) {
                             auto cc = static_cast<decltype(context) *>(c);
-
-                            const auto response = std::string(r.as<char>(), r.size());
+                            auto response = r.dump();
                             Logger::WriteMessage(response.c_str());
 
                             visus::dataverse::set_event(cc->evt_done);
@@ -179,6 +178,43 @@ namespace test {
 
             Assert::IsTrue(visus::dataverse::wait_event(context.evt_done, 60 * 1000), L"Operation completed in reasonable time", LINE_INFO());
             visus::dataverse::destroy_event(context.evt_done);
+        }
+
+        TEST_METHOD(upload_file_future) {
+            std::wstring path;
+            std::wstring persistent_id;
+
+            {
+                std::array<wchar_t, MAX_PATH> p;
+                Assert::IsTrue(::GetModuleFileNameW(NULL, p.data(), static_cast<DWORD>(p.size())), L"GetModuleFileName", LINE_INFO());
+                path = p.data();
+            }
+
+            {
+                auto future = this->_connection.post(L"/dataverses/visus/datasets",
+                    this->create_test_data_set(L"Upload Test (std::future)"));
+                future.wait();
+                const auto response = future.get();
+                const auto json_text = std::string(response.as<char>(), response.size());
+                const auto json = nlohmann::json::parse(json_text);
+                Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
+
+                persistent_id = visus::dataverse::convert<wchar_t>(json["data"]["persistentId"].get<std::string>(), CP_UTF8);
+            }
+
+            {
+                auto description = nlohmann::json::object({
+                    { "description", visus::dataverse::to_utf8(L"The test driver.")},
+                    { "restrict", true },
+                    { "categories", nlohmann::json::array({ "test", "future", "azure-devops" }) }
+                });
+
+                auto future = this->_connection.upload(persistent_id, path, description);
+                future.wait();
+                const auto json = future.get();
+                
+                Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
+            }
         }
 
         TEST_METHOD(direct_upload) {
