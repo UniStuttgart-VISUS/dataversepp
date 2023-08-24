@@ -37,24 +37,14 @@ visus::dataverse::detail::direct_upload_context::direct_upload_context(
         _In_ dataverse_connection::on_error_type on_error,
         _In_opt_ void *context)
     : connection(connection), on_error(on_error), on_response(on_response),
-        user_context(context) {
-#if !defined(_WIN32)
-    this->_file = -1;
-#endif /* !defined(_WIN32) */
-}
+        user_context(context) { }
 
 
 /*
  * visus::dataverse::detail::direct_upload_context::~direct_upload_context
  */
 visus::dataverse::detail::direct_upload_context::~direct_upload_context(
-        void) {
-#if !defined(_WIN32)
-    if (this->_file != -1) {
-        ::close(this->_file);
-    }
-#endif /* !defined(_WIN32) */
-}
+    void) { }
 
 
 /*

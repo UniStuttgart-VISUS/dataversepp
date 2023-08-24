@@ -250,14 +250,11 @@ visus::dataverse::dataverse_connection::direct_upload(
             throw std::system_error(::GetLastError(), std::system_category());
         }
 #else /* defined(_WIN32) */
-        if (ctx->file != -1) {
-            ::close(ctx->file);
-        }
         {
             auto p = convert<char>(path, 0, nullptr);
             ctx->file = ::open(p.c_str(), O_RDONLY);
         }
-        if (ctx->file == -1) {
+        if (!ctx->file) {
             throw std::system_error(errno, std::system_category());
         }
 #endif /* defined(_WIN32) */

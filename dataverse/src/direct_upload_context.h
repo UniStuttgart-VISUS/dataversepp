@@ -22,6 +22,7 @@
 #include "dataverse_connection_impl.h"
 #include "invoke_handler.h"
 #include "io_context.h"
+#include "posix_handle.h"
 
 
 namespace visus {
@@ -60,7 +61,7 @@ namespace detail {
         /// </summary>
         wil::unique_hfile file;
 #else  /* defined(_WIN32) */
-        int file;
+        posix_handle file;
 #endif /* defined(_WIN32) */
 
         /// <summary>
