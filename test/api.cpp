@@ -33,11 +33,32 @@ namespace test {
             }
         }
 
-        TEST_METHOD(get_dataverse) {
+        TEST_METHOD(get_dataverse_ansi) {
+            auto evt_done = visus::dataverse::create_event();
+
+            this->_connection.get(visus::dataverse::make_narrow_string("/dataverses/visus", CP_ACP),
+                    [](const visus::dataverse::blob &r, void *e) {
+                const auto response = std::string(r.as<char>(), r.size());
+                Logger::WriteMessage(response.c_str());
+                const auto json = nlohmann::json::parse(response);
+                Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
+                Assert::AreEqual(visus::dataverse::to_utf8(L"visus"), json["data"]["alias"].get<std::string>(), L"Dataverse alias", LINE_INFO());
+                visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
+            }, [](const int c, const char *m, const char *t, const visus::dataverse::narrow_string::code_page_type p, void *e) {
+                Logger::WriteMessage(m);
+                visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
+                Assert::Fail(L"Error callback invoked", LINE_INFO());
+            }, &evt_done);
+
+            Assert::IsTrue(visus::dataverse::wait_event(evt_done, 60 * 1000), L"Operation completed in reasonable time", LINE_INFO());
+            visus::dataverse::destroy_event(evt_done);
+        }
+
+        TEST_METHOD(get_dataverse_unicode) {
             auto evt_done = visus::dataverse::create_event();
 
             this->_connection.get(L"/dataverses/visus",
-                [](const visus::dataverse::blob& r, void *e) {
+                    [](const visus::dataverse::blob& r, void *e) {
                 const auto response = std::string(r.as<char>(), r.size());
                 Logger::WriteMessage(response.c_str());
                 const auto json = nlohmann::json::parse(response);
@@ -63,20 +84,17 @@ namespace test {
             const auto json = nlohmann::json::parse(json_text);
             Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
             Assert::AreEqual(visus::dataverse::to_utf8(L"visus"), json["data"]["alias"].get<std::string>(), L"Dataverse alias", LINE_INFO());
-
         }
 
         TEST_METHOD(post_data_set) {
+            const auto title = visus::dataverse::to_utf8(L"Energy consumption of scientific visualisation and data visualisation algorithms") + this->_test_suffix;
             auto data_set = nlohmann::json({ });
+
 
             data_set["datasetVersion"]["license"]["name"] = "CC BY 4.0";
             data_set["datasetVersion"]["license"]["uri"] = "http://creativecommons.org/licenses/by/4.0/";
             data_set["datasetVersion"]["metadataBlocks"]["citation"] = visus::dataverse::json::make_citation_metadata(
-                visus::dataverse::json::make_meta_field(
-                    L"title",
-                    L"primitive",
-                    false,
-                    visus::dataverse::to_utf8(L"Energy consumption of scientific visualisation and data visualisation algorithms") + this->_test_suffix),
+                visus::dataverse::json::make_meta_field(L"title", L"primitive", false, title),
 
                 visus::dataverse::json::make_meta_field(L"author", L"compound", true,
                     visus::dataverse::json::make_author(L"Müller, Christoph"),
@@ -118,7 +136,7 @@ namespace test {
         }
 
         TEST_METHOD(upload_file) {
-            auto data_set = this->create_test_data_set(L"Upload Test");
+            auto data_set = this->create_test_data_set(L"Upload Test (Callback)");
 
             struct {
                 visus::dataverse::dataverse_connection *connection;
@@ -181,6 +199,7 @@ namespace test {
         }
 
         TEST_METHOD(upload_file_future) {
+            const auto data_set = this->create_test_data_set(L"Upload Test (std::future)");
             std::wstring path;
             std::wstring persistent_id;
 
@@ -191,12 +210,10 @@ namespace test {
             }
 
             {
-                auto future = this->_connection.post(L"/dataverses/visus_directupload/datasets",
-                    this->create_test_data_set(L"Upload Test (std::future)"));
+                auto future = this->_connection.post(L"/dataverses/visus/datasets", data_set);
                 future.wait();
                 const auto json = future.get();
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
-
                 persistent_id = visus::dataverse::convert<wchar_t>(json["data"]["persistentId"].get<std::string>(), CP_UTF8);
             }
 
@@ -216,6 +233,8 @@ namespace test {
         }
 
         TEST_METHOD(direct_upload) {
+            const auto data_set = this->create_test_data_set(L"Direct Upload Test (Callback)");
+
             struct {
                 visus::dataverse::dataverse_connection *connection;
                 visus::dataverse::event_type evt_done;
@@ -230,8 +249,7 @@ namespace test {
                 context.upload = path.data();
             }
 
-            this->_connection.post(L"/dataverses/visus_directupload/datasets",
-                this->create_test_data_set(L"Direct Upload Test (Callback)"),
+            this->_connection.post(L"/dataverses/visus_directupload/datasets", data_set,
                 [](const visus::dataverse::blob& r, void *c) {
                     auto cc = static_cast<decltype(context) *>(c);
 
@@ -278,6 +296,7 @@ namespace test {
         }
 
         TEST_METHOD(direct_upload_future) {
+            const auto data_set = this->create_test_data_set(L"Direct Upload Test (std::future)");
             std::wstring persistent_id;
             std::wstring path;
 
@@ -288,8 +307,7 @@ namespace test {
             }
 
             {
-                auto future = this->_connection.post(L"/dataverses/visus_directupload/datasets",
-                    this->create_test_data_set(L"Direct Upload Test (std::future)"));
+                auto future = this->_connection.post(L"/dataverses/visus_directupload/datasets", data_set);
                 future.wait();
                 const auto json = future.get();
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
@@ -316,16 +334,13 @@ namespace test {
     private:
 
         inline nlohmann::json create_test_data_set(const std::wstring& title) {
+            const auto specific_title = visus::dataverse::to_utf8(title) + this->_test_suffix;
             auto data_set = nlohmann::json({ });
 
             data_set["datasetVersion"]["license"]["name"] = "CC BY 4.0";
             data_set["datasetVersion"]["license"]["uri"] = "http://creativecommons.org/licenses/by/4.0/";
             data_set["datasetVersion"]["metadataBlocks"]["citation"] = visus::dataverse::json::make_citation_metadata(
-                visus::dataverse::json::make_meta_field(
-                    L"title",
-                    L"primitive",
-                    false,
-                    visus::dataverse::to_utf8(title) + this->_test_suffix),
+                visus::dataverse::json::make_meta_field(L"title", L"primitive", false, specific_title),
 
                 visus::dataverse::json::make_meta_field(L"author", L"compound", true,
                     visus::dataverse::json::make_author(L"Müller, Christoph")),
