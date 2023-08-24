@@ -189,6 +189,12 @@ namespace detail {
         void apply_headers(void);
 
         /// <summary>
+        /// Sets <see cref="on_api_response" /> and configures the &quot;context
+        /// switch&quot; for it.
+        /// </summary>
+        void configure_on_api_response(_In_opt_ void *on_api_response);
+
+        /// <summary>
         /// Adds a content type header.
         /// </summary>
         void content_type(_In_ const wchar_t *content_type);

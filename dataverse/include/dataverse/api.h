@@ -18,15 +18,8 @@
 
 #endif /* defined(WIN32) */
 
-
-#if defined(__cplusplus)
-#define DATAVERSE_EXTERN extern "C"
-#else  /* defined(__cplusplus) */
-#define DATAVERSE_EXTERN extern
-#endif /* defined(__cplusplus) */
-
-
 #if defined(_WIN32)
+#include <Windows.h>
 #include <sal.h>
 
 #else /* defined(_WIN32) */

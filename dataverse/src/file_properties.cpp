@@ -3,6 +3,13 @@
 // </copyright>
 // <author>Christoph Müller</author>
 
+#if defined(_WIN32)
+#pragma push_macro("WIN32_NO_STATUS")
+#define WIN32_NO_STATUS
+#include <Windows.h>
+#pragma pop_macro("WIN32_NO_STATUS")
+#endif /* defined(_WIN32) */
+
 #include "file_properties.h"
 
 #include <array>
@@ -10,11 +17,6 @@
 #include <vector>
 
 #if defined(_WIN32)
-#pragma push_macro("WIN32_NO_STATUS")
-#define WIN32_NO_STATUS
-#include <Windows.h>
-#pragma pop_macro("WIN32_NO_STATUS")
-
 #include <bcrypt.h>
 #include <ntstatus.h>
 #include <wincrypt.h>

@@ -659,29 +659,14 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        dataverse_connection& post(_In_opt_z_ const wchar_t *resource,
-            _Inout_ form_data&& form,
-            _In_ const on_response_type on_response,
-            _In_ const on_error_type on_error,
-            _In_opt_ void *context = nullptr);
-
-        /// <summary>
-        /// Posts the specified form to the specified resource location and
-        /// returns a future for the result.
-        /// </summary>
-        /// <param name="resource">The path to the resource. The
-        /// <see cref="base_path" /> will be prepended if it is set.</param>
-        /// <param name="form">The form data to post. The connection object
-        /// takes ownership of the form.</param>
-        /// <returns>A future for the result of the opration.</returns>
-        inline std::future<blob> post(_In_opt_z_ const wchar_t *resource,
-                _Inout_ form_data&& form) {
-            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
-                const wchar_t *, form_data&&, const on_response_type,
-                const on_error_type, void *);
-            return invoke_async<blob>(
-                static_cast<actual_type>(&dataverse_connection::post),
-                *this, resource, std::move(form));
+        inline dataverse_connection &post(_In_opt_z_ const wchar_t *resource,
+                _Inout_ form_data &&form,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            this->post(resource, std::move(form), on_response, nullptr,
+                on_error, context);
+            return *this;
         }
 
         /// <summary>
@@ -722,10 +707,43 @@ namespace dataverse {
         /// </summary>
         /// <param name="resource">The path to the resource. The
         /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <param name="form">The form data to post. The connection object
+        /// takes ownership of the form.</param>
+        /// <returns>A future for the result of the opration.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<blob> post(_In_opt_z_ const wchar_t *resource,
+                _Inout_ form_data&& form) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const wchar_t *, form_data&&, const on_response_type,
+                const on_error_type, void *);
+            return invoke_async<blob>(
+                static_cast<actual_type>(&dataverse_connection::post),
+                *this, resource, std::move(form));
+        }
+
+        /// <summary>
+        /// Posts the specified form to the specified resource location and
+        /// returns a future for the result.
+        /// </summary>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
         /// <param name="form">The form data to post.</param>
         /// <returns>A future for the result of the opration.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
         inline std::future<blob> post(
-                _In_opt_z_ const const_narrow_string& resource,
+                _In_ const const_narrow_string& resource,
                 _Inout_ form_data&& form) {
             typedef dataverse_connection& (dataverse_connection:: *actual_type)(
                 const const_narrow_string&, form_data&&,
@@ -767,44 +785,17 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        dataverse_connection& post(_In_opt_z_ const wchar_t *resource,
-            _In_reads_bytes_(cnt) const byte_type *data,
-            _In_ const std::size_t cnt,
-            _In_opt_ const data_deleter_type data_deleter,
-            _In_opt_z_ const wchar_t *content_type,
-            _In_ const on_response_type on_response,
-            _In_ const on_error_type on_error,
-            _In_opt_ void *context = nullptr);
-
-        /// <summary>
-        /// Posts the specified form to the specified resource location and
-        /// returns a future for the result.
-        /// </summary>
-        /// <param name="resource">The path to the resource. The
-        /// <see cref="base_path" /> will be prepended if it is set.</param>
-        /// <param name="data">The data to post. The caller remains owner
-        /// of this memory if no <see cref="data_deleter" /> is set and must
-        /// make sure that the data remain valid until the request completed or
-        /// failed.</param>
-        /// <param name="cnt">The size of the data in bytes.</param>
-        /// <param name="data_deleter">If not <c>nullptr</c>, the object will
-        /// eventually free <paramref name="data" /> using this callback.
-        /// </param>
-        /// <param name="content_type">The MIME type of the data to be posted.
-        /// </param>
-        /// <returns>A future for the result of the opration.</returns>
-        inline std::future<blob> post(_In_opt_z_ const wchar_t *resource,
+        inline dataverse_connection& post(_In_opt_z_ const wchar_t *resource,
                 _In_reads_bytes_(cnt) const byte_type *data,
                 _In_ const std::size_t cnt,
                 _In_opt_ const data_deleter_type data_deleter,
-                _In_opt_z_ const wchar_t *content_type) {
-            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
-                const wchar_t *, const byte_type *, const std::size_t,
-                const data_deleter_type, const wchar_t *,
-                const on_response_type, const on_error_type, void *);
-            return invoke_async<blob>(
-                static_cast<actual_type>(&dataverse_connection::post),
-                *this, resource, data, cnt, data_deleter, content_type);
+                _In_opt_z_ const wchar_t *content_type,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            this->post(resource, data, cnt, data_deleter, content_type,
+                on_response, nullptr, on_error, context);
+            return *this;
         }
 
         /// <summary>
@@ -839,14 +830,50 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        dataverse_connection& post(_In_ const const_narrow_string& resource,
-            _In_reads_bytes_(cnt) const byte_type *data,
-            _In_ const std::size_t cnt,
-            _In_opt_ const data_deleter_type data_deleter,
-            _In_ const const_narrow_string& content_type,
-            _In_ const on_response_type on_response,
-            _In_ const on_error_type on_error,
-            _In_opt_ void *context = nullptr);
+        inline dataverse_connection& post(
+                _In_ const const_narrow_string& resource,
+                _In_reads_bytes_(cnt) const byte_type *data,
+                _In_ const std::size_t cnt,
+                _In_opt_ const data_deleter_type data_deleter,
+                _In_ const const_narrow_string& content_type,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            this->post(resource, data, cnt, data_deleter, content_type,
+                on_response, nullptr, on_error, context);
+            return *this;
+        }
+
+        /// <summary>
+        /// Posts the specified form to the specified resource location and
+        /// returns a future for the result.
+        /// </summary>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <param name="data">The data to post. The caller remains owner
+        /// of this memory if no <see cref="data_deleter" /> is set and must
+        /// make sure that the data remain valid until the request completed or
+        /// failed.</param>
+        /// <param name="cnt">The size of the data in bytes.</param>
+        /// <param name="data_deleter">If not <c>nullptr</c>, the object will
+        /// eventually free <paramref name="data" /> using this callback.
+        /// </param>
+        /// <param name="content_type">The MIME type of the data to be posted.
+        /// </param>
+        /// <returns>A future for the result of the opration.</returns>
+        inline std::future<blob> post(_In_opt_z_ const wchar_t *resource,
+                _In_reads_bytes_(cnt) const byte_type *data,
+                _In_ const std::size_t cnt,
+                _In_opt_ const data_deleter_type data_deleter,
+                _In_opt_z_ const wchar_t *content_type) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const wchar_t *, const byte_type *, const std::size_t,
+                const data_deleter_type, const wchar_t *,
+                const on_response_type, const on_error_type, void *);
+            return invoke_async<blob>(
+                static_cast<actual_type>(&dataverse_connection::post),
+                *this, resource, data, cnt, data_deleter, content_type);
+        }
 
         /// <summary>
         /// Posts the specified form to the specified resource location and
@@ -912,10 +939,18 @@ namespace dataverse {
                 _In_opt_ void *context = nullptr) {
             auto dump = json.dump();
             auto octets = new byte_type[dump.size()];
+            auto deleter = [](const void *o) {
+                delete[] static_cast<const byte_type *>(o);
+            };
             ::memcpy(octets, dump.data(), dump.size());
-            return this->post(resource, octets, dump.size(),
-                [](const void *o) { delete[] static_cast<const byte_type *>(o); },
-                L"application/json", on_response, on_error, context);
+            this->post(resource,
+                octets, dump.size(), deleter,
+                L"application/json",
+                on_response,
+                nullptr,
+                on_error,
+                context);
+            return *this;
         }
 
         /// <summary>
@@ -949,20 +984,22 @@ namespace dataverse {
                 _In_opt_ void *context = nullptr) {
             auto dump = json.dump();
             auto octets = new byte_type[dump.size()];
+            auto deleter = [](const void *o) {
+                delete[] static_cast<const byte_type *>(o);
+            };
             ::memcpy(octets, dump.data(), dump.size());
-            return this->post(resource, octets, dump.size(),
-                [](const void *o) { delete[] static_cast<const byte_type *>(o); },
-#if defined(_WIN32)
-                const_narrow_string("application/json", CP_OEMCP),
-#else /* defined(_WIN32) */
-                const_narrow_string("application/json", nullptr),
-#endif /* defined(_WIN32) */
-                on_response, on_error, context);
+            this->post(resource,
+                octets, dump.size(), deleter,
+                const_narrow_string("application/json", default_code_page),
+                on_response,
+                nullptr,
+                on_error,
+                context);
+            return *this;
         }
 
         /// <summary>
-        /// Posts the specified JSON data to the specified resource location and
-        /// returns a future for the operation.
+        /// Posts the specified JSON data to the specified resource location.
         /// </summary>
         /// <remarks>
         /// This method can be used to create data sets.
@@ -970,7 +1007,13 @@ namespace dataverse {
         /// <param name="resource">The path to the resource to post. The
         /// base path configured will be prepended if set.</param>
         /// <param name="json">The JSON object to post.</param>
-        /// <returns>A future for the operation.</returns>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
         /// <exception cref="std::system_error">If the method was called on an
         /// object that has been moved.</exception>
         /// <exception cref="std::system_error">If the request failed right away.
@@ -978,47 +1021,131 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        inline std::future<blob> post(
+        inline dataverse_connection& post(_In_opt_z_ const wchar_t *resource,
+                _In_ const nlohmann::json& json,
+                _In_ const on_api_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            auto dump = json.dump();
+            auto octets = new byte_type[dump.size()];
+            ::memcpy(octets, dump.data(), dump.size());
+            auto deleter = [](const void *o) {
+                delete[] static_cast<const byte_type *>(o);
+            };
+            this->post(resource,
+                octets, dump.size(), deleter,
+                L"application/json",
+                translate_api_reponse<nlohmann::json>,
+                static_cast<const void *>(on_response),
+                on_error,
+                context);
+            return *this;
+        }
+
+        /// <summary>
+        /// Posts the specified JSON data to the specified resource location.
+        /// </summary>
+        /// <remarks>
+        /// This method can be used to create data sets.
+        /// </remarks>
+        /// <param name="resource">The path to the resource to post. The
+        /// base path configured will be prepended if set.</param>
+        /// <param name="json">The JSON object to post.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline dataverse_connection& post(
+                _In_ const const_narrow_string& resource,
+                _In_ const nlohmann::json& json,
+                _In_ const on_api_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            auto dump = json.dump();
+            auto octets = new byte_type[dump.size()];
+            ::memcpy(octets, dump.data(), dump.size());
+            auto deleter = [](const void *o) {
+                delete[] static_cast<const byte_type *>(o);
+            };
+            this->post(resource,
+                octets, dump.size(), deleter,
+                const_narrow_string("application/json", default_code_page),
+                translate_api_reponse<nlohmann::json>,
+                static_cast<const void *>(on_response),
+                on_error,
+                context);
+            return *this;
+        }
+
+        /// <summary>
+        /// Posts the specified JSON data to the specified resource location and
+        /// returns a future for the API result.
+        /// </summary>
+        /// <remarks>
+        /// This method can be used to create data sets.
+        /// </remarks>
+        /// <param name="resource">The path to the resource to post. The
+        /// base path configured will be prepended if set.</param>
+        /// <param name="json">The JSON object to post.</param>
+        /// <returns>A future for the API result..</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<nlohmann::json> post(
+                _In_opt_z_ const wchar_t *resource,
+                _In_ const nlohmann::json& json) {
+            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+                const wchar_t *,
+                const nlohmann::json&,
+                const on_api_response_type, const on_error_type, void *);
+            return invoke_async<nlohmann::json>(
+                static_cast<actual_type>(&dataverse_connection::post), *this,
+                resource, json);
+        }
+
+        /// <summary>
+        /// Posts the specified JSON data to the specified resource location and
+        /// returns a future for the API result.
+        /// </summary>
+        /// <remarks>
+        /// This method can be used to create data sets.
+        /// </remarks>
+        /// <param name="resource">The path to the resource to post. The
+        /// base path configured will be prepended if set.</param>
+        /// <param name="json">The JSON object to post.</param>
+        /// <returns>A future for the API result..</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<nlohmann::json> post(
                 _In_ const const_narrow_string& resource,
                 _In_ const nlohmann::json& json) {
             typedef dataverse_connection &(dataverse_connection:: *actual_type)(
-                const const_narrow_string&, const nlohmann::json&,
-                const on_response_type, const on_error_type,void *);
-            return invoke_async<blob>(
-                static_cast<actual_type>(&dataverse_connection::post),
-                *this, resource, json);
+                const const_narrow_string&,
+                const nlohmann::json&,
+                const on_api_response_type, const on_error_type, void *);
+            return invoke_async<nlohmann::json>(
+                static_cast<actual_type>(&dataverse_connection::post), *this,
+                resource, json);
         }
-
-        ///// <summary>
-        ///// Posts the specified JSON data to the specified resource location.
-        ///// </summary>
-        ///// <remarks>
-        ///// This method can be used to create data sets.
-        ///// </remarks>
-        ///// <param name="resource">The path to the resource to post. The
-        ///// base path configured will be prepended if set.</param>
-        ///// <param name="json">The JSON object to post.</param>
-        ///// <param name="on_response">A callback to be invoked if the response
-        ///// to the request was received.</param>
-        ///// <param name="on_error">A callback to be invoked if the request
-        ///// failed asynchronously.</param>
-        ///// <param name="context">A user-defined context pointer passed to the
-        ///// callbacks.</param>
-        ///// <returns><c>*this</c>.</returns>
-        ///// <exception cref="std::system_error">If the method was called on an
-        ///// object that has been moved.</exception>
-        ///// <exception cref="std::system_error">If the request failed right away.
-        ///// Note that even if the request initially succeeded, it might still
-        ///// fail and call <paramref name="on_error" /> later.</exception>
-        ///// <exception cref="std::bad_alloc">If the memory required to build the
-        ///// request could not be alloctated.</exception>
-        //inline dataverse_connection& post(_In_opt_z_ const wchar_t *resource,
-        //        _In_ const nlohmann::json& json,
-        //        _In_ const on_api_response_type on_response,
-        //        _In_ const on_error_type on_error,
-        //        _In_opt_ void *context = nullptr) {
-        //    return this->post(resource, json, on_response, on_error, context);
-        //}
 #endif /* defined(DATAVERSE_WITH_JSON) */
 
         /// <summary>
@@ -1485,7 +1612,7 @@ namespace dataverse {
             typedef dataverse_connection &(dataverse_connection:: *actual_type)(
                 const std::basic_string<wchar_t, TTraits, TAlloc>&,
                 const std::basic_string<wchar_t, TTraits, TAlloc>&,
-                const const nlohmann::json&,
+                const nlohmann::json&,
                 const on_api_response_type, const on_error_type, void *);
             return invoke_async<nlohmann::json>(
                 static_cast<actual_type>(&dataverse_connection::upload), *this,
@@ -1589,6 +1716,26 @@ namespace dataverse {
 
         void post(_In_ const const_narrow_string& resource,
             _Inout_ form_data&& form,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        void post(_In_opt_z_ const wchar_t *resource,
+            _In_reads_bytes_(cnt) const byte_type *data,
+            _In_ const std::size_t cnt,
+            _In_opt_ const data_deleter_type data_deleter,
+            _In_opt_z_ const wchar_t *content_type,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        void post(_In_ const const_narrow_string& resource,
+            _In_reads_bytes_(cnt) const byte_type *data,
+            _In_ const std::size_t cnt,
+            _In_opt_ const data_deleter_type data_deleter,
+            _In_ const const_narrow_string& content_type,
             _In_ const on_response_type on_response,
             _In_opt_ const void *on_api_response,
             _In_ const on_error_type on_error,

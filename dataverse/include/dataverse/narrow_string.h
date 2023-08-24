@@ -376,5 +376,15 @@ namespace dataverse {
         return retval;
     }
 
+    /// <summary>
+    /// The default code page used for hard-coded strings.
+    /// </summary>
+    constexpr const narrow_string::code_page_type default_code_page
+#if defined(_WIN32)
+        = CP_OEMCP;
+#else /* defined(_WIN32) */
+        = nullptr;
+#endif /* defined(_WIN32) */
+
 } /* namespace dataverse */
 } /* namespace visus */

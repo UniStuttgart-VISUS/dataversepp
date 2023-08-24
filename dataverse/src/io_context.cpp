@@ -199,6 +199,20 @@ void visus::dataverse::detail::io_context::apply_headers(void) {
 
 
 /*
+ * visus::dataverse::detail::io_context::configure_on_api_response
+ */
+void visus::dataverse::detail::io_context::configure_on_api_response(
+        _In_opt_ void *on_api_response) {
+    if ((this->on_api_response = on_api_response) != nullptr) {
+        // Replace the client data such that the template/inline implementation
+        // can swap the callback and the client data.
+        this->api_data = this->client_data;
+        this->client_data = this;
+    }
+}
+
+
+/*
  * visus::dataverse::detail::dataverse_connection_impl::add_content_type
  */
 void visus::dataverse::detail::io_context::content_type(

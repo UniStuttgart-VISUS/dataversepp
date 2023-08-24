@@ -194,9 +194,7 @@ namespace test {
                 auto future = this->_connection.post(L"/dataverses/visus/datasets",
                     this->create_test_data_set(L"Upload Test (std::future)"));
                 future.wait();
-                const auto response = future.get();
-                const auto json_text = std::string(response.as<char>(), response.size());
-                const auto json = nlohmann::json::parse(json_text);
+                const auto json = future.get();
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
 
                 persistent_id = visus::dataverse::convert<wchar_t>(json["data"]["persistentId"].get<std::string>(), CP_UTF8);
@@ -296,9 +294,7 @@ namespace test {
                 auto future = this->_connection.post(L"/dataverses/visus_directupload/datasets",
                     this->create_test_data_set(L"Direct Upload Test (std::future)"));
                 future.wait();
-                const auto response = future.get();
-                const auto json_text = std::string(response.as<char>(), response.size());
-                const auto json = nlohmann::json::parse(json_text);
+                const auto json = future.get();
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
 
                 persistent_id = visus::dataverse::convert<wchar_t>(json["data"]["persistentId"].get<std::string>(), CP_UTF8);
