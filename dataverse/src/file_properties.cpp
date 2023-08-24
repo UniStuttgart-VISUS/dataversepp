@@ -13,6 +13,7 @@
 #include "file_properties.h"
 
 #include <array>
+#include <cerrno>
 #include <system_error>
 #include <vector>
 
@@ -29,6 +30,7 @@
 #include "dataverse/convert.h"
 
 #include "ntstatus_error_category.h"
+#include "posix_handle.h"
 
 
 namespace visus {
@@ -206,7 +208,43 @@ nlohmann::json visus::dataverse::detail::get_file_properties(
     }
 
     return get_file_properties(file);
+
 #else /* defined(_WIN32) */
-    throw "TODO";
+    nlohmann::json retval;
+
+    posix_handle file(::open(path.value(), O_RDONLY));
+    if (!file) {
+        throw std::system_error(errno, std::system_category());
+    }
+
+
+
+    throw "TODO: compute md5";
+
+
+
+    // Determine the file size.
+    {
+        struct stat s;
+        if (::stat(path.value(), &s) == 1) {
+            throw std::system_error(errno, std::system_category());
+        }
+
+        retval["fileSize"] = s.st_size;
+    }
+
+    // Determine the name of the file.
+    {
+        auto p = to_utf8(path.value());
+
+        auto begin = std::find(p.rbegin(), p.rend(), '/');
+        if (begin != p.rend()) {
+            p.erase(p.begin(), p.base());
+        }
+
+        retval["fileName"] = p;
+    }
+
+    return retval;
 #endif /* defined(_WIN32) */
 }

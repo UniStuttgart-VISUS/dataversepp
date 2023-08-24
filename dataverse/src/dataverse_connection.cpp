@@ -452,7 +452,11 @@ visus::dataverse::dataverse_connection::put(
 
     // Set the HTTP headers.
     i.add_auth_header(ctx);
-    ctx->content_type(content_type);
+    if (content_type != nullptr) {
+        ctx->content_type(content_type);
+    } else {
+        ctx->content_type(L"application/octet-stream");
+    }
     ctx->apply_headers();
 
     // Send the request to asynchronous processing.
@@ -477,14 +481,14 @@ visus::dataverse::dataverse_connection::put(
         _In_opt_ void *context) {
     const auto c = (content_type != nullptr)
         ? convert<wchar_t>(content_type)
-        : std::wstring();
+        : L"application/octet-stream";
     const auto r = (resource != nullptr)
         ? convert<wchar_t>(resource)
         : std::wstring();
 
     return this->post((resource != nullptr) ? r.c_str() : nullptr,
         data, cnt, data_deleter,
-        (content_type != nullptr) ? c.c_str() : nullptr,
+        c.c_str(),
         on_response,
         on_error,
         context);

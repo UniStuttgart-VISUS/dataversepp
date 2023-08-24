@@ -262,7 +262,7 @@ namespace test {
 
                     cc->connection->direct_upload(persistent_id,
                         cc->upload,
-                        std::wstring(L"application/octet"),
+                        std::wstring(L"application/octet-stream"),
                         std::wstring(L"The test driver."),
                         std::wstring(),
                         std::vector<std::wstring> { L"test", L"azure-devops" },
@@ -317,7 +317,7 @@ namespace test {
 
             {
                 auto future = this->_connection.direct_upload(persistent_id,
-                    path, std::wstring(L"application/octet"),
+                    path, std::wstring(L"application/octet-stream"),
                     std::wstring(L"A test file"),
                     std::wstring(),
                     std::vector<std::wstring> { L"test", L"future", L"azure-devops" },

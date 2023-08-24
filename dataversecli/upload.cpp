@@ -79,7 +79,7 @@ void upload(_In_ visus::dataverse::dataverse_connection& dataverse,
 
     //dataverse.direct_upload(_TTC(doi),
     //    _TTC(file),
-    //    _T("application/octet"),
+    //    _T("application/octet-stream"),
     //    _TTC(description),
     //    _TTC(path),
     //    nullptr, 0,

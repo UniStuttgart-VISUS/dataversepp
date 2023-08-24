@@ -26,6 +26,12 @@ namespace detail {
 
         ~posix_handle(void) noexcept;
 
+        inline int release(void) noexcept {
+            auto retval = this->_handle;
+            this->_handle = -1;
+            return retval;
+        }
+
         inline operator int(void) const noexcept {
             return this->_handle;
         }
