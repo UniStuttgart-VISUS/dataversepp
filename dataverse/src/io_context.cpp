@@ -13,7 +13,7 @@
 /*
  * visus::dataverse::detail::io_context::create
  */
-_Ret_valid_ std::unique_ptr<visus::dataverse::detail::io_context>
+std::unique_ptr<visus::dataverse::detail::io_context>
 visus::dataverse::detail::io_context::create(_In_opt_ CURL *curl) {
     std::lock_guard<decltype(lock)> l(lock);
     std::unique_ptr<visus::dataverse::detail::io_context> retval;
@@ -50,7 +50,7 @@ visus::dataverse::detail::io_context::create(_In_opt_ CURL *curl) {
 /*
  * visus::dataverse::detail::io_context::create
  */
-_Ret_valid_ std::unique_ptr<visus::dataverse::detail::io_context>
+std::unique_ptr<visus::dataverse::detail::io_context>
 visus::dataverse::detail::io_context::create(_In_opt_ CURL *curl,
             _In_ const std::string& url,
             _In_ dataverse_connection::on_response_type on_response,
@@ -72,7 +72,7 @@ visus::dataverse::detail::io_context::create(_In_opt_ CURL *curl,
 /*
  * visus::dataverse::detail::io_context::create
  */
-_Ret_valid_ std::unique_ptr<visus::dataverse::detail::io_context>
+std::unique_ptr<visus::dataverse::detail::io_context>
 visus::dataverse::detail::io_context::create(_In_ const std::string& url,
         _In_ dataverse_connection::on_response_type on_response,
         _In_ dataverse_connection::on_error_type on_error,
@@ -84,7 +84,7 @@ visus::dataverse::detail::io_context::create(_In_ const std::string& url,
 /*
  * visus::dataverse::detail::io_context::get
  */
-_Ret_maybenull_ std::unique_ptr<visus::dataverse::detail::io_context>
+std::unique_ptr<visus::dataverse::detail::io_context>
 visus::dataverse::detail::io_context::get(_In_opt_ CURL *curl) {
     std::unique_ptr<io_context> retval;
 

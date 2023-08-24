@@ -38,14 +38,14 @@ namespace detail {
         /// Creates or reuses a context without configuring it except for the
         /// output callback.
         /// </summary>
-        static _Ret_valid_ std::unique_ptr<io_context> create(
+        static std::unique_ptr<io_context> create(
             _In_opt_ CURL *curl = nullptr);
 
         /// <summary>
         /// Creates or reuses a context and partially configures it using the
         /// specified cURL handle
         /// </summary>
-        static _Ret_valid_ std::unique_ptr<io_context> create(
+        static std::unique_ptr<io_context> create(
             _In_opt_ CURL *curl,
             _In_ const std::string& url,
             _In_ dataverse_connection::on_response_type on_response,
@@ -55,7 +55,7 @@ namespace detail {
         /// <summary>
         /// Creates or reuses a context and partially configures it.
         /// </summary>
-        static _Ret_valid_ std::unique_ptr<io_context> create(
+        static std::unique_ptr<io_context> create(
             _In_ const std::string& url,
             _In_ dataverse_connection::on_response_type on_response,
             _In_ dataverse_connection::on_error_type on_error,
@@ -64,8 +64,7 @@ namespace detail {
         /// <summary>
         /// Retrieves the context embedded in the easy handle.
         /// </summary>
-        static _Ret_maybenull_ std::unique_ptr<io_context> get(
-            _In_opt_ CURL *curl);
+        static std::unique_ptr<io_context> get(_In_opt_ CURL *curl);
 
         /// <summary>
         /// I/O callback to read the response from our buffer.
