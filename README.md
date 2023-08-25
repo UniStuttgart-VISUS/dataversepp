@@ -34,11 +34,11 @@ dataverse.base_path(L"https://darus.uni-stuttgart.de/api")
 When using narrow strings, you must tell the API about their encoding:
 ```c++
 dataverse.base_path(const_narrow_string("https://darus.uni-stuttgart.de/api/", CP_OEMCP))
-    .api_key(const_narrow_string("YOUR API KEY", CP_OEMCP))
-    .upload(const_narrow_string("doi:10.18419/darus-3044", CP_OEMCP),
-        const_narrow_string("T:\\data\\rtx4090.csv", CP_OEMCP),
-        const_narrow_string("Measurement results for GeForce RTX4090", CP_OEMCP),
-        const_narrow_string("/raw/", CP_OEMCP),
+    .api_key(make_narrow_string("YOUR API KEY", CP_OEMCP))
+    .upload(make_narrow_string("doi:10.18419/darus-3044", CP_OEMCP),
+        make_narrow_string("T:\\data\\rtx4090.csv", CP_OEMCP),
+        make_narrow_string("Measurement results for GeForce RTX4090", CP_OEMCP),
+        make_narrow_string("/raw/", CP_OEMCP),
         std::vector<const_narrow_string> { narrow_string("#bota", CP_OEMCP), narrow_string("#boschofthemall", CP_OEMCP) },
         false,
         [](const blob& result, void *context) {
