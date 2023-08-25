@@ -163,243 +163,6 @@ visus::dataverse::dataverse_connection::base_path(
 
 
 /*
- * visus::dataverse::dataverse_connection::direct_upload
- */
-visus::dataverse::dataverse_connection&
-visus::dataverse::dataverse_connection::direct_upload(
-        _In_z_ const wchar_t *persistent_id,
-        _In_z_ const wchar_t *path,
-        _In_opt_z_ const wchar_t *mime_type,
-        _In_z_ const wchar_t *description,
-        _In_z_ const wchar_t *directory,
-        const wchar_t **categories,
-        _In_ const std::size_t cnt_cats,
-        _In_ const bool restricted,
-        _In_ const on_response_type on_response,
-        _In_ const on_error_type on_error,
-        _In_opt_ void *context) {
-    using detail::direct_upload_context;
-    _CHECK_ON_RESPONSE;
-    _CHECK_ON_ERROR;
-
-    // This is performed once the request for the one-time upload URL succeeded.
-    const auto on_upload_url = [](const blob& r, void *u) {
-        auto ctx = static_cast<direct_upload_context *>(u);
-        ctx->handle_errors([ctx, &r](void) {
-            // Retrieve the upload URL from the response and store the storage
-            // identifier from the response in the context.
-            const auto url = ctx->upload_url(r);
-            const auto size = ctx->description["fileSize"].get<std::uint64_t>();
-
-            // Create an I/O context for posting the continuation.
-            auto c = detail::io_context::create(url,
-                    [](const blob& r, void *u) {
-                auto ctx = static_cast<direct_upload_context *>(u);
-                ctx->handle_errors([ctx](void) {
-                    const auto desc = ctx->description.dump();
-
-                    // Create the final request, which uses the user-facing
-                    // callbacks directly.
-                    auto c = detail::io_context::create(ctx->registration_url,
-                        ctx->on_response, ctx->on_error, ctx->user_context);
-
-                    // Add the previously compiled JSON data to the request.
-                    c->form = form_data(c->curl.get());
-                    c->form._curl = nullptr;    // Owned by context!
-                    c->form.add_field("jsonData", desc.c_str());
-                    c->option(CURLOPT_MIMEPOST, c->form._form);
-
-                    // This time, we need the Dataverse authentication.
-                    ctx->connection->add_auth_header(c);
-                    c->apply_headers();
-
-                    // Post the final request.
-                    ctx->connection->process(std::move(c));
-
-                    // We do not need the context anymore. Note that
-                    // 'handle_errors' will delete it in case of an exception
-                    // in the code above, so we do not have to care about this.
-                    delete ctx;
-                });
-            }, direct_upload_context::forward_error, ctx);
-
-            // This one is special, because it is an S3 request and not a
-            // Dataverse API call.
-            c->option(CURLOPT_UPLOAD, 1L);
-            c->option(CURLOPT_PUT, 1L);
-            c->option(CURLOPT_INFILESIZE_LARGE, size);
-#if defined(_WIN32)
-            c->option(CURLOPT_READFUNCTION, form_data::win32_read);
-#else /* defined(_WIN32) */
-            c->option(CURLOPT_READFUNCTION, form_data::posix_read);
-#endif /* defined(_WIN32) */
-            c->option(CURLOPT_READDATA, ctx->file.get());
-#if defined(_WIN32)
-            c->option(CURLOPT_SEEKFUNCTION, form_data::win32_seek);
-#else /* defined(_WIN32) */
-            c->option(CURLOPT_SEEKFUNCTION, form_data::posix_seek);
-#endif /* defined(_WIN32) */
-            c->option(CURLOPT_SEEKDATA, ctx->file.get());
-
-            c->add_header("x-amz-tagging: dv-state=temp");
-            c->apply_headers();
-
-            ctx->connection->process(std::move(c));
-        });
-    };
-
-    // Allocate the upload context which helps us tracking the progress through
-    // the individual stages of the process. From here on, the context must be
-    // successfully passed to the API or freed in case of any error, wherefore
-    // the following code must be enclosed in try/catch.
-    auto ctx = new direct_upload_context(this->_impl, on_response, on_error,
-        context);
-
-    try {
-        // This is the variant where we read ourselves, so we need to open the
-        // file and remember the handle in the context.
-        ctx->file = detail::io_context::open_file(path);
-
-        // Prepare as much of the description as we can right now.
-        ctx->description = nlohmann::json::object({
-            { "description", to_utf8(description) },
-            { "directoryLabel", to_utf8(directory) },
-            { "restrict", restricted },
-            { "categories", nlohmann::json::array() },
-        });
-
-        if (categories != nullptr) {
-            auto &cats = ctx->description["categories"];
-            for (std::size_t i = 0; i < cnt_cats; ++i) {
-                cats.push_back(to_utf8(categories[i]));
-            }
-        }
-
-        if (mime_type != nullptr) {
-            ctx->description["mimeType"] = to_utf8(mime_type);
-        }
-
-        // Add metadata about the file itself (size, name, etc.).
-        ctx->description.update(detail::get_file_properties(path));
-
-        // The URL we will later use to register the metadata.
-        ctx->registration_url = this->_impl->make_url(std::wstring(
-            L"/datasets/:persistentId/add?persistentId=")
-            + persistent_id);
-
-        // Begin the chain of operations by retrieving the upload URL.
-        const auto url = std::wstring(L"/datasets/:persistentId/uploadsid/"
-            L"?persistentId=") + persistent_id;
-        return this->get(url.c_str(), on_upload_url,
-            direct_upload_context::forward_error, ctx);
-    } catch (...) {
-        delete ctx;
-        throw;
-    }
-}
-
-
-/*
- * visus::dataverse::dataverse_connection::direct_upload
- */
-visus::dataverse::dataverse_connection&
-visus::dataverse::dataverse_connection::direct_upload(
-        _In_ const const_narrow_string& persistent_id,
-        _In_ const const_narrow_string& path,
-        _In_ const const_narrow_string& mime_type,
-        _In_ const const_narrow_string& description,
-        _In_ const const_narrow_string& directory,
-        _In_reads_opt_(cnt_cats) const const_narrow_string *categories,
-        _In_ const std::size_t cnt_cats,
-        _In_ const bool restricted,
-        _In_ const on_response_type on_response,
-        _In_ const on_error_type on_error,
-        _In_opt_ void *context) {
-    auto i = convert<wchar_t>(persistent_id);
-    auto p = convert<wchar_t>(path);
-    auto m = convert<wchar_t>(mime_type);
-    auto d = convert<wchar_t>(description);
-    auto f = convert<wchar_t>(directory);
-
-    std::vector<std::wstring> cats;
-    if (categories != nullptr) {
-        cats.reserve(cnt_cats);
-        std::transform(categories,
-            categories + cnt_cats,
-            std::back_inserter(cats),
-            [](const const_narrow_string& s) { return convert<wchar_t>(s); });
-    }
-
-    std::vector<const wchar_t *> cat_ptrs;
-    cat_ptrs.reserve(cats.size());
-    std::transform(cats.begin(),
-        cats.end(),
-        std::back_inserter(cat_ptrs),
-        [](const std::wstring& s ) { return s.c_str(); });
-
-    return this->upload(i.c_str(),
-        p.c_str(),
-        d.c_str(),
-        f.c_str(),
-        cat_ptrs.data(),
-        cat_ptrs.size(),
-        restricted,
-        on_response,
-        on_error,
-        context);
-}
-
-
-/*
- * visus::dataverse::dataverse_connection::get
- */
-visus::dataverse::dataverse_connection&
-visus::dataverse::dataverse_connection::get(
-        _In_opt_z_ const wchar_t *resource,
-        _In_ const on_response_type on_response,
-        _In_ const on_error_type on_error,
-        _In_opt_ void *context) {
-    auto& i = this->check_not_disposed();
-
-    // Prepare the request.
-    auto ctx = detail::io_context::create(i.make_url(resource),
-        on_response, on_error, context);
-    assert(ctx->curl != nullptr);
-    assert(ctx->client_data == context);
-
-    // Set the authentication header.
-    i.add_auth_header(ctx);
-    ctx->apply_headers();
-
-    // Send the request to asynchronous processing.
-    i.process(std::move(ctx));
-
-    return *this;
-}
-
-
-/*
- * visus::dataverse::dataverse_connection::get
- */
-visus::dataverse::dataverse_connection&
-visus::dataverse::dataverse_connection::get(
-        _In_ const const_narrow_string& resource,
-        _In_ const on_response_type on_response,
-        _In_ const on_error_type on_error,
-        _In_opt_ void *context) {
-    // Note: The ASCII conversion would go via wchar_t anyway, so this is
-    // basically for free.
-    if (resource == nullptr) {
-        auto r = static_cast<wchar_t *>(nullptr);
-        return this->get(r, on_response, on_error, context);
-    } else {
-        auto r = convert<wchar_t>(resource);
-        return this->get(r.c_str(), on_response, on_error, context);
-    }
-}
-
-
-/*
  * visus::dataverse::dataverse_connection::io_timeout
  */
 visus::dataverse::dataverse_connection&
@@ -407,6 +170,15 @@ visus::dataverse::dataverse_connection::io_timeout(_In_ const int millis) {
     this->check_not_disposed().timeout = (std::max)(0, millis);
     return *this;
 }
+
+
+/*
+ * visus::dataverse::dataverse_connection::io_timeout
+ */
+int visus::dataverse::dataverse_connection::io_timeout(void) const {
+    return this->check_not_disposed().timeout;
+}
+
 
 /*
  * visus::dataverse::dataverse_connection::make_form
@@ -673,6 +445,253 @@ void visus::dataverse::dataverse_connection::delete_resource(
         auto r = convert<wchar_t>(resource);
         return this->delete_resource(r.c_str(), on_response,
             on_api_response, on_error, context);
+    }
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::direct_upload
+ */
+void visus::dataverse::dataverse_connection::direct_upload(
+        _In_z_ const wchar_t *persistent_id,
+        _In_z_ const wchar_t *path,
+        _In_opt_z_ const wchar_t *mime_type,
+        _In_z_ const wchar_t *description,
+        _In_z_ const wchar_t *directory,
+        _In_reads_z_(cnt_cats) const wchar_t **categories,
+        _In_ const std::size_t cnt_cats,
+        _In_ const bool restricted,
+        _In_ const on_response_type on_response,
+        _In_opt_ const void *on_api_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    using detail::direct_upload_context;
+    _CHECK_ON_RESPONSE;
+    _CHECK_ON_ERROR;
+
+    // TODO: on_api_response must be handled.
+
+    // This is performed once the request for the one-time upload URL succeeded.
+    const auto on_upload_url = [](const blob& r, void *u) {
+        auto ctx = static_cast<direct_upload_context *>(u);
+        ctx->handle_errors([ctx, &r](void) {
+            // Retrieve the upload URL from the response and store the storage
+            // identifier from the response in the context.
+            const auto url = ctx->upload_url(r);
+            const auto size = ctx->description["fileSize"].get<std::uint64_t>();
+
+            // Create an I/O context for posting the continuation.
+            auto c = detail::io_context::create(url,
+                    [](const blob& r, void *u) {
+                auto ctx = static_cast<direct_upload_context *>(u);
+                ctx->handle_errors([ctx](void) {
+                    const auto desc = ctx->description.dump();
+
+                    // Create the final request, which uses the user-facing
+                    // callbacks directly.
+                    auto c = detail::io_context::create(ctx->registration_url,
+                        ctx->on_response, ctx->on_error, ctx->user_context);
+
+                    // Add the previously compiled JSON data to the request.
+                    c->form = form_data(c->curl.get());
+                    c->form._curl = nullptr;    // Owned by context!
+                    c->form.add_field("jsonData", desc.c_str());
+                    c->option(CURLOPT_MIMEPOST, c->form._form);
+
+                    // This time, we need the Dataverse authentication.
+                    ctx->connection->add_auth_header(c);
+                    c->apply_headers();
+
+                    // Post the final request.
+                    ctx->connection->process(std::move(c));
+
+                    // We do not need the context anymore. Note that
+                    // 'handle_errors' will delete it in case of an exception
+                    // in the code above, so we do not have to care about this.
+                    delete ctx;
+                });
+            }, direct_upload_context::forward_error, ctx);
+
+            // This one is special, because it is an S3 request and not a
+            // Dataverse API call.
+            c->option(CURLOPT_UPLOAD, 1L);
+            c->option(CURLOPT_PUT, 1L);
+            c->option(CURLOPT_INFILESIZE_LARGE, size);
+#if defined(_WIN32)
+            c->option(CURLOPT_READFUNCTION, form_data::win32_read);
+#else /* defined(_WIN32) */
+            c->option(CURLOPT_READFUNCTION, form_data::posix_read);
+#endif /* defined(_WIN32) */
+            c->option(CURLOPT_READDATA, ctx->file.get());
+#if defined(_WIN32)
+            c->option(CURLOPT_SEEKFUNCTION, form_data::win32_seek);
+#else /* defined(_WIN32) */
+            c->option(CURLOPT_SEEKFUNCTION, form_data::posix_seek);
+#endif /* defined(_WIN32) */
+            c->option(CURLOPT_SEEKDATA, ctx->file.get());
+
+            c->add_header("x-amz-tagging: dv-state=temp");
+            c->apply_headers();
+
+            ctx->connection->process(std::move(c));
+        });
+    };
+
+    // Allocate the upload context which helps us tracking the progress through
+    // the individual stages of the process. From here on, the context must be
+    // successfully passed to the API or freed in case of any error, wherefore
+    // the following code must be enclosed in try/catch.
+    auto ctx = new direct_upload_context(this->_impl, on_response, on_error,
+        context);
+
+    try {
+        // This is the variant where we read ourselves, so we need to open the
+        // file and remember the handle in the context.
+        ctx->file = detail::io_context::open_file(path);
+
+        // Prepare as much of the description as we can right now.
+        ctx->description = nlohmann::json::object({
+            { "description", to_utf8(description) },
+            { "directoryLabel", to_utf8(directory) },
+            { "restrict", restricted },
+            { "categories", nlohmann::json::array() },
+        });
+
+        if (categories != nullptr) {
+            auto &cats = ctx->description["categories"];
+            for (std::size_t i = 0; i < cnt_cats; ++i) {
+                cats.push_back(to_utf8(categories[i]));
+            }
+        }
+
+        // Note a MIME type is required for direct uploads, so we use the most
+        // generic one if no valid input is given.
+        if (mime_type != nullptr) {
+            ctx->description["mimeType"] = to_utf8(mime_type);
+        } else {
+            ctx->description["mimeType"] = to_utf8(L"application/octet-stream");
+        }
+
+        // Add metadata about the file itself (size, name, etc.).
+        ctx->description.update(detail::get_file_properties(path));
+
+        // The URL we will later use to register the metadata.
+        ctx->registration_url = this->_impl->make_url(std::wstring(
+            L"/datasets/:persistentId/add?persistentId=")
+            + persistent_id);
+
+        // Begin the chain of operations by retrieving the upload URL.
+        const auto url = std::wstring(L"/datasets/:persistentId/uploadsid/"
+            L"?persistentId=") + persistent_id;
+        this->get(url.c_str(), on_upload_url,
+            direct_upload_context::forward_error, ctx);
+    } catch (...) {
+        delete ctx;
+        throw;
+    }
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::direct_upload
+ */
+void visus::dataverse::dataverse_connection::direct_upload(
+        _In_ const const_narrow_string& persistent_id,
+        _In_ const const_narrow_string& path,
+        _In_ const const_narrow_string& mime_type,
+        _In_ const const_narrow_string& description,
+        _In_ const const_narrow_string& directory,
+        _In_reads_opt_(cnt_cats) const const_narrow_string *categories,
+        _In_ const std::size_t cnt_cats,
+        _In_ const bool restricted,
+        _In_ const on_response_type on_response,
+        _In_opt_ const void *on_api_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    auto i = convert<wchar_t>(persistent_id);
+    auto p = convert<wchar_t>(path);
+    auto m = convert<wchar_t>(mime_type);
+    auto d = convert<wchar_t>(description);
+    auto f = convert<wchar_t>(directory);
+
+    std::vector<std::wstring> cats;
+    if (categories != nullptr) {
+        cats.reserve(cnt_cats);
+        std::transform(categories,
+            categories + cnt_cats,
+            std::back_inserter(cats),
+            [](const const_narrow_string& s) { return convert<wchar_t>(s); });
+    }
+
+    std::vector<const wchar_t *> cat_ptrs;
+    cat_ptrs.reserve(cats.size());
+    std::transform(cats.begin(),
+        cats.end(),
+        std::back_inserter(cat_ptrs),
+        [](const std::wstring& s ) { return s.c_str(); });
+
+    this->direct_upload(i.c_str(),
+        p.c_str(),
+        m.c_str(),
+        d.c_str(),
+        f.c_str(),
+        cat_ptrs.data(),
+        cat_ptrs.size(),
+        restricted,
+        on_response,
+        on_api_response,
+        on_error,
+        context);
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::get
+ */
+void visus::dataverse::dataverse_connection::get(
+        _In_opt_z_ const wchar_t *resource,
+        _In_ const on_response_type on_response,
+        _In_opt_ const void *on_api_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    _CHECK_ON_RESPONSE;
+    _CHECK_ON_ERROR;
+    auto& i = this->check_not_disposed();
+
+    // Prepare the request.
+    auto ctx = detail::io_context::create(i.make_url(resource),
+        on_response, on_error, context);
+    assert(ctx->curl != nullptr);
+    assert(ctx->client_data == context);
+    ctx->configure_on_api_response(const_cast<void *>(on_api_response));
+
+    // Set the authentication header.
+    i.add_auth_header(ctx);
+    ctx->apply_headers();
+
+    // Send the request to asynchronous processing.
+    i.process(std::move(ctx));
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::get
+ */
+void visus::dataverse::dataverse_connection::get(
+        _In_ const const_narrow_string& resource,
+        _In_ const on_response_type on_response,
+        _In_opt_ const void *on_api_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    // Note: The ASCII conversion would go via wchar_t anyway, so this is
+    // basically for free.
+    if (resource == nullptr) {
+        auto r = static_cast<wchar_t *>(nullptr);
+        return this->get(r, on_response, on_api_response, on_error, context);
+    } else {
+        auto r = convert<wchar_t>(resource);
+        return this->get(r.c_str(), on_response, on_api_response, on_error,
+            context);
     }
 }
 

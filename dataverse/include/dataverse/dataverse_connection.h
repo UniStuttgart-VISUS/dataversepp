@@ -204,17 +204,23 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        dataverse_connection& direct_upload(_In_z_ const wchar_t *persistent_id,
-            _In_z_ const wchar_t *path,
-            _In_opt_z_ const wchar_t *mime_type,
-            _In_z_ const wchar_t *description,
-            _In_z_ const wchar_t *directory,
-            const wchar_t **categories,
-            _In_ const std::size_t cnt_cats,
-            _In_ const bool restricted,
-            _In_ const on_response_type on_response,
-            _In_ const on_error_type on_error,
-            _In_opt_ void *context = nullptr);
+        inline dataverse_connection& direct_upload(
+                _In_z_ const wchar_t *persistent_id,
+                _In_z_ const wchar_t *path,
+                _In_opt_z_ const wchar_t *mime_type,
+                _In_z_ const wchar_t *description,
+                _In_z_ const wchar_t *directory,
+                _In_reads_z_(cnt_cats) const wchar_t **categories,
+                _In_ const std::size_t cnt_cats,
+                _In_ const bool restricted,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            this->direct_upload(persistent_id, path, mime_type, description,
+                directory, categories, cnt_cats, restricted, on_response,
+                nullptr, on_error, context);
+            return *this;
+        }
 
         /// <summary>
         /// Performs a &quot;direct upload&quot; of a data set to the S3
@@ -263,18 +269,23 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        dataverse_connection& direct_upload(
-            _In_ const const_narrow_string& persistent_id,
-            _In_ const const_narrow_string& path,
-            _In_ const const_narrow_string& mime_type,
-            _In_ const const_narrow_string& description,
-            _In_ const const_narrow_string& directory,
-            _In_reads_opt_(cnt_cats) const const_narrow_string *categories,
-            _In_ const std::size_t cnt_cats,
-            _In_ const bool restricted,
-            _In_ const on_response_type on_response,
-            _In_ const on_error_type on_error,
-            _In_opt_ void *context = nullptr);
+        inline dataverse_connection& direct_upload(
+                _In_ const const_narrow_string& persistent_id,
+                _In_ const const_narrow_string& path,
+                _In_ const const_narrow_string& mime_type,
+                _In_ const const_narrow_string& description,
+                _In_ const const_narrow_string& directory,
+                _In_reads_opt_(cnt_cats) const const_narrow_string *categories,
+                _In_ const std::size_t cnt_cats,
+                _In_ const bool restricted,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            this->direct_upload(persistent_id, path, mime_type, description,
+                directory, categories, cnt_cats, restricted, on_response,
+                nullptr, on_error, context);
+            return *this;
+        }
 
         /// <summary>
         /// Performs a &quot;direct upload&quot; of a data set to the S3
@@ -337,10 +348,11 @@ namespace dataverse {
             std::vector<const wchar_t *> cats(categories.size());
             std::transform(categories.begin(), categories.end(), cats.begin(),
                 [](const string_type& c) { return c.c_str();  });
-            return this->direct_upload(persistent_id.c_str(), path.c_str(),
+            this->direct_upload(persistent_id.c_str(), path.c_str(),
                 mime_type.c_str(), description.c_str(), directory.c_str(),
-                cats.data(), cats.size(), restricted, on_response, on_error,
-                context);
+                cats.data(), cats.size(), restricted, on_response, nullptr,
+                on_error, context);
+            return *this;
         }
 
         /// <summary>
@@ -396,9 +408,10 @@ namespace dataverse {
                 _In_ const on_response_type on_response,
                 _In_ const on_error_type on_error,
                 _In_opt_ void *context = nullptr) {
-            return this->direct_upload(persistent_id, path, mime_type,
+            this->direct_upload(persistent_id, path, mime_type,
                 description, directory, categories.data(), categories.size(),
-                restricted, on_response, on_error, context);
+                restricted, on_response, nullptr, on_error, context);
+            return *this;
         }
 
         /// <summary>
@@ -550,25 +563,12 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        dataverse_connection& get(_In_opt_z_ const wchar_t *resource,
-            _In_ const on_response_type on_response,
-            _In_ const on_error_type on_error,
-            _In_opt_ void *context = nullptr);
-
-        /// <summary>
-        /// Asynchronously retrieves the resource at the specified location
-        /// using a GET request and provides a future for the result.
-        /// </summary>
-        /// <param name="resource">The path to the resource. The
-        /// <see cref="base_path" /> will be prepended if it is set.</param>
-        /// <returns>A future for the result of the opration.</returns>
-        inline std::future<blob> get(_In_ const std::wstring& resource) {
-            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
-                const wchar_t *, const on_response_type, const on_error_type,
-                void *);
-            return invoke_async<blob>(
-                static_cast<actual_type>(&dataverse_connection::get),
-                *this, resource.c_str());
+        inline dataverse_connection& get(_In_opt_z_ const wchar_t *resource,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            this->get(resource, on_response, nullptr, on_error, context);
+            return *this;
         }
 
         /// <summary>
@@ -591,10 +591,30 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        dataverse_connection& get(_In_ const const_narrow_string& resource,
-            _In_ const on_response_type on_response,
-            _In_ const on_error_type on_error,
-            _In_opt_ void *context = nullptr);
+        inline dataverse_connection& get(
+                _In_ const const_narrow_string& resource,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            this->get(resource, on_response, nullptr, on_error, context);
+            return *this;
+        }
+
+        /// <summary>
+        /// Asynchronously retrieves the resource at the specified location
+        /// using a GET request and provides a future for the result.
+        /// </summary>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <returns>A future for the result of the opration.</returns>
+        inline std::future<blob> get(_In_ const std::wstring& resource) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const wchar_t *, const on_response_type, const on_error_type,
+                void *);
+            return invoke_async<blob>(
+                static_cast<actual_type>(&dataverse_connection::get),
+                *this, resource.c_str());
+        }
 
         /// <summary>
         /// Asynchronously retrieves the resource at the specified location
@@ -645,6 +665,15 @@ namespace dataverse {
             auto millis = std::chrono::duration_cast<millis_type>(timeout);
             return this->io_timeout(millis.count());
         }
+
+        /// <summary>
+        /// Answers the I/O timeout in milliseconds.
+        /// </summary>
+        /// <returns>The timeout of the I/O thread when checking for activity.
+        /// </returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        int io_timeout(void) const;
 
         /// <summary>
         /// Create a new and empty form for a POST request.
@@ -1122,7 +1151,7 @@ namespace dataverse {
         inline std::future<nlohmann::json> post(
                 _In_opt_z_ const wchar_t *resource,
                 _In_ const nlohmann::json& json) {
-            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
                 const wchar_t *,
                 const nlohmann::json&,
                 const on_api_response_type, const on_error_type, void *);
@@ -1152,7 +1181,7 @@ namespace dataverse {
         inline std::future<nlohmann::json> post(
                 _In_ const const_narrow_string& resource,
                 _In_ const nlohmann::json& json) {
-            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
                 const const_narrow_string&,
                 const nlohmann::json&,
                 const on_api_response_type, const on_error_type, void *);
@@ -1632,7 +1661,7 @@ namespace dataverse {
                     wchar_t, TTraits, TAlloc>& persistent_id,
                 _In_ const std::basic_string<wchar_t, TTraits, TAlloc>& path,
                 _In_ const nlohmann::json& description) {
-            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
                 const std::basic_string<wchar_t, TTraits, TAlloc>&,
                 const std::basic_string<wchar_t, TTraits, TAlloc>&,
                 const nlohmann::json&,
@@ -1667,7 +1696,7 @@ namespace dataverse {
                 _In_ const const_narrow_string& persistent_id,
                 _In_ const const_narrow_string& path,
                 _In_ const nlohmann::json& description) {
-            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
                 const const_narrow_string&,
                 const const_narrow_string&,
                 const nlohmann::json&,
@@ -1737,6 +1766,44 @@ namespace dataverse {
             _In_opt_ void *context);
 
         void delete_resource(_In_ const const_narrow_string& resource,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        void direct_upload(_In_z_ const wchar_t *persistent_id,
+            _In_z_ const wchar_t *path,
+            _In_opt_z_ const wchar_t *mime_type,
+            _In_z_ const wchar_t *description,
+            _In_z_ const wchar_t *directory,
+            _In_reads_z_(cnt_cats) const wchar_t **categories,
+            _In_ const std::size_t cnt_cats,
+            _In_ const bool restricted,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        void direct_upload(_In_ const const_narrow_string& persistent_id,
+            _In_ const const_narrow_string& path,
+            _In_ const const_narrow_string& mime_type,
+            _In_ const const_narrow_string& description,
+            _In_ const const_narrow_string& directory,
+            _In_reads_opt_(cnt_cats) const const_narrow_string *categories,
+            _In_ const std::size_t cnt_cats,
+            _In_ const bool restricted,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        void get(_In_opt_z_ const wchar_t *resource,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        void get(_In_ const const_narrow_string& resource,
             _In_ const on_response_type on_response,
             _In_opt_ const void *on_api_response,
             _In_ const on_error_type on_error,
