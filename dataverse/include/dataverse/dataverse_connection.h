@@ -89,6 +89,10 @@ namespace dataverse {
         /// <summary>
         /// Sets a new API key to authenticate with Dataverse.
         /// </summary>
+        /// <remarks>
+        /// The API key is considered a sensitive resource and therefore cannot
+        /// be retrieved once set.
+        /// </remarks>
         /// <param name="api_key">The API key to use. It is safe to pass
         /// <c>nullptr</c>, in which case the object tries to make
         /// unauthenticated requests.</param>
@@ -102,6 +106,10 @@ namespace dataverse {
         /// <summary>
         /// Sets a new API key to authenticate with Dataverse.
         /// </summary>
+        /// <remarks>
+        /// The API key is considered a sensitive resource and therefore cannot
+        /// be retrieved once set.
+        /// </remarks>
         /// <param name="api_key">The API key to use. It is safe to pass
         /// <c>nullptr</c>, in which case the object tries to make
         /// unauthenticated requests.</param>
@@ -128,6 +136,12 @@ namespace dataverse {
         /// <exception cref="std::bad_alloc">If the memory required to store the
         /// data could not be alloctated.</exception>
         dataverse_connection& base_path(_In_opt_z_ const wchar_t *base_path);
+
+        /// <summary>
+        /// Answer the API base path used by the connection.
+        /// </summary>
+        /// <returns>The API base path</returns>
+        const_narrow_string base_path(void) const;
 
         /// <summary>
         /// Sets the base path to the API end point such that you do not have to
@@ -435,7 +449,7 @@ namespace dataverse {
                 _In_ const std::vector<std::basic_string<wchar_t, TTraits,
                     TSAlloc>, TVAlloc> categories,
                 _In_ const bool restricted) {
-            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
                 const std::basic_string<wchar_t, TTraits, TSAlloc>&,
                 const std::basic_string<wchar_t, TTraits, TSAlloc>&,
                 const std::basic_string<wchar_t, TTraits, TSAlloc>&,
@@ -501,7 +515,7 @@ namespace dataverse {
                 _In_ const std::vector<const_narrow_string>& categories,
                 _In_ const std::size_t cnt_cats,
                 _In_ const bool restricted) {
-            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
                 const const_narrow_string&,
                 const const_narrow_string&,
                 const const_narrow_string&,

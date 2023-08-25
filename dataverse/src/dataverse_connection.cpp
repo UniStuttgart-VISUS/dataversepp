@@ -132,6 +132,21 @@ visus::dataverse::dataverse_connection::base_path(
 /*
  * visus::dataverse::dataverse_connection::base_path
  */
+visus::dataverse::const_narrow_string
+visus::dataverse::dataverse_connection::base_path(void) const {
+    return make_narrow_string(this->check_not_disposed().base_path,
+#if defined(_WIN32)
+        CP_ACP
+#else /* defined(_WIN32) */
+        "ASCII"
+#endif /* defined(_WIN32)*/
+        );
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::base_path
+ */
 visus::dataverse::dataverse_connection&
 visus::dataverse::dataverse_connection::base_path(
         _In_ const const_narrow_string& base_path) {
