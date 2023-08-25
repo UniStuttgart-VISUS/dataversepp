@@ -220,6 +220,7 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
                 != nullptr) {
             if (msg->msg == CURLMSG::CURLMSG_DONE) {
                 auto ctx = io_context::get(msg->easy_handle);
+                // TODO curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 
                 if (ctx) {
                     if (msg->data.result == CURLE_OK) {

@@ -659,8 +659,8 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        inline dataverse_connection &post(_In_opt_z_ const wchar_t *resource,
-                _Inout_ form_data &&form,
+        inline dataverse_connection& post(_In_opt_z_ const wchar_t *resource,
+                _Inout_ form_data&& form,
                 _In_ const on_response_type on_response,
                 _In_ const on_error_type on_error,
                 _In_opt_ void *context = nullptr) {
@@ -1177,14 +1177,18 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        dataverse_connection& put(_In_opt_z_ const wchar_t *resource,
-            _In_reads_bytes_(cnt) const byte_type *data,
-            _In_ const std::size_t cnt,
-            _In_opt_ const data_deleter_type data_deleter,
-            _In_opt_z_ const wchar_t *content_type,
-            _In_ const on_response_type on_response,
-            _In_ const on_error_type on_error,
-            _In_opt_ void *context = nullptr);
+        inline dataverse_connection& put(_In_opt_z_ const wchar_t *resource,
+                _In_reads_bytes_(cnt) const byte_type *data,
+                _In_ const std::size_t cnt,
+                _In_opt_ const data_deleter_type data_deleter,
+                _In_opt_z_ const wchar_t *content_type,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            this->put(resource, data, cnt, data_deleter, content_type,
+                on_response, nullptr, on_error, context);
+            return *this;
+        }
 
         /// <summary>
         /// Puts the given data to the given resource location.
@@ -1215,14 +1219,19 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        dataverse_connection& put(_In_ const const_narrow_string& resource,
-            _In_reads_bytes_(cnt) const byte_type *data,
-            _In_ const std::size_t cnt,
-            _In_opt_ const data_deleter_type data_deleter,
-            _In_ const const_narrow_string& content_type,
-            _In_ const on_response_type on_response,
-            _In_ const on_error_type on_error,
-            _In_opt_ void *context = nullptr);
+        inline dataverse_connection& put(
+                _In_ const const_narrow_string& resource,
+                _In_reads_bytes_(cnt) const byte_type *data,
+                _In_ const std::size_t cnt,
+                _In_opt_ const data_deleter_type data_deleter,
+                _In_ const const_narrow_string& content_type,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context = nullptr) {
+            this->put(resource, data, cnt, data_deleter, content_type,
+                on_response, nullptr, on_error, context);
+            return *this;
+        }
 
         /// <summary>
         /// Upload a file for the data set with the specified persistent ID.
@@ -1707,6 +1716,34 @@ namespace dataverse {
         /// </summary>
         detail::dataverse_connection_impl& check_not_disposed(void) const;
 
+        void delete_resource(_In_opt_z_ const wchar_t *resource,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        void delete_resource(_In_ const const_narrow_string& resource,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        void post(_In_opt_z_ const wchar_t *resource,
+            _In_z_ const wchar_t *path,
+            _In_opt_z_ const wchar_t *content_type,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        void post(_In_ const const_narrow_string& resource,
+            _In_ const const_narrow_string& path,
+            _In_ const const_narrow_string& content_type,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
         void post(_In_opt_z_ const wchar_t *resource,
             _Inout_ form_data&& form,
             _In_ const on_response_type on_response,
@@ -1732,6 +1769,42 @@ namespace dataverse {
             _In_opt_ void *context);
 
         void post(_In_ const const_narrow_string& resource,
+            _In_reads_bytes_(cnt) const byte_type *data,
+            _In_ const std::size_t cnt,
+            _In_opt_ const data_deleter_type data_deleter,
+            _In_ const const_narrow_string& content_type,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        void put(_In_opt_z_ const wchar_t *resource,
+            _In_z_ const wchar_t *path,
+            _In_opt_z_ const wchar_t *content_type,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        void put(_In_ const const_narrow_string& resource,
+            _In_ const const_narrow_string& path,
+            _In_ const const_narrow_string& content_type,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        void put(_In_opt_z_ const wchar_t *resource,
+            _In_reads_bytes_(cnt) const byte_type *data,
+            _In_ const std::size_t cnt,
+            _In_opt_ const data_deleter_type data_deleter,
+            _In_opt_z_ const wchar_t *content_type,
+            _In_ const on_response_type on_response,
+            _In_opt_ const void *on_api_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        void put(_In_ const const_narrow_string& resource,
             _In_reads_bytes_(cnt) const byte_type *data,
             _In_ const std::size_t cnt,
             _In_opt_ const data_deleter_type data_deleter,

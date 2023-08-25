@@ -9,12 +9,6 @@
 #include <stdexcept>
 #include <system_error>
 
-#if defined(_WIN32)
-#include <Windows.h>
-
-#include <wil/resource.h>
-#endif /* defined(_WIN32) */
-
 #include <nlohmann/json.hpp>
 
 #include "dataverse/dataverse_connection.h"
@@ -22,7 +16,6 @@
 #include "dataverse_connection_impl.h"
 #include "invoke_handler.h"
 #include "io_context.h"
-#include "posix_handle.h"
 
 
 namespace visus {
@@ -55,14 +48,14 @@ namespace detail {
         /// </summary>
         nlohmann::json description;
 
-#if defined(_WIN32)
         /// <summary>
-        /// The handle of the file to upload.
+        /// The handle of the file to be uploaded.
         /// </summary>
-        wil::unique_hfile file;
-#else  /* defined(_WIN32) */
-        posix_handle file;
-#endif /* defined(_WIN32) */
+        /// <remarks>
+        /// We need to preserve this here for direct uploads, because we do not
+        /// have access to the <see cref="io_context" /> in this case.
+        /// </remarks>
+        io_context::file_type file;
 
         /// <summary>
         /// The error handler installed by the caller.

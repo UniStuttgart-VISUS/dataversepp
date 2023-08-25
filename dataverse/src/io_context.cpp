@@ -21,7 +21,10 @@ visus::dataverse::detail::io_context::create(_In_opt_ CURL *curl) {
     if (cache.empty()) {
         retval.reset(new io_context());
     } else {
+        // If we can reuse a context, make sure that it is cleared.
         retval = std::move(cache.back());
+        retval->file = std::move(file_type());
+        retval->form = std::move(form_data());
         retval->headers.reset();
         retval->on_api_response = nullptr;
         retval->on_error = nullptr;
@@ -84,6 +87,29 @@ visus::dataverse::detail::io_context::get(_In_opt_ CURL *curl) {
             &tmp));
         retval.reset(tmp);
     }
+
+    return retval;
+}
+
+
+/*
+ * visus::dataverse::detail::io_context::open_file
+ */
+visus::dataverse::detail::io_context::file_type
+visus::dataverse::detail::io_context::open_file(_In_z_ const wchar_t *path) {
+#if defined(_WIN32)
+    file_type retval (::CreateFileW(path, GENERIC_READ, FILE_SHARE_READ,
+        nullptr, OPEN_EXISTING, 0, NULL));
+    if (!retval) {
+        throw std::system_error(::GetLastError(), std::system_category());
+    }
+#else /* defined(_WIN32) */
+    auto p = convert<char>(path, 0, nullptr);
+    file_type retval(::open(p.c_str(), O_RDONLY));
+    if (!retval) {
+        throw std::system_error(errno, std::system_category());
+    }
+#endif /* defined(_WIN32) */
 
     return retval;
 }
@@ -216,7 +242,7 @@ void visus::dataverse::detail::io_context::configure_on_api_response(
  * visus::dataverse::detail::dataverse_connection_impl::add_content_type
  */
 void visus::dataverse::detail::io_context::content_type(
-        _In_ const wchar_t *content_type) {
+        _In_opt_ const wchar_t *content_type) {
     if (content_type != nullptr) {
         auto h = "Content-Type: " + to_ascii(content_type);
         this->add_header(h.c_str());
@@ -241,6 +267,29 @@ void visus::dataverse::detail::io_context::delete_request(void) {
  * visus::dataverse::detail::io_context::prepare_request
  */
 void visus::dataverse::detail::io_context::prepare_request(
+        _In_z_ const wchar_t *path) {
+    this->file = detail::io_context::open_file(path);
+
+#if defined(_WIN32)
+    this->option(CURLOPT_READFUNCTION, form_data::win32_read);
+#else /* defined(_WIN32) */
+    this->option(CURLOPT_READFUNCTION, form_data::posix_read);
+#endif /* defined(_WIN32) */
+    this->option(CURLOPT_READDATA, this->file.get());
+
+#if defined(_WIN32)
+    this->option(CURLOPT_SEEKFUNCTION, form_data::win32_seek);
+#else /* defined(_WIN32) */
+    this->option(CURLOPT_SEEKFUNCTION, form_data::posix_seek);
+#endif /* defined(_WIN32) */
+    this->option(CURLOPT_SEEKDATA, this->file.get());
+}
+
+
+/*
+ * visus::dataverse::detail::io_context::prepare_request
+ */
+void visus::dataverse::detail::io_context::prepare_request(
         _In_reads_bytes_(cnt) const byte_type *data,
         _In_ const std::size_t cnt,
         _In_opt_ const dataverse_connection::data_deleter_type deleter) {
@@ -252,7 +301,6 @@ void visus::dataverse::detail::io_context::prepare_request(
     this->option(CURLOPT_READFUNCTION, &detail::io_context::read_request);
     this->option(CURLOPT_READDATA, this);
     this->option(CURLOPT_INFILESIZE_LARGE, cnt);
-
 }
 
 

@@ -243,21 +243,7 @@ visus::dataverse::dataverse_connection::direct_upload(
     try {
         // This is the variant where we read ourselves, so we need to open the
         // file and remember the handle in the context.
-#if defined(_WIN32)
-        ctx->file.reset(::CreateFileW(path, GENERIC_READ, FILE_SHARE_READ,
-            nullptr, OPEN_EXISTING, 0, NULL));
-        if (!ctx->file) {
-            throw std::system_error(::GetLastError(), std::system_category());
-        }
-#else /* defined(_WIN32) */
-        {
-            auto p = convert<char>(path, 0, nullptr);
-            ctx->file = ::open(p.c_str(), O_RDONLY);
-        }
-        if (!ctx->file) {
-            throw std::system_error(errno, std::system_category());
-        }
-#endif /* defined(_WIN32) */
+        ctx->file = detail::io_context::open_file(path);
 
         // Prepare as much of the description as we can right now.
         ctx->description = nlohmann::json::object({
@@ -413,85 +399,6 @@ visus::dataverse::dataverse_connection::io_timeout(_In_ const int millis) {
 visus::dataverse::form_data visus::dataverse::dataverse_connection::make_form(
         void) const {
     return form_data(detail::dataverse_connection_impl::make_curl().release());
-}
-
-
-/*
- * visus::dataverse::dataverse_connection::put
- */
-visus::dataverse::dataverse_connection&
-visus::dataverse::dataverse_connection::put(
-        _In_opt_z_ const wchar_t *resource,
-        _In_reads_bytes_(cnt) const byte_type *data,
-        _In_ const std::size_t cnt,
-        _In_opt_ const data_deleter_type data_deleter,
-        _In_opt_z_ const wchar_t *content_type,
-        _In_ const on_response_type on_response,
-        _In_ const on_error_type on_error,
-        _In_opt_ void *context) {
-    _CHECK_ON_RESPONSE;
-    _CHECK_ON_ERROR;
-
-    if (data == nullptr) {
-        throw std::invalid_argument("The data to be uploaded must be valid.");
-    }
-
-    auto& i = this->check_not_disposed();
-
-    // Prepare the request.
-    auto ctx = detail::io_context::create(i.make_url(resource),
-        on_response, on_error, context);
-    assert(ctx->client_data == context);
-
-    ctx->option(CURLOPT_UPLOAD, 1L);
-    ctx->option(CURLOPT_PUT, 1L);
-    ctx->option(CURLOPT_INFILESIZE_LARGE, cnt);
-
-    // Move the data to the context.
-    ctx->prepare_request(data, cnt, data_deleter);
-
-    // Set the HTTP headers.
-    i.add_auth_header(ctx);
-    if (content_type != nullptr) {
-        ctx->content_type(content_type);
-    } else {
-        ctx->content_type(L"application/octet-stream");
-    }
-    ctx->apply_headers();
-
-    // Send the request to asynchronous processing.
-    i.process(std::move(ctx));
-
-    return *this;
-}
-
-
-/*
- * visus::dataverse::dataverse_connection::put
- */
-visus::dataverse::dataverse_connection &
-visus::dataverse::dataverse_connection::put(
-        _In_ const const_narrow_string& resource,
-        _In_reads_bytes_(cnt) const byte_type *data,
-        _In_ const std::size_t cnt,
-        _In_opt_ const data_deleter_type data_deleter,
-        _In_ const const_narrow_string& content_type,
-        _In_ const on_response_type on_response,
-        _In_ const on_error_type on_error,
-        _In_opt_ void *context) {
-    const auto c = (content_type != nullptr)
-        ? convert<wchar_t>(content_type)
-        : L"application/octet-stream";
-    const auto r = (resource != nullptr)
-        ? convert<wchar_t>(resource)
-        : std::wstring();
-
-    return this->post((resource != nullptr) ? r.c_str() : nullptr,
-        data, cnt, data_deleter,
-        c.c_str(),
-        on_response,
-        on_error,
-        context);
 }
 
 
@@ -702,6 +609,129 @@ visus::dataverse::dataverse_connection::check_not_disposed(void) const {
     }
 }
 
+
+/*
+ * visus::dataverse::dataverse_connection::delete_resource
+ */
+void visus::dataverse::dataverse_connection::delete_resource(
+        _In_opt_z_ const wchar_t *resource,
+        _In_ const on_response_type on_response,
+        _In_opt_ const void *on_api_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    _CHECK_ON_RESPONSE;
+    _CHECK_ON_ERROR;
+
+    auto &i = this->check_not_disposed();
+
+    // Prepare the request.
+    auto ctx = detail::io_context::create(i.make_url(resource), on_response,
+        on_error, context);
+    ctx->option(CURLOPT_CUSTOMREQUEST, "DELETE");
+    ctx->configure_on_api_response(const_cast<void *>(on_api_response));
+
+    // Set the authentication header.
+    i.add_auth_header(ctx);
+    ctx->apply_headers();
+
+    // Send the request to asynchronous processing.
+    i.process(std::move(ctx));
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::delete_resource
+ */
+void visus::dataverse::dataverse_connection::delete_resource(
+        _In_ const const_narrow_string &resource,
+        _In_ const on_response_type on_response,
+        _In_opt_ const void *on_api_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    // Note: The ASCII conversion would go via wchar_t anyway, so this is
+    // basically for free.
+    if (resource == nullptr) {
+        auto r = static_cast<wchar_t *>(nullptr);
+        return this->delete_resource(r, on_response, on_api_response,
+            on_error, context);
+    } else {
+        auto r = convert<wchar_t>(resource);
+        return this->delete_resource(r.c_str(), on_response,
+            on_api_response, on_error, context);
+    }
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::post
+ */
+void visus::dataverse::dataverse_connection::post(
+        _In_opt_z_ const wchar_t *resource,
+        _In_z_ const wchar_t *path,
+        _In_opt_z_ const wchar_t *content_type,
+        _In_ const on_response_type on_response,
+        _In_opt_ const void *on_api_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    _CHECK_ON_RESPONSE;
+    _CHECK_ON_ERROR;
+
+    if (path == nullptr) {
+        throw std::invalid_argument("The file to be uploaded must be valid.");
+    }
+
+    auto& i = this->check_not_disposed();
+
+    // Prepare the request.
+    auto ctx = detail::io_context::create(i.make_url(resource),
+        on_response, on_error, context);
+    assert(ctx->client_data == context);
+    ctx->configure_on_api_response(const_cast<void *>(on_api_response));
+
+    ctx->option(CURLOPT_UPLOAD, 1L);
+    ctx->option(CURLOPT_POST, 1L);
+    ctx->prepare_request(path);
+
+    // Set the HTTP headers.
+    i.add_auth_header(ctx);
+    ctx->apply_headers();
+
+    // Send the request to asynchronous processing.
+    i.process(std::move(ctx));
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::post
+ */
+void visus::dataverse::dataverse_connection::post(
+        _In_ const const_narrow_string& resource,
+        _In_ const const_narrow_string& path,
+        _In_ const const_narrow_string& content_type,
+        _In_ const on_response_type on_response,
+        _In_opt_ const void *on_api_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto r = (resource != nullptr)
+        ? convert<wchar_t>(resource)
+        : std::wstring();
+    const auto p = (path != nullptr)
+        ? convert<wchar_t>(path)
+        : std::wstring();
+    const auto c = (content_type != nullptr)
+        ? convert<wchar_t>(content_type)
+        : std::wstring();
+
+    this->post((resource != nullptr) ? r.c_str() : nullptr,
+        (path != nullptr) ? p.c_str() : nullptr,
+        (content_type != nullptr) ? c.c_str() : nullptr,
+        on_response,
+        on_api_response,
+        on_error,
+        context);
+}
+
+
 /*
  * visus::dataverse::dataverse_connection::post
  */
@@ -713,14 +743,13 @@ void visus::dataverse::dataverse_connection::post(
         _In_ const on_error_type on_error,
         _In_opt_ void *context) {
     _CHECK_ON_RESPONSE;
-    _CHECK_API_ON_RESPONSE;
     _CHECK_ON_ERROR;
 
     if (!form) {
         throw std::invalid_argument("The form must be valid.");
     }
 
-    auto &i = this->check_not_disposed();
+    auto& i = this->check_not_disposed();
 
     // Prepare the request.
     auto ctx = detail::io_context::create(form._curl, i.make_url(resource),
@@ -754,7 +783,6 @@ void visus::dataverse::dataverse_connection::post(
         _In_ const on_error_type on_error,
         _In_opt_ void *context) {
     _CHECK_ON_RESPONSE;
-    _CHECK_API_ON_RESPONSE;
     _CHECK_ON_ERROR;
 
     // Note: The ASCII conversion would go via wchar_t anyway, so this is
@@ -836,7 +864,150 @@ void visus::dataverse::dataverse_connection::post(
         ? convert<wchar_t>(resource)
         : std::wstring();
 
-    return this->post((resource != nullptr) ? r.c_str() : nullptr,
+    this->post((resource != nullptr) ? r.c_str() : nullptr,
+        data, cnt, data_deleter,
+        (content_type != nullptr) ? c.c_str() : nullptr,
+        on_response,
+        on_api_response,
+        on_error,
+        context);
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::put
+ */
+void visus::dataverse::dataverse_connection::put(
+        _In_opt_z_ const wchar_t *resource,
+        _In_z_ const wchar_t *path,
+        _In_opt_z_ const wchar_t *content_type,
+        _In_ const on_response_type on_response,
+        _In_opt_ const void *on_api_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    _CHECK_ON_RESPONSE;
+    _CHECK_ON_ERROR;
+
+    if (path == nullptr) {
+        throw std::invalid_argument("The file to be uploaded must be valid.");
+    }
+
+    auto& i = this->check_not_disposed();
+
+    // Prepare the request.
+    auto ctx = detail::io_context::create(i.make_url(resource),
+        on_response, on_error, context);
+    assert(ctx->client_data == context);
+    ctx->configure_on_api_response(const_cast<void *>(on_api_response));
+
+    ctx->option(CURLOPT_UPLOAD, 1L);
+    ctx->option(CURLOPT_PUT, 1L);
+    ctx->prepare_request(path);
+
+    // Set the HTTP headers.
+    i.add_auth_header(ctx);
+    ctx->apply_headers();
+
+    // Send the request to asynchronous processing.
+    i.process(std::move(ctx));
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::put
+ */
+void visus::dataverse::dataverse_connection::put(
+        _In_ const const_narrow_string& resource,
+        _In_ const const_narrow_string& path,
+        _In_ const const_narrow_string& content_type,
+        _In_ const on_response_type on_response,
+        _In_opt_ const void *on_api_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto r = (resource != nullptr)
+        ? convert<wchar_t>(resource)
+        : std::wstring();
+    const auto p = (path != nullptr)
+        ? convert<wchar_t>(path)
+        : std::wstring();
+    const auto c = (content_type != nullptr)
+        ? convert<wchar_t>(content_type)
+        : std::wstring();
+
+    this->put((resource != nullptr) ? r.c_str() : nullptr,
+        (path != nullptr) ? p.c_str() : nullptr,
+        (content_type != nullptr) ? c.c_str() : nullptr,
+        on_response,
+        on_api_response,
+        on_error,
+        context);
+}
+
+/*
+ * visus::dataverse::dataverse_connection::put
+ */
+void visus::dataverse::dataverse_connection::put(
+        _In_opt_z_ const wchar_t *resource,
+        _In_reads_bytes_(cnt) const byte_type *data,
+        _In_ const std::size_t cnt,
+        _In_opt_ const data_deleter_type data_deleter,
+        _In_opt_z_ const wchar_t *content_type,
+        _In_ const on_response_type on_response,
+        _In_opt_ const void *on_api_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    _CHECK_ON_RESPONSE;
+    _CHECK_ON_ERROR;
+
+    if (data == nullptr) {
+        throw std::invalid_argument("The data to be uploaded must be valid.");
+    }
+
+    auto& i = this->check_not_disposed();
+
+    // Prepare the request.
+    auto ctx = detail::io_context::create(i.make_url(resource),
+        on_response, on_error, context);
+    assert(ctx->client_data == context);
+    ctx->configure_on_api_response(const_cast<void *>(on_api_response));
+
+    ctx->option(CURLOPT_UPLOAD, 1L);
+    ctx->option(CURLOPT_PUT, 1L);
+    ctx->option(CURLOPT_INFILESIZE_LARGE, cnt);
+
+    // Move the data to the context.
+    ctx->prepare_request(data, cnt, data_deleter);
+
+    // Set the HTTP headers.
+    i.add_auth_header(ctx);
+    ctx->content_type(content_type);
+    ctx->apply_headers();
+
+    // Send the request to asynchronous processing.
+    i.process(std::move(ctx));
+}
+
+/*
+ * visus::dataverse::dataverse_connection::put
+ */
+void visus::dataverse::dataverse_connection::put(
+        _In_ const const_narrow_string& resource,
+        _In_reads_bytes_(cnt) const byte_type *data,
+        _In_ const std::size_t cnt,
+        _In_opt_ const data_deleter_type data_deleter,
+        _In_ const const_narrow_string& content_type,
+        _In_ const on_response_type on_response,
+        _In_opt_ const void *on_api_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto c = (content_type != nullptr)
+        ? convert<wchar_t>(content_type)
+        : std::wstring();
+    const auto r = (resource != nullptr)
+        ? convert<wchar_t>(resource)
+        : std::wstring();
+
+    this->put((resource != nullptr) ? r.c_str() : nullptr,
         data, cnt, data_deleter,
         (content_type != nullptr) ? c.c_str() : nullptr,
         on_response,

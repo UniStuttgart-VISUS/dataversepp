@@ -11,6 +11,12 @@
 #include <system_error>
 #include <vector>
 
+#if defined(_WIN32)
+#include <Windows.h>
+
+#include <wil/resource.h>
+#endif /* defined(_WIN32) */
+
 #include <nlohmann/json.hpp>
 
 #include "dataverse/blob.h"
@@ -18,6 +24,7 @@
 #include "dataverse/dataverse_connection.h"
 
 #include "dataverse_connection_impl.h"
+#include "posix_handle.h"
 
 
 namespace visus {
@@ -33,6 +40,15 @@ namespace detail {
         /// The type used to represent a single byte.
         /// </summary>
         typedef dataverse_connection::byte_type byte_type;
+
+#if defined(_WIN32)
+        /// <summary>
+        /// The type of a file handle.
+        /// </summary>
+        typedef wil::unique_hfile file_type;
+#else  /* defined(_WIN32) */
+        typedef posix_handle file_type;
+#endif /* defined(_WIN32) */
 
         /// <summary>
         /// Creates or reuses a context without configuring it except for the
@@ -67,6 +83,11 @@ namespace detail {
         /// Retrieves the context embedded in the easy handle.
         /// </summary>
         static std::unique_ptr<io_context> get(_In_opt_ CURL *curl);
+
+        /// <summary>
+        /// Opens the file at the given location for reading.
+        /// </summary>
+        static file_type open_file(_In_z_ const wchar_t *path);
 
         /// <summary>
         /// I/O callback to read the response from our buffer.
@@ -108,6 +129,11 @@ namespace detail {
         /// The library handle used for the request.
         /// </summary>
         dataverse_connection_impl::curl_type curl;
+
+        /// <summary>
+        /// The file to be uploaded, if any.
+        /// </summary>
+        file_type file;
 
         /// <summary>
         /// The form to be sent, if any.
@@ -195,9 +221,9 @@ namespace detail {
         void configure_on_api_response(_In_opt_ void *on_api_response);
 
         /// <summary>
-        /// Adds a content type header.
+        /// Adds a content type header if non-<c>nullptr</c>.
         /// </summary>
-        void content_type(_In_ const wchar_t *content_type);
+        void content_type(_In_opt_ const wchar_t *content_type);
 
         /// <summary>
         /// Runs the <see cref="request_deleter" /> if one is set.
@@ -214,11 +240,13 @@ namespace detail {
         }
 
         /// <summary>
-        /// Prepares the I/O context for uploading the specifie data.
+        /// Prepares the I/O context for uploading the specified file.
         /// </summary>
-        /// <param name="data"></param>
-        /// <param name="cnt"></param>
-        /// <param name="deleter"></param>
+        void prepare_request(_In_z_ const wchar_t *path);
+
+        /// <summary>
+        /// Prepares the I/O context for uploading the specified data.
+        /// </summary>
         void prepare_request(_In_reads_bytes_(cnt) const byte_type *data,
             _In_ const std::size_t cnt,
             _In_opt_ const dataverse_connection::data_deleter_type deleter);
