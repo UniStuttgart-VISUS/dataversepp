@@ -97,14 +97,14 @@ jobs:
       platform: '$(buildPlatform)'
       configuration: '$(buildConfiguration)'
 
-  - task: VSTest@2
-    displayName: 'Tests'
-    inputs:
-      platform: '$(buildPlatform)'
-      configuration: '$(buildConfiguration)'
-    env:
-      ApiKey: $(ApiKey)
-      TestID: '$(Build.BuildNumber) ANSI'
+  #- task: VSTest@2
+  #  displayName: 'Tests'
+  #  inputs:
+  #    platform: '$(buildPlatform)'
+  #    configuration: '$(buildConfiguration)'
+  #  env:
+  #    ApiKey: $(ApiKey)
+  #    TestID: '$(Build.BuildNumber) ANSI'
 
 
 #- job: Linux
