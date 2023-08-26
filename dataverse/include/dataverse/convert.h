@@ -238,8 +238,12 @@ namespace dataverse {
     /// <c>nullptr</c>.</exception>
     /// <exception cref="std::system_error">If the conversion failed.
     /// </exception>
-    std::string to_ascii(_In_z_ const char *src,
-        _In_ const narrow_string::code_page_type code_page);
+    inline std::string to_ascii(_In_z_ const char *src,
+            _In_ const narrow_string::code_page_type code_page) {
+        std::vector<char> buffer(to_ascii(nullptr, 0, src, 0, code_page));
+        auto cnt = to_ascii(buffer.data(), buffer.size(), src, 0, code_page);
+        return std::string(buffer.data(), buffer.data() + cnt - 1);
+    }
 
     /// <summary>
     /// Converts a narrow string using the specified code page to ASCII.
@@ -296,14 +300,14 @@ namespace dataverse {
     /// Converts a narrow string using the platform's default code page.
     /// </summary>
     /// <typeparam name="TSrcChar"></typeparam>
-    /// <typeparam name="TSrcTraits"></typeparam>
-    /// <typeparam name="TSrcAlloc"></typeparam>
+    /// <typeparam name="TTraits"></typeparam>
+    /// <typeparam name="TAlloc"></typeparam>
     /// <param name="src">The source string to be converted.</param>
     /// <returns>The ASCII version of the input.</returns>
     /// <exception cref="std::system_error">If the conversion failed.
     /// </exception>
-    template<class TSrcChar, class TSrcTraits, class TSrcAlloc>
-    inline std::string to_ascii(_In_ const std::basic_string<TSrcChar,
+    template<class TSrcTraits, class TSrcAlloc>
+    inline std::string to_ascii(_In_ const std::basic_string<wchar_t,
             TSrcTraits, TSrcAlloc>& src) {
         return to_ascii(src.c_str());
     }

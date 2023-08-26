@@ -222,27 +222,6 @@ std::size_t DATAVERSE_API visus::dataverse::to_ascii(
 
 
 /*
- * visus::dataverse::to_ascii
- */
-std::string visus::dataverse::to_ascii(_In_z_ const char *src,
-        _In_ const narrow_string::code_page_type code_page) {
-    if (src == nullptr) {
-        throw std::invalid_argument("The string to convert cannot be null.");
-    }
-
-    // Simply check if any of the input characters exceeds the ASCII range.
-    const auto invalid = std::any_of(src, src + ::strlen(src),
-        [](const char c) { return (c > 127); });
-    if (invalid) {
-        throw std::system_error(ERROR_NO_UNICODE_TRANSLATION,
-            std::system_category());
-    }
-
-    return src;
-}
-
-
-/*
  *
  */
 std::size_t visus::dataverse::to_ascii(
