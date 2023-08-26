@@ -148,9 +148,10 @@ namespace test {
             auto fget = this->_connection.data_set(visus::dataverse::make_narrow_string(persistent_id, CP_UTF8));
             fget.wait();
             const auto rget = fget.get();
-            Logger::WriteMessage(rget.dump().c_str());
+            const auto rdump = rget.dump();
+            Logger::WriteMessage(rdump.c_str());
             Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), rget["status"].get<std::string>(), L"Response status", LINE_INFO());
-            Assert::AreEqual(persistent_id, rget["data"]["datasetPersistentId"].get<std::string>(), L"Retrieved the right data set", LINE_INFO());
+            Assert::AreEqual(persistent_id, rget["data"]["latestVersion"]["datasetPersistentId"].get<std::string>(), L"Retrieved the right data set", LINE_INFO());
         }
 
         TEST_METHOD(upload_file) {

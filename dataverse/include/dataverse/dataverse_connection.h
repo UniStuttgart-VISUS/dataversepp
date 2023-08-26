@@ -77,6 +77,18 @@ namespace dataverse {
         static const wchar_t *const draught_version;
 
         /// <summary>
+        /// The string used to identify the latest published version, e.g.
+        /// when retrieving <see cref="files" /> of data set.
+        /// </summary>
+        static const wchar_t *const latest_published_version;
+
+        /// <summary>
+        /// The string used to identify the latest version, e.g.
+        /// when retrieving <see cref="files" /> of data set.
+        /// </summary>
+        static const wchar_t *const latest_version;
+
+        /// <summary>
         /// Initialises a new instance.
         /// </summary>
         dataverse_connection(void);

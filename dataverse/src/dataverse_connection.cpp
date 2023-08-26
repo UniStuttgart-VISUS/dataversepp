@@ -44,6 +44,21 @@ const wchar_t *const visus::dataverse::dataverse_connection::draught_version
 
 
 /*
+ * visus::dataverse::dataverse_connection::latest_published_version
+ */
+const wchar_t *const
+visus::dataverse::dataverse_connection::latest_published_version
+    = L":latest-published";
+
+
+/*
+ * visus::dataverse::dataverse_connection::latest_version
+ */
+const wchar_t *const visus::dataverse::dataverse_connection::latest_version
+    = L":latest";
+
+
+/*
  * visus::dataverse::dataverse_connection::dataverse_connection
  */
 visus::dataverse::dataverse_connection::dataverse_connection(void)
