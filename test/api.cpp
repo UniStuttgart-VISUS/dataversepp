@@ -85,11 +85,9 @@ namespace test {
             Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
             Assert::AreEqual(visus::dataverse::to_utf8(L"visus"), json["data"]["alias"].get<std::string>(), L"Dataverse alias", LINE_INFO());
         }
-
         TEST_METHOD(post_data_set) {
             const auto title = visus::dataverse::to_utf8(L"Energy consumption of scientific visualisation and data visualisation algorithms") + this->_test_suffix;
             auto data_set = nlohmann::json({ });
-
 
             data_set["datasetVersion"]["license"]["name"] = "CC BY 4.0";
             data_set["datasetVersion"]["license"]["uri"] = "http://creativecommons.org/licenses/by/4.0/";
@@ -133,6 +131,26 @@ namespace test {
 
             Assert::IsTrue(visus::dataverse::wait_event(evt_done, 60 * 1000), L"Operation completed in reasonable time", LINE_INFO());
             visus::dataverse::destroy_event(evt_done);
+        }
+
+        TEST_METHOD(post_get_data_set) {
+            auto data_set = this->create_test_data_set(L"Post data set (std::future)");
+
+            auto fpost = this->_connection.post(L"/dataverses/visus/datasets", data_set);
+            fpost.wait();
+
+            const auto rpost = fpost.get();
+            Logger::WriteMessage(rpost.dump().c_str());
+            Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), rpost["status"].get<std::string>(), L"Response status", LINE_INFO());
+
+            const auto persistent_id = rpost["data"]["persistentId"].get<std::string>();
+
+            auto fget = this->_connection.data_set(visus::dataverse::make_narrow_string(persistent_id, CP_UTF8));
+            fget.wait();
+            const auto rget = fget.get();
+            Logger::WriteMessage(rget.dump().c_str());
+            Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), rget["status"].get<std::string>(), L"Response status", LINE_INFO());
+            Assert::AreEqual(persistent_id, rget["data"]["datasetPersistentId"].get<std::string>(), L"Retrieved the right data set", LINE_INFO());
         }
 
         TEST_METHOD(upload_file) {
@@ -200,6 +218,12 @@ namespace test {
 
         TEST_METHOD(upload_file_future) {
             const auto data_set = this->create_test_data_set(L"Upload Test (std::future)");
+            const auto description = nlohmann::json::object({
+                { "description", visus::dataverse::to_utf8(L"The test driver.")},
+                { "restrict", true },
+                { "categories", nlohmann::json::array({ "test", "future", "azure-devops" }) }
+            });
+            std::wstring id;
             std::wstring path;
             std::wstring persistent_id;
 
@@ -214,21 +238,26 @@ namespace test {
                 future.wait();
                 const auto json = future.get();
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
+                id = std::to_wstring(json["data"]["id"].get<std::uint32_t>());
                 persistent_id = visus::dataverse::convert<wchar_t>(json["data"]["persistentId"].get<std::string>(), CP_UTF8);
             }
 
             {
-                auto description = nlohmann::json::object({
-                    { "description", visus::dataverse::to_utf8(L"The test driver.")},
-                    { "restrict", true },
-                    { "categories", nlohmann::json::array({ "test", "future", "azure-devops" }) }
-                });
-
                 auto future = this->_connection.upload(persistent_id, path, description);
                 future.wait();
                 const auto json = future.get();
-                
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
+            }
+
+            {
+                auto future = this->_connection.files(id, visus::dataverse::dataverse_connection::draught_version);
+                future.wait();
+                const auto json = future.get();
+                const auto dump = json.dump();
+                Logger::WriteMessage(dump.c_str());
+                Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
+                Assert::IsTrue(json["data"].type() == nlohmann::json::value_t::array, L"Array", LINE_INFO());
+                Assert::AreEqual(std::size_t(1), json["data"].size(), L"Array of one", LINE_INFO());
             }
         }
 

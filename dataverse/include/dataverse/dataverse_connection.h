@@ -71,6 +71,12 @@ namespace dataverse {
             _In_opt_ void *);
 
         /// <summary>
+        /// The string used to identify a non-published draught version, e.g.
+        /// when retrieving <see cref="files" /> of data set.
+        /// </summary>
+        static const wchar_t *const draught_version;
+
+        /// <summary>
         /// Initialises a new instance.
         /// </summary>
         dataverse_connection(void);
@@ -160,6 +166,229 @@ namespace dataverse {
         /// data could not be alloctated.</exception>
         dataverse_connection& base_path(
             _In_ const const_narrow_string& base_path);
+
+        /// <summary>
+        /// Gets the description of a data set, which is required for instance
+        /// for enumerating the files in it.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set to get
+        /// the description of.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& data_set(_In_z_ const wchar_t *persistent_id,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        /// <summary>
+        /// Gets the description of a data set, which is required for instance
+        /// for enumerating the files in it.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set to get
+        /// the description of.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& data_set(
+            _In_ const const_narrow_string& persistent_id,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+#if defined(DATAVERSE_WITH_JSON)
+        /// <summary>
+        /// Gets the description of a data set, which is required for instance
+        /// for enumerating the files in it.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set to get
+        /// the description of.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline dataverse_connection& data_set(
+                _In_z_ const std::wstring& persistent_id,
+                _In_ const on_api_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context) {
+            const auto url = std::wstring(L"/datasets/:persistentId/?"
+                L"persistentId=") + persistent_id;
+            this->get(url.c_str(),
+                translate_api_reponse<nlohmann::json>,
+                static_cast<const void *>(on_response),
+                on_error,
+                context);
+            return *this;
+        }
+
+        /// <summary>
+        /// Gets the description of a data set, which is required for instance
+        /// for enumerating the files in it.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set to get
+        /// the description of.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline dataverse_connection& data_set(
+                _In_ const const_narrow_string& persistent_id,
+                _In_ const on_api_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context) {
+            const auto url = std::wstring(L"/datasets/:persistentId/?"
+                L"persistentId=") + convert<wchar_t>(persistent_id);
+            this->get(url.c_str(),
+                translate_api_reponse<nlohmann::json>,
+                static_cast<const void *>(on_response),
+                on_error,
+                context);
+            return *this;
+        }
+#endif /* defined(DATAVERSE_WITH_JSON) */
+
+#if defined(DATAVERSE_WITH_JSON)
+        /// <summary>
+        /// Gets a future for the data set with the given persistent ID.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set to get
+        /// the description of.</param>
+        /// <returns>A future for the response.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory
+        inline std::future<nlohmann::json> data_set(
+                _In_z_ const std::wstring& persistent_id) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const std::wstring&,
+                const on_api_response_type,
+                const on_error_type,
+                void *);
+            return invoke_async<nlohmann::json>(
+                static_cast<actual_type>(&dataverse_connection::data_set),
+                *this, persistent_id);
+        }
+
+        /// <summary>
+        /// Gets a future for the data set with the given persistent ID.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set to get
+        /// the description of.</param>
+        /// <returns>A future for the response.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<nlohmann::json> data_set(
+                _In_ const const_narrow_string& persistent_id) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const const_narrow_string&,
+                const on_api_response_type,
+                const on_error_type,
+                void *);
+            return invoke_async<nlohmann::json>(
+                static_cast<actual_type>(&dataverse_connection::data_set),
+                *this, persistent_id);
+        }
+#else /* defined(DATAVERSE_WITH_JSON) */
+        /// <summary>
+        /// Gets a future for the data set with the given persistent ID.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set to get
+        /// the description of.</param>
+        /// <returns>A future for the response.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory
+        inline std::future<blob> data_set(
+                _In_z_ const std::wstring& persistent_id) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const wchar_t *,
+                const on_response_type,
+                const on_error_type,
+                void *);
+            return invoke_async<blob>(
+                static_cast<actual_type>(&dataverse_connection::data_set),
+                *this, persistent_id.c_str());
+        }
+
+        /// <summary>
+        /// Gets a future for the data set with the given persistent ID.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the data set to get
+        /// the description of.</param>
+        /// <returns>A future for the response.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<blob> data_set(
+                _In_ const const_narrow_string& persistent_id) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const const_narrow_string&,
+                const on_response_type,
+                const on_error_type,
+                void *);
+            return invoke_async<blob>(
+                static_cast<actual_type>(&dataverse_connection::data_set),
+                *this, persistent_id);
+        }
+#endif /* defined(DATAVERSE_WITH_JSON) */
 
         /// <summary>
         /// Performs a &quot;direct upload&quot; of a data set to the S3
@@ -542,6 +771,272 @@ namespace dataverse {
                 *this, persistent_id, path, mime_type, description, directory,
                 categories, restricted);
         }
+
+        /// <summary>
+        /// Gets the files in the data set with the given ID.
+        /// </summary>
+        /// <param name="id">The ID of the data set, which is unfortunately not
+        /// the persistent identifier, but the primary key, which can be
+        /// retrieved using <see cref="data_set" /> from the persistent
+        /// identifier.</param>
+        /// <param name="version">The version of the data set to retrieve, which
+        /// is typically something like &quot;1.0&quot;</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& files(_In_z_ const wchar_t *id,
+            _In_z_ const wchar_t *version,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+        /// <summary>
+        /// Gets the files in the data set with the given ID.
+        /// </summary>
+        /// <param name="id">The ID of the data set, which is unfortunately not
+        /// the persistent identifier, but the primary key, which can be
+        /// retrieved using <see cref="data_set" /> from the persistent
+        /// identifier.</param>
+        /// <param name="version">The version of the data set to retrieve, which
+        /// is typically something like &quot;1.0&quot;</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& files(_In_ const const_narrow_string& id,
+            _In_ const const_narrow_string& version,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context);
+
+#if defined(DATAVERSE_WITH_JSON)
+        /// <summary>
+        /// Gets the files in the data set with the given ID.
+        /// </summary>
+        /// <param name="id">The ID of the data set, which is unfortunately not
+        /// the persistent identifier, but the primary key, which can be
+        /// retrieved using <see cref="data_set" /> from the persistent
+        /// identifier.</param>
+        /// <param name="version">The version of the data set to retrieve, which
+        /// is typically something like &quot;1.0&quot;</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline dataverse_connection& files(
+                _In_z_ const std::wstring& id,
+                _In_z_ const std::wstring& version,
+                _In_ const on_api_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context) {
+            const auto url = std::wstring(L"/datasets/") + id
+                + std::wstring(L"/versions/") + version
+                + std::wstring(L"/files");
+            this->get(url.c_str(),
+                translate_api_reponse<nlohmann::json>,
+                static_cast<const void *>(on_response),
+                on_error,
+                context);
+            return *this;
+        }
+
+        /// <summary>
+        /// Gets the files in the data set with the given ID.
+        /// </summary>
+        /// <param name="id">The ID of the data set, which is unfortunately not
+        /// the persistent identifier, but the primary key, which can be
+        /// retrieved using <see cref="data_set" /> from the persistent
+        /// identifier.</param>
+        /// <param name="version">The version of the data set to retrieve, which
+        /// is typically something like &quot;1.0&quot;</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline dataverse_connection& files(
+                _In_ const const_narrow_string& id,
+                _In_ const const_narrow_string& version,
+                _In_ const on_api_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context) {
+            const auto url = std::wstring(L"/datasets/") + convert<wchar_t>(id)
+                + std::wstring(L"/versions/") + convert<wchar_t>(version)
+                + std::wstring(L"/files");
+            this->get(url.c_str(),
+                translate_api_reponse<nlohmann::json>,
+                static_cast<const void *>(on_response), 
+                on_error,
+                context);
+            return *this;
+        }
+#endif /* defined(DATAVERSE_WITH_JSON) */
+
+#if defined(DATAVERSE_WITH_JSON)
+        /// <summary>
+        /// Gets a future for the files in the data set with the given ID.
+        /// </summary>
+        /// <param name="id">The ID of the data set, which is unfortunately not
+        /// the persistent identifier, but the primary key, which can be
+        /// retrieved using <see cref="data_set" /> from the persistent
+        /// identifier.</param>
+        /// <param name="version">The version of the data set to retrieve, which
+        /// is typically something like &quot;1.0&quot;</param>
+        /// <returns>A future for the files.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<nlohmann::json> files(
+                _In_z_ const std::wstring& id,
+                _In_z_ const std::wstring& version) {
+            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+                const std::wstring&,
+                const std::wstring&,
+                const on_api_response_type,
+                const on_error_type,
+                void *);
+            return invoke_async<nlohmann::json>(
+                static_cast<actual_type>(&dataverse_connection::files),
+                *this, id, version);
+        }
+
+        /// <summary>
+        /// Gets a future for the files in the data set with the given ID.
+        /// </summary>
+        /// <param name="id">The ID of the data set, which is unfortunately not
+        /// the persistent identifier, but the primary key, which can be
+        /// retrieved using <see cref="data_set" /> from the persistent
+        /// identifier.</param>
+        /// <param name="version">The version of the data set to retrieve, which
+        /// is typically something like &quot;1.0&quot;</param>
+        /// <returns>A future for the files.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<nlohmann::json> files(
+                _In_ const const_narrow_string& id,
+                _In_ const const_narrow_string& version) {
+            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+                const const_narrow_string&,
+                const const_narrow_string&,
+                const on_api_response_type,
+                const on_error_type,
+                void *);
+            return invoke_async<nlohmann::json>(
+                static_cast<actual_type>(&dataverse_connection::files),
+                *this, id, version);
+        }
+#else /* defined(DATAVERSE_WITH_JSON) */
+        /// <summary>
+        /// Gets a future for the files in the data set with the given ID.
+        /// </summary>
+        /// <param name="id">The ID of the data set, which is unfortunately not
+        /// the persistent identifier, but the primary key, which can be
+        /// retrieved using <see cref="data_set" /> from the persistent
+        /// identifier.</param>
+        /// <param name="version">The version of the data set to retrieve, which
+        /// is typically something like &quot;1.0&quot;</param>
+        /// <returns>A future for the files.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<blob> files(
+                _In_z_ const std::wstring& id,
+                _In_z_ const std::wstring& version) {
+            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+                const wchar_t *,
+                const wchar_t *,
+                const on_response_type,
+                const on_error_type,
+                void *);
+            return invoke_async<blob>(
+                static_cast<actual_type>(&dataverse_connection::files),
+                *this, id.c_str(), version.c_str());
+        }
+
+        /// <summary>
+        /// Gets a future for the files in the data set with the given ID.
+        /// </summary>
+        /// <param name="id">The ID of the data set, which is unfortunately not
+        /// the persistent identifier, but the primary key, which can be
+        /// retrieved using <see cref="data_set" /> from the persistent
+        /// identifier.</param>
+        /// <param name="version">The version of the data set to retrieve, which
+        /// is typically something like &quot;1.0&quot;</param>
+        /// <returns>A future for the files.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<blob> files(
+                _In_ const const_narrow_string& id,
+                _In_ const const_narrow_string& version) {
+            typedef dataverse_connection &(dataverse_connection:: *actual_type)(
+                const const_narrow_string&,
+                const const_narrow_string&,
+                const on_response_type,
+                const on_error_type,
+                void *);
+            return invoke_async<blob>(
+                static_cast<actual_type>(&dataverse_connection::files),
+                *this, id, version);
+        }
+#endif /* defined(DATAVERSE_WITH_JSON) */
 
         /// <summary>
         /// Retrieves the resource at the specified location using a GET

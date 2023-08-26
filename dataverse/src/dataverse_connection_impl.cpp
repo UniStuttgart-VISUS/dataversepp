@@ -231,6 +231,9 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
                     continue;
                 }
 
+                assert(ctx != nullptr);
+                assert(ctx->on_error != nullptr);
+                assert(ctx->on_response != nullptr);
                 if (msg->data.result == CURLE_OK) {
                     // Request succeeded, but we need to check the HTTP response
                     // to report API errors.
@@ -239,10 +242,11 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
                         CURLINFO_RESPONSE_CODE, &code);
                     if (status == CURLE_OK) {
                         if (code < 400) {
-                            // This was a success.
+                            // This was a total success.
                             ctx->on_response(ctx->response, ctx->client_data);
                         } else {
-                            // cURL succeeded, but the request failed.
+                            // cURL succeeded, but the request failed on a
+                            // protcol or application level.
                             std::string msg("HTTP ");
                             msg += std::to_string(code);
                             invoke_handler(ctx->on_error,
@@ -263,7 +267,7 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
                     // Request failed.
                     std::system_error e(msg->data.result, curl_category());
                     invoke_handler(ctx->on_error, e, ctx->client_data);
-                }
+                } /* if (msg->data.result == CURLE_OK) */
 
                 // Recycle the context including the cURL handle and input data.
                 io_context::recycle(std::move(ctx));
