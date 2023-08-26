@@ -11,6 +11,7 @@
 
 #include <cassert>
 #include <stdexcept>
+#include <string>
 
 #include "dataverse/convert.h"
 
@@ -209,7 +210,7 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
             }
 
             if (status != CURLM_OK) {
-                // If the poll failed, there is nothing left to do. Cf. 
+                // If the poll failed, there is nothing left to do. Cf.
                 // https://curl.se/libcurl/c/multi-app.html
                 remaining = 0;
             }
@@ -218,26 +219,56 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
         // Check how the transfers went.
         while ((msg = ::curl_multi_info_read(this->curlm.get(), &remaining))
                 != nullptr) {
-            if (msg->msg == CURLMSG::CURLMSG_DONE) {
+            if (msg->msg == CURLMSG_DONE) {
                 auto ctx = io_context::get(msg->easy_handle);
-                // TODO curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+                if (!ctx) {
+                    // The context is invalid, which should never happen as only
+                    // we can add requests to 'curlm' and all code in the
+                    // connection class must add the context as private data.
+                    // Nevertheless, we do not want the I/O thread to crash in
+                    // release builds, so we just ignore it.
+                    assert(false);
+                    continue;
+                }
 
-                if (ctx) {
-                    if (msg->data.result == CURLE_OK) {
-                        ctx->on_response(ctx->response, ctx->client_data);
+                if (msg->data.result == CURLE_OK) {
+                    // Request succeeded, but we need to check the HTTP response
+                    // to report API errors.
+                    long code = 0;
+                    auto status = ::curl_easy_getinfo(msg->easy_handle,
+                        CURLINFO_RESPONSE_CODE, &code);
+                    if (status == CURLE_OK) {
+                        if (code < 400) {
+                            // This was a success.
+                            ctx->on_response(ctx->response, ctx->client_data);
+                        } else {
+                            // cURL succeeded, but the request failed.
+                            std::string msg("HTTP ");
+                            msg += std::to_string(code);
+                            invoke_handler(ctx->on_error,
+                                msg.c_str(),
+                                "HTTP",
+                                dataversepp_code_page,
+                                ctx->client_data);
+                        }
                     } else {
-                        std::system_error e(msg->data.result, curl_category());
+                        // Failed to retrieve the HTTP code, which should not
+                        // happen for the requests from our connection objects,
+                        // but we still report that to the user.
+                        std::system_error e(status, curl_category());
                         invoke_handler(ctx->on_error, e, ctx->client_data);
                     }
+
+                } else {
+                    // Request failed.
+                    std::system_error e(msg->data.result, curl_category());
+                    invoke_handler(ctx->on_error, e, ctx->client_data);
                 }
 
                 // Recycle the context including the cURL handle and input data.
                 io_context::recycle(std::move(ctx));
             } /* if (msg->msg == CURLMSG_DONE) */
-        }
-
-        // Wait for new I/O being queued or the thread is asked to exit.
-        //wait_event(this->curlm_event, 1000);
+        } /*  while ((msg = ::curl_multi_info_read(... */
     } /* while (this->curlm_running.load()) */
 
     assert(!this->curlm_running.load());

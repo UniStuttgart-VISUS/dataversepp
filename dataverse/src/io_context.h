@@ -231,6 +231,23 @@ namespace detail {
         void delete_request(void);
 
         /// <summary>
+        /// Runs <paramref name="function" /> in a try/catch and, in case of an
+        /// error, invokes the error handler.
+        /// </summary>
+        template<class TFunction>
+        inline void handle_errors(TFunction function) {
+            try {
+                function();
+            } catch (std::system_error ex) {
+                invoke_handler(this->on_error, ex, this->client_data);
+            } catch (std::exception &ex) {
+                invoke_handler(this->on_error, ex, this->client_data);
+            } catch (...) {
+                invoke_handler(this->on_error, this->client_data);
+            }
+        }
+
+        /// <summary>
         /// Sets a cURL option on the handle of the context.
         /// </summary>
         template<class... TArgs>
