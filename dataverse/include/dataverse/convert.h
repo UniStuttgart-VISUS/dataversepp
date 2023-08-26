@@ -184,11 +184,7 @@ namespace dataverse {
     /// <returns></returns>
     template<class TDstChar>
     inline std::basic_string<TDstChar> from_utf8(_In_z_ const char *src) {
-#if defined(_WIN32)
-        return convert<TDstChar>(src, 0,  CP_UTF8);
-#else /* defined(_WIN32) */
-        return convert<TDstChar>(src, 0, "UTF-8");
-#endif /* defined(_WIN32) */
+        return convert<TDstChar>(src, 0, utf8_code_page);
     }
 
     /// <summary>
@@ -254,7 +250,7 @@ namespace dataverse {
     /// <c>nullptr</c>.</exception>
     /// <exception cref="std::system_error">If the conversion failed.
     /// </exception>
-    inline std::string to_ascii(_In_z_ const const_narrow_string& src) {
+    inline std::string to_ascii(_In_ const const_narrow_string& src) {
         return to_ascii(src, src.code_page());
     }
 
@@ -275,17 +271,11 @@ namespace dataverse {
     /// <c>nullptr</c>.</exception>
     /// <exception cref="std::system_error">If the conversion failed.
     /// </exception>
-    inline std::size_t DATAVERSE_API to_ascii(
-            _Out_writes_to_opt_(cnt_dst, return) char *dst,
-            _In_ const std::size_t cnt_dst,
-            _In_reads_or_z_(cnt_src) const wchar_t *src,
-            _In_ const std::size_t cnt_src) {
-#if defined(_WIN32)
-        return convert(dst, cnt_dst, src, cnt_src, CP_ACP);
-#else /* defined(_WIN32) */
-        return convert(dst, cnt_dst, src, cnt_src, "ASCII");
-#endif /* defined(_WIN32) */
-    }
+    std::size_t DATAVERSE_API to_ascii(
+        _Out_writes_to_opt_(cnt_dst, return) char *dst,
+        _In_ const std::size_t cnt_dst,
+        _In_reads_or_z_(cnt_src) const wchar_t *src,
+        _In_ const std::size_t cnt_src);
 
     /// <summary>
     /// Converts a wide string using the platform's default code page.
@@ -297,11 +287,9 @@ namespace dataverse {
     /// <exception cref="std::system_error">If the conversion failed.
     /// </exception>
     inline std::string to_ascii(_In_z_ const wchar_t *src) {
-#if defined(_WIN32)
-        return convert<char>(src, 0, CP_ACP);
-#else /* defined(_WIN32) */
-        return convert<char>(src, 0, "ASCII");
-#endif /* defined(_WIN32) */
+        std::vector<char> buffer(to_ascii(nullptr, 0, src, 0));
+        auto cnt = to_ascii(buffer.data(), buffer.size(), src, 0);
+        return std::string(buffer.data(), buffer.data() + cnt - 1);
     }
 
     /// <summary>
@@ -333,11 +321,8 @@ namespace dataverse {
     /// </exception>
     inline std::string to_ansi(_In_z_ const char *src,
             _In_ const narrow_string::code_page_type code_page) {
-#if defined(_WIN32)
-        return convert<char>(convert<wchar_t>(src, 0, code_page), CP_ACP);
-#else /* defined(_WIN32) */
-        return convert<char>(convert<wchar_t>(src, 0, code_page), "CP1252");
-#endif /* defined(_WIN32) */
+        return convert<char>(convert<wchar_t>(src, 0, code_page),
+            ansi_code_page);
     }
 
     /// <summary>
@@ -349,7 +334,7 @@ namespace dataverse {
     /// <c>nullptr</c>.</exception>
     /// <exception cref="std::system_error">If the conversion failed.
     /// </exception>
-    inline std::string to_ansi(_In_z_ const const_narrow_string& src) {
+    inline std::string to_ansi(_In_ const const_narrow_string& src) {
         return to_ansi(src, src.code_page());
     }
 
@@ -363,26 +348,36 @@ namespace dataverse {
     /// <exception cref="std::system_error">If the conversion failed.
     /// </exception>
     inline std::string to_ansi(_In_z_ const wchar_t *src) {
-#if defined(_WIN32)
-        return convert<char>(src, 0, CP_ACP);
-#else /* defined(_WIN32) */
-        return convert<char>(src, 0, "CP1252");
-#endif /* defined(_WIN32) */
+        return convert<char>(src, 0, ansi_code_page);
     }
 
     /// <summary>
     /// Converts the given string to ANSI.
     /// </summary>
-    /// <typeparam name="TSrcChar"></typeparam>
-    /// <typeparam name="TSrcTraits"></typeparam>
-    /// <typeparam name="TSrcAlloc"></typeparam>
+    /// <typeparam name="TTraits"></typeparam>
+    /// <typeparam name="TAlloc"></typeparam>
     /// <param name="src"></param>
     /// <exception cref="std::system_error">If the conversion failed.
     /// </exception>
-    template<class TSrcChar, class TSrcTraits, class TSrcAlloc>
-    inline std::string to_ansi(
-            _In_ const std::basic_string<TSrcChar, TSrcTraits, TSrcAlloc>& src) {
+    template<class TSrcTraits, class TSrcAlloc>
+    inline std::string to_ansi(_In_ const std::basic_string<wchar_t,
+            TSrcTraits, TSrcAlloc>& src) {
         return to_ansi(src.c_str());
+    }
+
+    /// <summary>
+    /// Converts the given string to ANSI.
+    /// </summary>
+    /// <typeparam name="TTraits"></typeparam>
+    /// <typeparam name="TAlloc"></typeparam>
+    /// <param name="src"></param>
+    /// <exception cref="std::system_error">If the conversion failed.
+    /// </exception>
+    template<class TSrcTraits, class TSrcAlloc>
+    inline std::string to_ansi(_In_ const std::basic_string<char,
+            TSrcTraits, TSrcAlloc>& src,
+            _In_ const narrow_string::code_page_type code_page) {
+        return to_ansi(src.c_str(), code_page);
     }
 
     /// <summary>
@@ -393,11 +388,8 @@ namespace dataverse {
     /// <returns></returns>
     inline std::string to_utf8(_In_z_ const char *src,
             _In_ const narrow_string::code_page_type code_page) {
-#if defined(_WIN32)
-        return convert<char>(convert<wchar_t>(src, 0, code_page), CP_UTF8);
-#else /* defined(_WIN32) */
-        return convert<char>(convert<wchar_t>(src, 0, code_page), "UTF-8");
-#endif /* defined(_WIN32) */
+        return convert<char>(convert<wchar_t>(src, 0, code_page),
+            utf8_code_page);
     }
 
     /// <summary>
@@ -413,14 +405,34 @@ namespace dataverse {
     /// <summary>
     /// Converts the given UTF-16 string to UTF-8.
     /// </summary>
+    /// <param name="dst">A buffer to receive the output that can hold at least
+    /// <paramref name="cnt_dst" /> characters. This can be <c>nullptr</c> if
+    /// <paramref name="cnt_dst" /> is zero.</param>
+    /// <param name="cnt_dst">The number of elements that can be stored to
+    /// <paramref name="dst" />.</param>
+    /// <param name="src">The source string.</param>
+    /// <param name="cnt_src">The length of the source string, which can be zero
+    /// if <paramref name="src" /> is null-terminated.</param>
+    /// <returns>The number of characters required for the output string,
+    /// including the terminating zero.</returns>
+    /// <exception cref="std::invalid_argument">If <paramref name="src" /> is
+    /// <c>nullptr</c>.</exception>
+    /// <exception cref="std::system_error">If the conversion failed.
+    /// </exception>
+    inline std::size_t to_utf8(_Out_writes_to_opt_(cnt_dst, return) char *dst,
+            _In_ std::size_t cnt_dst,
+            _In_reads_or_z_(cnt_src) const wchar_t *src,
+            _In_ const std::size_t cnt_src) {
+        return convert(dst, cnt_dst, src, cnt_src, utf8_code_page);
+    }
+
+    /// <summary>
+    /// Converts the given UTF-16 string to UTF-8.
+    /// </summary>
     /// <param name="src"></param>
     /// <returns></returns>
     inline std::string to_utf8(_In_z_ const wchar_t *src) {
-#if defined(_WIN32)
-        return convert<char>(src, 0, CP_UTF8);
-#else /* defined(_WIN32) */
-        return convert<char>(src, 0, "UTF-8");
-#endif /* defined(_WIN32) */
+        return convert<char>(src, 0, utf8_code_page);
     }
 
     /// <summary>

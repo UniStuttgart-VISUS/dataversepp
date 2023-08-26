@@ -1033,7 +1033,7 @@ namespace dataverse {
             ::memcpy(octets, dump.data(), dump.size());
             this->post(resource,
                 octets, dump.size(), deleter,
-                const_narrow_string("application/json", default_code_page),
+                const_narrow_string("application/json", dataversepp_code_page),
                 on_response,
                 nullptr,
                 on_error,
@@ -1122,7 +1122,7 @@ namespace dataverse {
             };
             this->post(resource,
                 octets, dump.size(), deleter,
-                const_narrow_string("application/json", default_code_page),
+                const_narrow_string("application/json", dataversepp_code_page),
                 translate_api_reponse<nlohmann::json>,
                 static_cast<const void *>(on_response),
                 on_error,

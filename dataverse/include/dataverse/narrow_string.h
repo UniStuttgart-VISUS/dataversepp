@@ -376,14 +376,33 @@ namespace dataverse {
         return retval;
     }
 
-    /// <summary>
-    /// The default code page used for hard-coded strings.
-    /// </summary>
-    constexpr const narrow_string::code_page_type default_code_page
+
 #if defined(_WIN32)
-        = CP_OEMCP;
+    /// <summary>
+    /// The constant identifiyng the ANSI code page.
+    /// </summary>
+    constexpr const unsigned int ansi_code_page = CP_ACP;
 #else /* defined(_WIN32) */
-        = nullptr;
+    constexpr const char *const ansi_code_page = "CP1252";
+#endif /* defined(_WIN32) */
+
+#if defined(_WIN32)
+    /// <summary>
+    /// The default code page used for hard-coded strings within the dataverse++
+    /// library.
+    /// </summary>
+    constexpr const unsigned int dataversepp_code_page = CP_OEMCP;
+#else /* defined(_WIN32) */
+    constexpr const char *const dataversepp_code_page = nullptr;
+#endif /* defined(_WIN32) */
+
+#if defined(_WIN32)
+    /// <summary>
+    /// The constant identifiyng the UTF-8 encoding.
+    /// </summary>
+    constexpr const unsigned int utf8_code_page = CP_UTF8;
+#else /* defined(_WIN32) */
+    constexpr const char *const utf8_code_page = "UTF-8";
 #endif /* defined(_WIN32) */
 
 } /* namespace dataverse */
