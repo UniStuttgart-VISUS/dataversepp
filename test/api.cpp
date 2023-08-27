@@ -382,6 +382,8 @@ namespace test {
             auto content = future.get();
         }
 
+        // Note: the following is really, really slow, becasue the file is huge.
+#if false
         TEST_METHOD(download_persistent_id_table) {
             visus::dataverse::dataverse_connection dv;
             auto future = dv.base_path(L"https://darus.uni-stuttgart.de/api")
@@ -389,6 +391,7 @@ namespace test {
             future.wait();
             auto content = future.get();
         }
+#endif
 
         TEST_METHOD(get_persistent_id_binary) {
             visus::dataverse::dataverse_connection dv;
