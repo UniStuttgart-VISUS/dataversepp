@@ -39,13 +39,13 @@ namespace test {
             this->_connection.get(visus::dataverse::make_narrow_string("/dataverses/visus", CP_ACP),
                     [](const visus::dataverse::blob &r, void *e) {
                 const auto response = std::string(r.as<char>(), r.size());
-                Logger::WriteMessage(response.c_str());
+                log_response("GET /dataverses/visus", response);
                 const auto json = nlohmann::json::parse(response);
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
                 Assert::AreEqual(visus::dataverse::to_utf8(L"visus"), json["data"]["alias"].get<std::string>(), L"Dataverse alias", LINE_INFO());
                 visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
             }, [](const int c, const char *m, const char *t, const visus::dataverse::narrow_string::code_page_type p, void *e) {
-                Logger::WriteMessage(m);
+                log_response("GET /dataverses/visus", m);
                 visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
                 Assert::Fail(L"Error callback invoked", LINE_INFO());
             }, &evt_done);
@@ -60,13 +60,13 @@ namespace test {
             this->_connection.get(L"/dataverses/visus",
                     [](const visus::dataverse::blob& r, void *e) {
                 const auto response = std::string(r.as<char>(), r.size());
-                Logger::WriteMessage(response.c_str());
+                log_response("GET /dataverses/visus", response);
                 const auto json = nlohmann::json::parse(response);
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
                 Assert::AreEqual(visus::dataverse::to_utf8(L"visus"), json["data"]["alias"].get<std::string>(), L"Dataverse alias", LINE_INFO());
                 visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
             }, [](const int c, const char *m, const char *t, const visus::dataverse::narrow_string::code_page_type p, void *e) {
-                Logger::WriteMessage(m);
+                log_response("GET /dataverses/visus", m);
                 visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
                 Assert::Fail(L"Error callback invoked", LINE_INFO());
             }, &evt_done);
@@ -80,11 +80,12 @@ namespace test {
             future.wait();
             const auto response = future.get();
             const auto json_text = std::string(response.as<char>(), response.size());
-            Logger::WriteMessage(json_text.c_str());
+            log_response("GET /dataverses/visus", json_text);
             const auto json = nlohmann::json::parse(json_text);
             Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
             Assert::AreEqual(visus::dataverse::to_utf8(L"visus"), json["data"]["alias"].get<std::string>(), L"Dataverse alias", LINE_INFO());
         }
+
         TEST_METHOD(post_data_set) {
             const auto title = visus::dataverse::to_utf8(L"Energy consumption of scientific visualisation and data visualisation algorithms") + this->_test_suffix;
             auto data_set = nlohmann::json({ });
@@ -118,13 +119,13 @@ namespace test {
                 data_set,
                 [](const visus::dataverse::blob& r, void *e) {
                     const auto response = std::string(r.as<char>(), r.size());
-                    Logger::WriteMessage(response.c_str());
+                    log_response("POST /dataverses/visus/datasets", response);
                     const auto json = nlohmann::json::parse(response);
                     Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
                     visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
                     Assert::IsTrue(true, L"Response callback invoked", LINE_INFO());
                 } , [](const int c, const char *m, const char *t, const visus::dataverse::narrow_string::code_page_type p, void *e) {
-                    Logger::WriteMessage(m);
+                    log_response("POST /dataverses/visus/datasets", m);
                     visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
                     Assert::Fail(L"Error callback invoked", LINE_INFO());
                 }, &evt_done);
@@ -140,7 +141,7 @@ namespace test {
             fpost.wait();
 
             const auto rpost = fpost.get();
-            Logger::WriteMessage(rpost.dump().c_str());
+            log_response("POST /dataverses/visus/datasets", rpost.dump());
             Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), rpost["status"].get<std::string>(), L"Response status", LINE_INFO());
 
             const auto persistent_id = rpost["data"]["persistentId"].get<std::string>();
@@ -148,8 +149,7 @@ namespace test {
             auto fget = this->_connection.data_set(visus::dataverse::make_narrow_string(persistent_id, CP_UTF8));
             fget.wait();
             const auto rget = fget.get();
-            const auto rdump = rget.dump();
-            Logger::WriteMessage(rdump.c_str());
+            log_response("GET new data set", rget.dump());
             Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), rget["status"].get<std::string>(), L"Response status", LINE_INFO());
             Assert::AreEqual(persistent_id, rget["data"]["latestVersion"]["datasetPersistentId"].get<std::string>(), L"Retrieved the right data set", LINE_INFO());
         }
@@ -177,7 +177,7 @@ namespace test {
                     auto cc = static_cast<decltype(context) *>(c);
 
                     const auto response = std::string(r.as<char>(), r.size());
-                    Logger::WriteMessage(response.c_str());
+                    log_response("POST /dataverses/visus/datasets", response);
                     const auto json = nlohmann::json::parse(response);
                     Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
 
@@ -193,14 +193,13 @@ namespace test {
                         [](const nlohmann::json& r, void *c) {
                             auto cc = static_cast<decltype(context) *>(c);
                             auto response = r.dump();
-                            Logger::WriteMessage(response.c_str());
-
+                            log_response("POST file", response);
                             visus::dataverse::set_event(cc->evt_done);
                             Assert::IsTrue(true, L"Upload succeeded", LINE_INFO());
                         },
                         [](const int, const char *m, const char *, const visus::dataverse::narrow_string::code_page_type, void *c) {
                             auto cc = static_cast<decltype(context) *>(c);
-                            Logger::WriteMessage(m);
+                            log_response("POST file", m);
                             visus::dataverse::set_event(cc->evt_done);
                             Assert::Fail(L"Error callback invoked for upload", LINE_INFO());
                         },
@@ -208,7 +207,7 @@ namespace test {
                     
                 }, [](const int, const char *m, const char *, const visus::dataverse::narrow_string::code_page_type, void *c) {
                     auto cc = static_cast<decltype(context) *>(c);
-                    Logger::WriteMessage(m);
+                    log_response("POST /dataverses/visus/datasets", m);
                     visus::dataverse::set_event(cc->evt_done);
                     Assert::Fail(L"Error callback invoked for data set creation", LINE_INFO());
                 }, &context);
@@ -295,9 +294,8 @@ namespace test {
             this->_connection.post(L"/dataverses/visus_directupload/datasets", data_set,
                 [](const visus::dataverse::blob& r, void *c) {
                     auto cc = static_cast<decltype(context) *>(c);
-
                     const auto response = std::string(r.as<char>(), r.size());
-                    Logger::WriteMessage(response.c_str());
+                    log_response("POST /dataverses/visus_directupload/datasets", response);
                     const auto json = nlohmann::json::parse(response);
                     Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
 
@@ -314,14 +312,13 @@ namespace test {
                             auto cc = static_cast<decltype(context) *>(c);
 
                             const auto response = std::string(r.as<char>(), r.size());
-                            Logger::WriteMessage(response.c_str());
-
+                            log_response("POST direct file", response);
                             visus::dataverse::set_event(cc->evt_done);
                             Assert::IsTrue(true, L"Upload succeeded", LINE_INFO());
                         },
                         [](const int, const char *m, const char *, const visus::dataverse::narrow_string::code_page_type, void *c) {
                             auto cc = static_cast<decltype(context) *>(c);
-                            Logger::WriteMessage(m);
+                            log_response("POST direct file", m);
                             visus::dataverse::set_event(cc->evt_done);
                             Assert::Fail(L"Error callback invoked for upload", LINE_INFO());
                         },
@@ -353,8 +350,8 @@ namespace test {
                 auto future = this->_connection.post(L"/dataverses/visus_directupload/datasets", data_set);
                 future.wait();
                 const auto json = future.get();
+                log_response("POST /dataverses/visus_directupload/datasets", json.dump());
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
-
                 persistent_id = visus::dataverse::convert<wchar_t>(json["data"]["persistentId"].get<std::string>(), CP_UTF8);
             }
 
@@ -369,6 +366,7 @@ namespace test {
                 future.wait();
                 const auto response = future.get();
                 const auto json_text = std::string(response.as<char>(), response.size());
+                log_response("POST direct file", json_text);
                 const auto json = nlohmann::json::parse(json_text);
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
             }
@@ -402,6 +400,11 @@ namespace test {
         }
 
     private:
+
+        static inline void log_response(_In_z_ const char *request, _In_ const std::string& response) {
+            const auto m = std::string(request) + ": " + response + "\r\n";
+            Logger::WriteMessage(m.c_str());
+        }
 
         inline nlohmann::json create_test_data_set(const std::wstring& title) {
             const auto specific_title = visus::dataverse::to_utf8(title) + this->_test_suffix;
