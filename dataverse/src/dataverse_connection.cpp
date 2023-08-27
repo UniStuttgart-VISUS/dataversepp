@@ -219,12 +219,12 @@ visus::dataverse::dataverse_connection::data_set(
  * visus::dataverse::dataverse_connection::files
  */
 visus::dataverse::dataverse_connection&
-visus::dataverse::dataverse_connection::files(_In_z_ const wchar_t *id,
+visus::dataverse::dataverse_connection::files(_In_z_ const std::uint64_t id,
         _In_z_ const wchar_t *version,
         _In_ const on_response_type on_response,
         _In_ const on_error_type on_error,
         _In_opt_ void *context) {
-    const auto url = std::wstring(L"/datasets/") + id
+    const auto url = std::wstring(L"/datasets/") + std::to_wstring(id)
         + std::wstring(L"/versions/") + version
         + std::wstring(L"/files");
     this->get(url.c_str(), on_response, nullptr, on_error, context);
@@ -236,13 +236,12 @@ visus::dataverse::dataverse_connection::files(_In_z_ const wchar_t *id,
  * visus::dataverse::dataverse_connection::files
  */
 visus::dataverse::dataverse_connection&
-visus::dataverse::dataverse_connection::files(
-        _In_ const const_narrow_string& id,
+visus::dataverse::dataverse_connection::files(_In_ const std::uint64_t id,
         _In_ const const_narrow_string& version,
         _In_ const on_response_type on_response,
         _In_ const on_error_type on_error,
         _In_opt_ void *context) {
-    const auto url = std::wstring(L"/datasets/") + convert<wchar_t>(id)
+    const auto url = std::wstring(L"/datasets/") + std::to_wstring(id)
         + std::wstring(L"/versions/") + convert<wchar_t>(version)
         + std::wstring(L"/files");
     this->get(url.c_str(), on_response, nullptr, on_error, context);

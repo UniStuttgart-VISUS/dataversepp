@@ -252,7 +252,7 @@ namespace dataverse {
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
         inline dataverse_connection& data_set(
-                _In_z_ const std::wstring& persistent_id,
+                _In_ const std::wstring& persistent_id,
                 _In_ const on_api_response_type on_response,
                 _In_ const on_error_type on_error,
                 _In_opt_ void *context) {
@@ -316,7 +316,7 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory
         inline std::future<nlohmann::json> data_set(
-                _In_z_ const std::wstring& persistent_id) {
+                _In_ const std::wstring& persistent_id) {
             typedef dataverse_connection& (dataverse_connection:: *actual_type)(
                 const std::wstring&,
                 const on_api_response_type,
@@ -365,7 +365,7 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory
         inline std::future<blob> data_set(
-                _In_z_ const std::wstring& persistent_id) {
+                _In_ const std::wstring& persistent_id) {
             typedef dataverse_connection& (dataverse_connection:: *actual_type)(
                 const wchar_t *,
                 const on_response_type,
@@ -792,7 +792,9 @@ namespace dataverse {
         /// retrieved using <see cref="data_set" /> from the persistent
         /// identifier.</param>
         /// <param name="version">The version of the data set to retrieve, which
-        /// is typically something like &quot;1.0&quot;</param>
+        /// is typically something like &quot;1.0&quot;. You can also use the
+        /// constants for special versions like
+        /// <see cref="dataverse_connection::latest_version" />.</param>
         /// <param name="on_response">A callback to be invoked if the response
         /// to the request was received.</param>
         /// <param name="on_error">A callback to be invoked if the request
@@ -807,7 +809,7 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        dataverse_connection& files(_In_z_ const wchar_t *id,
+        dataverse_connection& files(_In_ const std::uint64_t id,
             _In_z_ const wchar_t *version,
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
@@ -836,7 +838,7 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        dataverse_connection& files(_In_ const const_narrow_string& id,
+        dataverse_connection& files(_In_ const std::uint64_t id,
             _In_ const const_narrow_string& version,
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
@@ -851,7 +853,9 @@ namespace dataverse {
         /// retrieved using <see cref="data_set" /> from the persistent
         /// identifier.</param>
         /// <param name="version">The version of the data set to retrieve, which
-        /// is typically something like &quot;1.0&quot;</param>
+        /// is typically something like &quot;1.0&quot;. You can also use the
+        /// constants for special versions like
+        /// <see cref="dataverse_connection::latest_version" />.</param>
         /// <param name="on_response">A callback to be invoked if the response
         /// to the request was received.</param>
         /// <param name="on_error">A callback to be invoked if the request
@@ -866,13 +870,12 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        inline dataverse_connection& files(
-                _In_z_ const std::wstring& id,
-                _In_z_ const std::wstring& version,
+        inline dataverse_connection& files(_In_ const std::uint64_t id,
+                _In_ const std::wstring& version,
                 _In_ const on_api_response_type on_response,
                 _In_ const on_error_type on_error,
                 _In_opt_ void *context) {
-            const auto url = std::wstring(L"/datasets/") + id
+            const auto url = std::wstring(L"/datasets/") + std::to_wstring(id)
                 + std::wstring(L"/versions/") + version
                 + std::wstring(L"/files");
             this->get(url.c_str(),
@@ -891,7 +894,7 @@ namespace dataverse {
         /// retrieved using <see cref="data_set" /> from the persistent
         /// identifier.</param>
         /// <param name="version">The version of the data set to retrieve, which
-        /// is typically something like &quot;1.0&quot;</param>
+        /// is typically something like &quot;1.0&quot;.</param>
         /// <param name="on_response">A callback to be invoked if the response
         /// to the request was received.</param>
         /// <param name="on_error">A callback to be invoked if the request
@@ -906,13 +909,12 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        inline dataverse_connection& files(
-                _In_ const const_narrow_string& id,
+        inline dataverse_connection& files(_In_ const std::uint64_t id,
                 _In_ const const_narrow_string& version,
                 _In_ const on_api_response_type on_response,
                 _In_ const on_error_type on_error,
                 _In_opt_ void *context) {
-            const auto url = std::wstring(L"/datasets/") + convert<wchar_t>(id)
+            const auto url = std::wstring(L"/datasets/") + std::to_wstring(id)
                 + std::wstring(L"/versions/") + convert<wchar_t>(version)
                 + std::wstring(L"/files");
             this->get(url.c_str(),
@@ -933,7 +935,9 @@ namespace dataverse {
         /// retrieved using <see cref="data_set" /> from the persistent
         /// identifier.</param>
         /// <param name="version">The version of the data set to retrieve, which
-        /// is typically something like &quot;1.0&quot;</param>
+        /// is typically something like &quot;1.0&quot;. You can also use the
+        /// constants for special versions like
+        /// <see cref="dataverse_connection::latest_version" />.</param>
         /// <returns>A future for the files.</returns>
         /// <exception cref="std::system_error">If the method was called on an
         /// object that has been moved.</exception>
@@ -942,11 +946,10 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        inline std::future<nlohmann::json> files(
-                _In_z_ const std::wstring& id,
-                _In_z_ const std::wstring& version) {
+        inline std::future<nlohmann::json> files(_In_ const std::uint64_t id,
+                _In_ const std::wstring& version) {
             typedef dataverse_connection &(dataverse_connection:: *actual_type)(
-                const std::wstring&,
+                const std::uint64_t,
                 const std::wstring&,
                 const on_api_response_type,
                 const on_error_type,
@@ -964,7 +967,7 @@ namespace dataverse {
         /// retrieved using <see cref="data_set" /> from the persistent
         /// identifier.</param>
         /// <param name="version">The version of the data set to retrieve, which
-        /// is typically something like &quot;1.0&quot;</param>
+        /// is typically something like &quot;1.0&quot;.</param>
         /// <returns>A future for the files.</returns>
         /// <exception cref="std::system_error">If the method was called on an
         /// object that has been moved.</exception>
@@ -973,11 +976,10 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        inline std::future<nlohmann::json> files(
-                _In_ const const_narrow_string& id,
+        inline std::future<nlohmann::json> files(_In_ const std::uint64_t id,
                 _In_ const const_narrow_string& version) {
             typedef dataverse_connection &(dataverse_connection:: *actual_type)(
-                const const_narrow_string&,
+                const std::uint64_t,
                 const const_narrow_string&,
                 const on_api_response_type,
                 const on_error_type,
@@ -995,7 +997,9 @@ namespace dataverse {
         /// retrieved using <see cref="data_set" /> from the persistent
         /// identifier.</param>
         /// <param name="version">The version of the data set to retrieve, which
-        /// is typically something like &quot;1.0&quot;</param>
+        /// is typically something like &quot;1.0&quot;. You can also use the
+        /// constants for special versions like
+        /// <see cref="dataverse_connection::latest_version" />.</param>
         /// <returns>A future for the files.</returns>
         /// <exception cref="std::system_error">If the method was called on an
         /// object that has been moved.</exception>
@@ -1004,18 +1008,17 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        inline std::future<blob> files(
-                _In_z_ const std::wstring& id,
-                _In_z_ const std::wstring& version) {
+        inline std::future<blob> files(_In_ const std::uint64_t id,
+                _In_ const std::wstring& version) {
             typedef dataverse_connection &(dataverse_connection:: *actual_type)(
-                const wchar_t *,
+                const std::uint64_t,
                 const wchar_t *,
                 const on_response_type,
                 const on_error_type,
                 void *);
             return invoke_async<blob>(
                 static_cast<actual_type>(&dataverse_connection::files),
-                *this, id.c_str(), version.c_str());
+                *this, id, version.c_str());
         }
 
         /// <summary>
@@ -1026,7 +1029,7 @@ namespace dataverse {
         /// retrieved using <see cref="data_set" /> from the persistent
         /// identifier.</param>
         /// <param name="version">The version of the data set to retrieve, which
-        /// is typically something like &quot;1.0&quot;</param>
+        /// is typically something like &quot;1.0&quot;.</param>
         /// <returns>A future for the files.</returns>
         /// <exception cref="std::system_error">If the method was called on an
         /// object that has been moved.</exception>
@@ -1035,11 +1038,10 @@ namespace dataverse {
         /// fail and call <paramref name="on_error" /> later.</exception>
         /// <exception cref="std::bad_alloc">If the memory required to build the
         /// request could not be alloctated.</exception>
-        inline std::future<blob> files(
-                _In_ const const_narrow_string& id,
+        inline std::future<blob> files(_In_ const std::uint64_t id,
                 _In_ const const_narrow_string& version) {
             typedef dataverse_connection &(dataverse_connection:: *actual_type)(
-                const const_narrow_string&,
+                const std::uint64_t,
                 const const_narrow_string&,
                 const on_response_type,
                 const on_error_type,

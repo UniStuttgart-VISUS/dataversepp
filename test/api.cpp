@@ -224,7 +224,7 @@ namespace test {
                 { "restrict", true },
                 { "categories", nlohmann::json::array({ "test", "future", "azure-devops" }) }
             });
-            std::wstring id;
+            std::uint64_t id;
             std::wstring path;
             std::wstring persistent_id;
 
@@ -241,7 +241,7 @@ namespace test {
                 const auto dump = json.dump();
                 Logger::WriteMessage(dump.c_str());
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
-                id = std::to_wstring(json["data"]["id"].get<std::uint32_t>());
+                id = json["data"]["id"].get<std::uint64_t>();
                 persistent_id = visus::dataverse::convert<wchar_t>(json["data"]["persistentId"].get<std::string>(), CP_UTF8);
             }
 
