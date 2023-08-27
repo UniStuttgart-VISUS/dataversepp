@@ -224,7 +224,8 @@ namespace test {
                 { "restrict", true },
                 { "categories", nlohmann::json::array({ "test", "future", "azure-devops" }) }
             });
-            std::uint64_t id;
+            std::uint64_t data_set_id;
+            std::uint64_t file_id;
             std::wstring path;
             std::wstring persistent_id;
 
@@ -241,7 +242,7 @@ namespace test {
                 const auto dump = json.dump();
                 Logger::WriteMessage(dump.c_str());
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
-                id = json["data"]["id"].get<std::uint64_t>();
+                data_set_id = json["data"]["id"].get<std::uint64_t>();
                 persistent_id = visus::dataverse::convert<wchar_t>(json["data"]["persistentId"].get<std::string>(), CP_UTF8);
             }
 
@@ -255,7 +256,7 @@ namespace test {
             }
 
             {
-                auto future = this->_connection.files(id, visus::dataverse::dataverse_connection::draught_version);
+                auto future = this->_connection.files(data_set_id, visus::dataverse::dataverse_connection::draught_version);
                 future.wait();
                 const auto json = future.get();
                 const auto dump = json.dump();
@@ -263,6 +264,14 @@ namespace test {
                 Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
                 Assert::IsTrue(json["data"].type() == nlohmann::json::value_t::array, L"Array", LINE_INFO());
                 Assert::AreEqual(std::size_t(1), json["data"].size(), L"Array of one", LINE_INFO());
+                file_id = json["data"][0]["dataFile"]["id"].get<std::uint64_t>();
+            }
+
+            {
+                auto future = this->_connection.download(file_id);
+                future.wait();
+                const auto content = future.get();
+                const auto size = content.size();
             }
         }
 

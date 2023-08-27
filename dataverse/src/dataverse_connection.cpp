@@ -216,6 +216,38 @@ visus::dataverse::dataverse_connection::data_set(
 
 
 /*
+ * visus::dataverse::dataverse_connection::download
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::download(_In_ const std::uint64_t id,
+        _In_z_ const wchar_t *format,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto url = std::wstring(L"/access/datafile/") + std::to_wstring(id)
+        + std::wstring(L"?format=") + std::wstring(format);
+    this->get(url.c_str(), on_response, nullptr, on_error, context);
+    return *this;
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::download
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::download(_In_ const std::uint64_t id,
+        _In_ const const_narrow_string& format,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto url = std::wstring(L"/access/datafile/") + std::to_wstring(id)
+        + std::wstring(L"?format=") + convert<wchar_t>(format);
+    this->get(url.c_str(), on_response, nullptr, on_error, context);
+    return *this;
+}
+
+
+/*
  * visus::dataverse::dataverse_connection::files
  */
 visus::dataverse::dataverse_connection&
@@ -227,6 +259,46 @@ visus::dataverse::dataverse_connection::files(_In_z_ const std::uint64_t id,
     const auto url = std::wstring(L"/datasets/") + std::to_wstring(id)
         + std::wstring(L"/versions/") + version
         + std::wstring(L"/files");
+    this->get(url.c_str(), on_response, nullptr, on_error, context);
+    return *this;
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::download
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::download(
+        _In_z_ const wchar_t *persistent_id,
+        _In_z_ const wchar_t *format,
+        _In_z_ const wchar_t *version,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto url = std::wstring(L"/access/datafile/:persistentId"
+        L"?persistentId=") + std::wstring(persistent_id)
+        + std::wstring(L"&version=") + std::wstring(version)
+        + std::wstring(L"&format=") + std::wstring(format);
+    this->get(url.c_str(), on_response, nullptr, on_error, context);
+    return *this;
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::download
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::download(
+        _In_ const const_narrow_string& persistent_id,
+        _In_ const const_narrow_string& format,
+        _In_ const const_narrow_string& version,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto url = std::wstring(L"/access/datafile/:persistentId"
+        L"?persistentId=") + convert<wchar_t>(persistent_id)
+        + std::wstring(L"&version=") + convert<wchar_t>(version)
+        + std::wstring(L"&format=") + convert<wchar_t>(format);
     this->get(url.c_str(), on_response, nullptr, on_error, context);
     return *this;
 }

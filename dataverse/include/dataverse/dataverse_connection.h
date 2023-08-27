@@ -785,6 +785,249 @@ namespace dataverse {
         }
 
         /// <summary>
+        /// Download the file with the specified ID into a memory buffer.
+        /// </summary>
+        /// <param name="id">The unqiue ID of the file.</param>
+        /// <param name="format">The format of the file to retrieve, which can
+        /// be something like &quot;original&quot; or &quot;RData&quot;.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& download(_In_ const std::uint64_t id,
+            _In_z_ const wchar_t *format,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Download the file with the specified ID into a memory buffer.
+        /// </summary>
+        /// <param name="id">The unqiue ID of the file.</param>
+        /// <param name="format">The format of the file to retrieve, which can
+        /// be something like &quot;original&quot; or &quot;RData&quot;.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& download(_In_ const std::uint64_t id,
+            _In_ const const_narrow_string& format,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Gets a future for the contents of the file with the specified ID.
+        /// </summary>
+        /// <param name="id">The unqiue ID of the file.</param>
+        /// <param name="format">The format of the file to retrieve, which can
+        /// be something like &quot;original&quot; or &quot;RData&quot;.</param>
+        /// <returns>A future for the contents of the file.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<blob> download(_In_ const std::uint64_t id,
+                _In_z_ const wchar_t *format = L"original") {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const std::uint64_t,
+                const wchar_t *,
+                const on_response_type,
+                const on_error_type,
+                void *);
+            return invoke_async<blob>(
+                static_cast<actual_type>(&dataverse_connection::download),
+                *this, id, format);
+        }
+
+        /// <summary>
+        /// Gets a future for the contents of the file with the specified ID.
+        /// </summary>
+        /// <param name="id">The unqiue ID of the file.</param>
+        /// <param name="format">The format of the file to retrieve, which can
+        /// be something like &quot;original&quot; or &quot;RData&quot;.</param>
+        /// <returns>A future for the contents of the file.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<blob> download(_In_ const std::uint64_t id,
+                _In_ const const_narrow_string& format) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const std::uint64_t,
+                const const_narrow_string&,
+                const on_response_type,
+                const on_error_type,
+                void *);
+            return invoke_async<blob>(
+                static_cast<actual_type>(&dataverse_connection::download),
+                *this, id, format);
+        }
+        /// <summary>
+        /// Download the file with the specified persistent identifier into a
+        /// memory buffer.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the file, which is
+        /// the DOI of the data set concatenated with some unique ID of the
+        /// file. Note that this might not work for unpublished data.</param>
+        /// <param name="format">The format of the file to retrieve, which can
+        /// be something like &quot;original&quot; or &quot;RData&quot;.</param>
+        /// <param name="version">The version of the file to be retrieved. This
+        /// can be one of the special constants like
+        /// <see cref="dataverse_connection::latest_version" />.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& download(_In_z_ const wchar_t *persistent_id,
+            _In_z_ const wchar_t *format,
+            _In_z_ const wchar_t *version,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Download the file with the specified persistent identifier into a
+        /// memory buffer.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the file, which is
+        /// the DOI of the data set concatenated with some unique ID of the
+        /// file. Note that this might not work for unpublished data.</param>
+        /// <param name="format">The format of the file to retrieve, which can
+        /// be something like &quot;original&quot; or &quot;RData&quot;.</param>
+        /// <param name="version">The version of the file to be retrieved. This
+        /// can be one of the special constants like
+        /// <see cref="dataverse_connection::latest_version" />.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& download(
+            _In_ const const_narrow_string& persistent_id,
+            _In_ const const_narrow_string& format,
+            _In_ const const_narrow_string& version,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Gets a future for the contents of the file with the specified
+        /// persistent identifier.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the file, which is
+        /// the DOI of the data set concatenated with some unique ID of the
+        /// file. Note that this might not work for unpublished data.</param>
+        /// <param name="format">The format of the file to retrieve, which can
+        /// be something like &quot;original&quot; or &quot;RData&quot;.</param>
+        /// <param name="version">The version of the file to be retrieved. This
+        /// can be one of the special constants like
+        /// <see cref="dataverse_connection::latest_version" />.</param>
+        /// <returns>A future for the contents of the file.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<blob> download(_In_z_ const wchar_t *persistent_id,
+                _In_z_ const wchar_t *format = L"original",
+                _In_z_ const wchar_t *version = latest_version) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const wchar_t *,
+                const wchar_t *,
+                const wchar_t *,
+                const on_response_type,
+                const on_error_type,
+                void *);
+            return invoke_async<blob>(
+                static_cast<actual_type>(&dataverse_connection::download),
+                *this, persistent_id, format, version);
+        }
+
+        /// <summary>
+        /// Gets a future for the contents of the file with the specified
+        /// persistent identifier.
+        /// </summary>
+        /// <param name="persistent_id">The persistent ID of the file, which is
+        /// the DOI of the data set concatenated with some unique ID of the
+        /// file. Note that this might not work for unpublished data.</param>
+        /// <param name="format">The format of the file to retrieve, which can
+        /// be something like &quot;original&quot; or &quot;RData&quot;.</param>
+        /// <param name="version">The version of the file to be retrieved. This
+        /// can be one of the special constants like
+        /// <see cref="dataverse_connection::latest_version" />.</param>
+        /// <returns>A future for the contents of the file.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<blob> download(
+                _In_ const const_narrow_string& persistent_id,
+                _In_ const const_narrow_string& format,
+                _In_ const const_narrow_string& version) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const const_narrow_string&,
+                const const_narrow_string&,
+                const const_narrow_string&,
+                const on_response_type,
+                const on_error_type,
+                void *);
+            return invoke_async<blob>(
+                static_cast<actual_type>(&dataverse_connection::download),
+                *this, persistent_id, format, version);
+        }
+
+        /// <summary>
         /// Gets the files in the data set with the given ID.
         /// </summary>
         /// <param name="id">The ID of the data set, which is unfortunately not
@@ -813,7 +1056,7 @@ namespace dataverse {
             _In_z_ const wchar_t *version,
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
-            _In_opt_ void *context);
+            _In_opt_ void *context = nullptr);
 
         /// <summary>
         /// Gets the files in the data set with the given ID.
@@ -842,7 +1085,7 @@ namespace dataverse {
             _In_ const const_narrow_string& version,
             _In_ const on_response_type on_response,
             _In_ const on_error_type on_error,
-            _In_opt_ void *context);
+            _In_opt_ void *context = nullptr);
 
 #if defined(DATAVERSE_WITH_JSON)
         /// <summary>
