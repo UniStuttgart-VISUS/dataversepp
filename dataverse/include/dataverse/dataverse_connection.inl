@@ -59,13 +59,20 @@ void visus::dataverse::dataverse_connection::translate_api_reponse(
     _Analysis_assume_(on_api_response != nullptr);
     auto context = get_api_response_client_data(client_data);
 
-    const auto r = std::string(response.as<char>(), response.size());
-    const auto json = TJson::parse(r);
+    try {
+        const auto r = std::string(response.as<char>(), response.size());
+        const auto json = TJson::parse(r);
 
-    if (json["status"].get<std::string>() == "ERROR") {
-        auto message = json["status"].get<std::string>();
-        report_api_error(context, message.c_str());
-    } else {
-        on_api_response(json, context);
+        if (json["status"].get<std::string>() == "ERROR") {
+            auto message = json["status"].get<std::string>();
+            report_api_error(context, message.c_str());
+        } else {
+            on_api_response(json, context);
+        }
+    } catch (...) {
+        // This should never happen unless an invalid end point was invoked.
+        get_on_error(client_data)(0, "The translation of an API response "
+            "failed with an unexpected exception.", "Unexpected Exception",
+            dataversepp_code_page, context);
     }
 }

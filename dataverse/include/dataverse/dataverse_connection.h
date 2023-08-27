@@ -2241,6 +2241,12 @@ namespace dataverse {
 
         /// <summary>
         /// Assuming <paramref name="client_data" /> is an
+        /// <see cref="details::io_context" />, retrieve the error callback.
+        /// </summary>
+        static on_error_type get_on_error(_In_ void *client_data);
+
+        /// <summary>
+        /// Assuming <paramref name="client_data" /> is an
         /// <see cref="details::io_context" />, report the specified API error
         /// to the error handler.
         /// </summary>

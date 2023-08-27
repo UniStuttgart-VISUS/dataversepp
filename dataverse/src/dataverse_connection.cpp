@@ -456,18 +456,23 @@ void *visus::dataverse::dataverse_connection::get_on_api_response(
 
 
 /*
+ * visus::dataverse::dataverse_connection::get_on_error
+ */
+visus::dataverse::dataverse_connection::on_error_type
+visus::dataverse::dataverse_connection::get_on_error(_In_ void *client_data) {
+    auto context = static_cast<detail::io_context *>(client_data);
+    return context->on_error;
+}
+
+
+/*
  * visus::dataverse::dataverse_connection::report_api_error
  */
 void visus::dataverse::dataverse_connection::report_api_error(
         _In_ void *client_data, _In_z_ const char *error) {
     auto context = static_cast<detail::io_context *>(client_data);
-    detail::invoke_handler(context->on_error, error, "API",
-#if defined(_WIN32)
-        CP_UTF8,
-#else /* defined(_WIN32) */
-        "UTF-8",
-#endif /* defined(_WIN32) */
-        context->api_data);
+    detail::invoke_handler(context->on_error, error, "API", utf8_code_page,
+        context->client_data);
 }
 
 
@@ -645,14 +650,14 @@ void visus::dataverse::dataverse_connection::direct_upload(
         });
 
         if (categories != nullptr) {
-            auto &cats = ctx->description["categories"];
+            auto& cats = ctx->description["categories"];
             for (std::size_t i = 0; i < cnt_cats; ++i) {
                 cats.push_back(to_utf8(categories[i]));
             }
         }
 
         // Note a MIME type is required for direct uploads, so we use the most
-        // generic one if no valid input is given.
+        // generic one (bytes) if no valid input is given.
         if (mime_type != nullptr) {
             ctx->description["mimeType"] = to_utf8(mime_type);
         } else {
