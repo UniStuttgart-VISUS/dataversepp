@@ -238,7 +238,7 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
                     // Request succeeded, but we need to check the HTTP response
                     // to report API errors.
                     long code = 0;
-                    auto status = ::curl_easy_getinfo(msg->easy_handle,
+                    const auto status = ::curl_easy_getinfo(msg->easy_handle,
                         CURLINFO_RESPONSE_CODE, &code);
                     if (status == CURLE_OK) {
                         if (code < 400) {
@@ -246,14 +246,29 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
                             ctx->on_response(ctx->response, ctx->client_data);
                         } else {
                             // cURL succeeded, but the request failed on a
-                            // protcol or application level.
-                            std::string msg("HTTP ");
-                            msg += std::to_string(code);
-                            invoke_handler(ctx->on_error,
-                                msg.c_str(),
-                                "HTTP",
-                                dataversepp_code_page,
-                                ctx->client_data);
+                            // protocol or application level.
+                            try {
+                                const auto response = std::string(
+                                    ctx->response.as<char>(),
+                                    ctx->response.size());
+                                const auto api_response = nlohmann::json::parse(
+                                    response);
+                                const auto msg = api_response["message"]
+                                    .get<std::string>();
+                                invoke_handler(ctx->on_error,
+                                    msg.c_str(),
+                                    "API",
+                                    dataversepp_code_page,
+                                    ctx->client_data);
+                            } catch (...) {
+                                std::string msg("HTTP ");
+                                msg += std::to_string(code);
+                                invoke_handler(ctx->on_error,
+                                    msg.c_str(),
+                                    "HTTP",
+                                    dataversepp_code_page,
+                                    ctx->client_data);
+                            }
                         }
                     } else {
                         // Failed to retrieve the HTTP code, which should not
