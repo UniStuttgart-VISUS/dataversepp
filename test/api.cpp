@@ -374,6 +374,30 @@ namespace test {
             }
         }
 
+        TEST_METHOD(download_persistent_id_binary) {
+            visus::dataverse::dataverse_connection dv;
+            auto future = dv.base_path(L"https://darus.uni-stuttgart.de/api")
+                .download(L"doi:10.18419/darus-3044/48");
+            future.wait();
+            auto content = future.get();
+        }
+
+        TEST_METHOD(download_persistent_id_table) {
+            visus::dataverse::dataverse_connection dv;
+            auto future = dv.base_path(L"https://darus.uni-stuttgart.de/api")
+                .download(L"doi:10.18419/darus-3044/1");
+            future.wait();
+            auto content = future.get();
+        }
+
+        TEST_METHOD(get_persistent_id_binary) {
+            visus::dataverse::dataverse_connection dv;
+            auto future = dv.base_path(L"https://darus.uni-stuttgart.de/api")
+                .get(L"/access/datafile/:persistentId?persistentId=doi:10.18419/darus-3044/48");
+            future.wait();
+            auto content = future.get();
+        }
+
     private:
 
         inline nlohmann::json create_test_data_set(const std::wstring& title) {

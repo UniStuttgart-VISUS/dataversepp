@@ -829,9 +829,14 @@ void visus::dataverse::dataverse_connection::get(
     assert(ctx->client_data == context);
     ctx->configure_on_api_response(const_cast<void *>(on_api_response));
 
+    // Have cURL follow HTTP redirects. We need that for downloads where the API
+    // will redirect to the S3 backend.
+    ctx->option(CURLOPT_FOLLOWLOCATION, 1L);
+
     // Set the authentication header.
     i.add_auth_header(ctx);
     ctx->apply_headers();
+
 
     // Send the request to asynchronous processing.
     i.process(std::move(ctx));
