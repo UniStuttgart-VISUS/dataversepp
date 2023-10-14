@@ -20,6 +20,7 @@
 #include "dataverse/event.h"
 
 #include "curl_error_category.h"
+#include "curl_worker_state.h"
 #include "curlm_error_category.h"
 #include "errors.h"
 
@@ -86,7 +87,7 @@ namespace detail {
         std::vector<char> api_key;
         std::string base_path;
         curlm_type curlm;
-        std::atomic<bool> curlm_running;
+        std::atomic<curl_worker_state> worker_state;
         std::thread curlm_worker;
         int timeout;
 

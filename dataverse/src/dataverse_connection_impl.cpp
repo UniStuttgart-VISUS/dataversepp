@@ -15,10 +15,11 @@
 
 #include "dataverse/convert.h"
 
-#include "invoke_handler.h"
-#include "io_context.h"
 #include "curl_error_category.h"
 #include "curlm_error_category.h"
+#include "invoke_handler.h"
+#include "io_context.h"
+#include "on_exit.h"
 #include "thread_name.h"
 
 
@@ -118,11 +119,31 @@ visus::dataverse::detail::dataverse_connection_impl::~dataverse_connection_impl(
         void) {
     secure_zero(this->api_key);
 
-    this->curlm_running = false;        // Disable the worker.
+    // Ask the worker thread to stop: here, we can only switch from running to
+    // stopping. If the thread is not running, we simply do nothing. Otherwise,
+    // we try to perform the aforementioned switch, which should only fail if
+    // the thread is in a transitional state like starting or stopping. In the
+    // former case, we need to retry until the thread has actually started and
+    // we can ask it to exit.
+    assert(this->worker_state.is_lock_free());
+    auto expected = curl_worker_state::running;
+    auto stopped = (this->worker_state.load() == curl_worker_state::stopped);
+    while (!stopped && !this->worker_state.compare_exchange_strong(expected,
+            curl_worker_state::stopping)) {
+        // If the transition failed, because the thread was initially in the
+        // stopping state and has now transitioned to stopped, we must not try
+        // again. The new expected value should never be stopping, because only
+        // the destructor can set that, but we still include that here for
+        // paranoia in the release build.
+        assert(expected != curl_worker_state::stopping);
+        stopped == (expected == curl_worker_state::stopped)
+            || (expected == curl_worker_state::stopping);
+    }
 
     // Wait for the worker to exit such that we have no dangling pointers.
     if (this->curlm_worker.joinable()) {
         this->curlm_worker.join();
+        assert(this->worker_state.load() == curl_worker_state::stopped);
     }
 }
 
@@ -179,10 +200,19 @@ void visus::dataverse::detail::dataverse_connection_impl::process(
     assert(request != nullptr);
     check_code(::curl_multi_add_handle(this->curlm.get(), request->curl.get()));
 
-    auto expected = false;
-    if (this->curlm_running.compare_exchange_strong(expected, true)) {
+    auto expected = curl_worker_state::stopped;
+    if (this->worker_state.compare_exchange_strong(expected,
+            curl_worker_state::starting)) {
+        // If the worker thread was not running and not in a transitional state
+        // either, we are the ones who must start it.
         this->curlm_worker = std::thread(&dataverse_connection_impl::run_curlm,
             this);
+
+    } else if (expected == curl_worker_state::stopping) {
+        // New work was being queued while the destructor of the connection
+        // object was running. This is an error in the application logic.
+        throw std::logic_error("New work has been queued to the asynchronous "
+            "web API while the connection object is being destructed.");
     }
 
     // The io_context is now owned by the processing thread.
@@ -196,7 +226,33 @@ void visus::dataverse::detail::dataverse_connection_impl::process(
 void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
     set_thread_name("Dataverse++ I/O thread");
 
-    while (this->curlm_running.load()) {
+    // Install an exit handler that informs all other threads when this thread
+    // is leaving.
+    on_exit([this](void) {
+        auto expected = curl_worker_state::stopping;
+        if (!this->worker_state.compare_exchange_strong(expected,
+                curl_worker_state::stopped)) {
+            // It is a catastrophic failure if someone manipulated the state at
+            // this point.
+            std::abort();
+        }
+    });
+
+    // Inform all other threads that we are now running.
+    {
+        auto expected = curl_worker_state::starting;
+        if (!this->worker_state.compare_exchange_strong(expected,
+            curl_worker_state::running)) {
+            // This should basically be unreachable.
+            throw std::logic_error("The web API worker thread detected an "
+                "illegal state change while starting up. If the worker thread "
+                "is about to start, only the thread itself is allowed to "
+                "transition from the starting state to the running state. No "
+                "other state transitions are allowed at this point.");
+        }
+    }
+
+    while (this->worker_state.load() == curl_worker_state::running) {
         CURLMsg *msg = nullptr;
         int remaining = 0;
 
@@ -290,5 +346,5 @@ void visus::dataverse::detail::dataverse_connection_impl::run_curlm(void) {
         } /*  while ((msg = ::curl_multi_info_read(... */
     } /* while (this->curlm_running.load()) */
 
-    assert(!this->curlm_running.load());
+    assert(this->worker_state.load() == curl_worker_state::stopping);
 }
