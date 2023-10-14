@@ -33,13 +33,13 @@ dataverse.base_path(L"https://darus.uni-stuttgart.de/api")
 
 When using narrow strings, you must tell the API about their encoding:
 ```c++
-dataverse.base_path(const_narrow_string("https://darus.uni-stuttgart.de/api/", CP_OEMCP))
-    .api_key(make_narrow_string("YOUR API KEY", CP_OEMCP))
-    .upload(make_narrow_string("doi:10.18419/darus-3044", CP_OEMCP),
-        make_narrow_string("T:\\data\\rtx4090.csv", CP_OEMCP),
-        make_narrow_string("Measurement results for GeForce RTX4090", CP_OEMCP),
-        make_narrow_string("/raw/", CP_OEMCP),
-        std::vector<const_narrow_string> { narrow_string("#bota", CP_OEMCP), narrow_string("#boschofthemall", CP_OEMCP) },
+dataverse.base_path(const_narrow_string("https://darus.uni-stuttgart.de/api/", CP_ACP))
+    .api_key(make_narrow_string("YOUR API KEY", CP_ACP))
+    .upload(make_narrow_string("doi:10.18419/darus-3044", CP_ACP),
+        make_narrow_string("T:\\data\\rtx4090.csv", CP_ACP),
+        make_narrow_string("Measurement results for GeForce RTX4090", CP_ACP),
+        make_narrow_string("/raw/", CP_ACP),
+        std::vector<const_narrow_string> { narrow_string("#bota", CP_ACP), narrow_string("#boschofthemall", CP_ACP) },
         false,
         [](const blob& result, void *context) {
             std::string output(result.as<char>(), r.size());
@@ -50,6 +50,8 @@ dataverse.base_path(const_narrow_string("https://darus.uni-stuttgart.de/api/", C
             std::cerr << msg << std::endl << std::endl;
         });
 ```
+
+> :warning: **The above code is only for illustration purposes.** You should never hard-code the code page like this in production code unless you are a MegaMol developer. Rather than hard-coding the encoding of your strings, you should track it from its origin. For instance, console input on Windows is `CP_OEMCP`. On Linux, you need to determine that using system calls or via libicu. The encoding of literal strings is compiler-dependent, but usually `CP_ACP`` on Windows. When using file input, you must ask the user or apply heuristics like detecing UTF-8 BOMs. While you might get away with hard coding for URLs and your API key, because these are most likely 7-bit ASCII anyway, **going the hard coding way has the potential to turn your metadata into rubbish.** The library will convert all metadata to UTF-8 based on your input in order to create the JSON descriptor objects. Specifying the wrong code page may corrupt the output. Specifying UTF-8 as the code page while the data are not actually UTF-8 may crash your application.
 
 Provided you have [nlohmann/json](https://github.com/nlohmann/json) installed, you can also make requests like for the creation of a new data set:
 ```c++
