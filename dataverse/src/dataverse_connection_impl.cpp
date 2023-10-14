@@ -143,8 +143,9 @@ visus::dataverse::detail::dataverse_connection_impl::~dataverse_connection_impl(
     // Wait for the worker to exit such that we have no dangling pointers.
     if (this->curlm_worker.joinable()) {
         this->curlm_worker.join();
-        assert(this->worker_state.load() == curl_worker_state::stopped);
     }
+
+    assert(this->worker_state.load() == curl_worker_state::stopped);
 }
 
 

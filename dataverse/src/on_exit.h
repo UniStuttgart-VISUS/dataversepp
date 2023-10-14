@@ -104,7 +104,7 @@ namespace detail {
     /// <param name="exit_handler">The exit handler to be executed.</param>
     /// <returns>A <see cref="on_exit_guard" /> holding
     /// <paramref name="exit_handler" />.</returns>
-    template<class TExitHandler> on_exit_guard<TExitHandler> make_on_exit(
+    template<class TExitHandler> on_exit_guard<TExitHandler> make_on_exit_guard(
             TExitHandler&& exit_handler) {
         return detail::on_exit_guard<TExitHandler>(
             std::forward<TExitHandler>(exit_handler));
@@ -122,4 +122,4 @@ namespace detail {
 /// the <paramref name="exit_handler" /> lambda expression when it is destroyed.
 /// </summary>
 #define on_exit(exit_handler) auto _DATAVERSE_UNIQUE_VARIABLE(_scope_guard) \
-= exit_handler
+= visus::dataverse::detail::make_on_exit_guard(exit_handler)
