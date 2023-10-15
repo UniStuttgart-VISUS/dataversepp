@@ -6,6 +6,8 @@
 #include "CppUnitTest.h"
 
 #include <array>
+#include <atomic>
+#include <chrono>
 
 #include <nlohmann/json.hpp>
 
@@ -526,6 +528,98 @@ namespace test {
             }
         }
 #endif
+
+        TEST_METHOD(create_stress_test) {
+            const auto timestamp = std::chrono::steady_clock::now();
+            const auto contact = nlohmann::json::object({
+                { "contactEmail", visus::dataverse::to_utf8(L"querulant@visus.uni-stuttgart.de") }
+            });
+            const auto dataverse_desc = nlohmann::json::object({
+                { "name", std::string("Create Data Set Stress Test") + this->_test_suffix },
+                { "alias", std::string("visus_") + std::to_string(timestamp.time_since_epoch().count()) },
+                { "dataverseContacts", nlohmann::json::array({ contact }) },
+                { "affiliation", visus::dataverse::to_utf8(L"Universität Stuttgart") },
+                { "description", "Container for data sets that are created by requests that are in flight in parallel." },
+                { "dataverseType", "RESEARCH_PROJECTS" }
+            });
+
+            nlohmann::json dataverse;
+            {
+                auto future = this->_connection.post(L"/dataverses/visus", dataverse_desc);
+                dataverse = future.get();
+                log_response("POST /dataverses/visus", dataverse.dump());
+            }
+
+            {
+                const std::size_t expected = 16;
+
+                struct context_type {
+                    visus::dataverse::event_type event;
+                    std::atomic<std::size_t> counter;
+                    std::string parent;
+                    std::string request;
+                } context = {
+                    visus::dataverse::create_event(),
+                    0,
+                    dataverse["data"]["alias"].get<std::string>()
+                };
+
+                std::wstring request(L"/dataverses/");
+                request += visus::dataverse::convert<wchar_t>(visus::dataverse::make_const_narrow_string(context.parent, CP_UTF8));
+                request += L"/datasets";
+
+                context.request = std::string("POST ") + visus::dataverse::convert<char>(request, CP_OEMCP);
+
+                for (std::size_t i = 0; i < expected; ++i) {
+                    const auto desc = this->create_test_data_set(std::to_wstring(i) + L" callback");
+                    this->_connection.post(request.c_str(), desc,
+                        [](const visus::dataverse::blob &r, void *c) {
+                            const auto response = std::string(r.as<char>(), r.size());
+                            auto context = static_cast<context_type *>(c);
+                            log_response(context->request.c_str(), response);
+                            const auto json = nlohmann::json::parse(response);
+                            Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
+                            ++context->counter;
+                            visus::dataverse::set_event(context->event);
+                        }, [](const int c, const char *m, const char *t, const visus::dataverse::narrow_string::code_page_type p, void *cc) {
+                            auto context = static_cast<context_type *>(cc);
+                            log_response(context->request.c_str(), m);
+                            ++context->counter;
+                            visus::dataverse::set_event(context->event);
+                            Assert::Fail(L"Error callback invoked", LINE_INFO());
+                        },
+                        &context);
+                }
+
+                for (std::size_t i = 0; i < expected; ++i) {
+                    visus::dataverse::wait_event(context.event);
+                }
+
+                Assert::AreEqual(expected, context.counter.load(), L"All parallel requests finished", LINE_INFO());
+            }
+
+            //{
+            //    const auto dataverse_alias = dataverse["data"]["alias"].get<std::string>();
+            //    std::wstring request(L"/dataverses/");
+            //    request += visus::dataverse::convert<wchar_t>(visus::dataverse::make_const_narrow_string(dataverse_alias, CP_UTF8));
+            //    request += L"/datasets";
+
+            //    std::array<std::future<nlohmann::json>, 16> futures;
+            //    for (std::size_t i = 0; i < futures.size(); ++i) {
+            //        const auto desc = this->create_test_data_set(std::to_wstring(i) + L" future");
+            //        futures[i] = std::move(this->_connection.post(request.c_str(), desc));
+            //    }
+
+            //    for (auto& f : futures) {
+            //        try {
+            //            f.get();
+            //        } catch (std::exception& ex) {
+            //            auto msg = visus::dataverse::convert<wchar_t>(visus::dataverse::make_narrow_string(ex.what(), CP_OEMCP));
+            //            Assert::Fail(msg.c_str(), LINE_INFO());
+            //        }
+            //    }
+            //}
+        }
 
     private:
 
