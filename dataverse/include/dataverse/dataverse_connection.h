@@ -1028,6 +1028,111 @@ namespace dataverse {
         }
 
         /// <summary>
+        /// Deletes the specified resource.
+        /// </summary>
+        /// <remarks>
+        /// This method performs an HTTP <c>DELETE</c>, but we could not name it
+        /// this way, because <c>delete</c> is a C++ keyword.
+        /// </remarks>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline dataverse_connection& erase(_In_opt_z_ const wchar_t *resource,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context) {
+            this->delete_resource(resource, on_response, nullptr, on_error,
+                context);
+            return *this;
+        }
+
+        /// <summary>
+        /// Deletes the specified resource.
+        /// </summary>
+        /// <remarks>
+        /// This method performs an HTTP <c>DELETE</c>, but we could not name it
+        /// this way, because <c>delete</c> is a C++ keyword.
+        /// </remarks>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline dataverse_connection& erase(
+                _In_ const const_narrow_string& resource,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context) {
+            this->delete_resource(resource, on_response, nullptr, on_error,
+                context);
+            return *this;
+        }
+
+        /// <summary>
+        /// Deletes the specified resource and returns a future that can be used
+        /// to determine whether the operation succeeded.
+        /// </summary>
+        /// <remarks>
+        /// This method performs an HTTP <c>DELETE</c>, but we could not name it
+        /// this way, because <c>delete</c> is a C++ keyword.
+        /// </remarks>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <returns>A future for the result of the opration.</returns>
+        inline std::future<void> erase(_In_ const std::wstring &resource) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const wchar_t *, const on_response_type, const on_error_type,
+                void *);
+            return invoke_async(
+                static_cast<actual_type>(&dataverse_connection::erase),
+                *this, resource.c_str());
+        }
+
+        /// <summary>
+        /// Deletes the specified resource and returns a future that can be used
+        /// to determine whether the operation succeeded.
+        /// </summary>
+        /// <remarks>
+        /// This method performs an HTTP <c>DELETE</c>, but we could not name it
+        /// this way, because <c>delete</c> is a C++ keyword.
+        /// </remarks>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <returns>A future for the result of the opration.</returns>
+        inline std::future<void> erase(_In_ const const_narrow_string &resource) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const const_narrow_string&, const on_response_type,
+                const on_error_type, void *);
+            return invoke_async(
+                static_cast<actual_type>(&dataverse_connection::erase),
+                *this, resource);
+        }
+
+        /// <summary>
         /// Gets the files in the data set with the given ID.
         /// </summary>
         /// <param name="id">The ID of the data set, which is unfortunately not
@@ -2028,6 +2133,95 @@ namespace dataverse {
             return *this;
         }
 
+
+        /// <summary>
+        /// Deletes the specified resource.
+        /// </summary>
+        /// <remarks>
+        /// This is an alias for <see cref="dataverse_connection::erase" />.
+        /// </remarks>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline dataverse_connection& remove(_In_opt_z_ const wchar_t *resource,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context) {
+            return this->erase(resource, on_response, on_error, context);
+        }
+
+        /// <summary>
+        /// Deletes the specified resource.
+        /// </summary>
+        /// <remarks>
+        /// This is an alias for <see cref="dataverse_connection::erase" />.
+        /// </remarks>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline dataverse_connection& remove(
+                _In_ const const_narrow_string& resource,
+                _In_ const on_response_type on_response,
+                _In_ const on_error_type on_error,
+                _In_opt_ void *context) {
+            return this->erase(resource, on_response, on_error, context);
+        }
+
+        /// <summary>
+        /// Deletes the specified resource and returns a future that can be used
+        /// to determine whether the operation succeeded.
+        /// </summary>
+        /// <remarks>
+        /// This is an alias for <see cref="dataverse_connection::erase" />.
+        /// </remarks>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <returns>A future for the result of the opration.</returns>
+        inline std::future<void> remove(_In_ const std::wstring& resource) {
+            return this->erase(resource);
+        }
+
+        /// <summary>
+        /// Deletes the specified resource and returns a future that can be used
+        /// to determine whether the operation succeeded.
+        /// </summary>
+        /// <remarks>
+        /// This is an alias for <see cref="dataverse_connection::erase" />.
+        /// </remarks>
+        /// <param name="resource">The path to the resource. The
+        /// <see cref="base_path" /> will be prepended if it is set.</param>
+        /// <returns>A future for the result of the opration.</returns>
+        inline std::future<void> remove(
+                _In_ const const_narrow_string& resource) {
+            return this->erase(resource);
+        }
+
         /// <summary>
         /// Upload a file for the data set with the specified persistent ID.
         /// </summary>
@@ -2502,6 +2696,14 @@ namespace dataverse {
         /// </summary>
         template<class TResult, class TOperation, class... TArgs>
         static std::future<TResult> invoke_async(TOperation&& operation,
+            dataverse_connection& that, TArgs&&... arguments);
+
+        /// <summary>
+        /// Converts an asynchronous call to <paramref name="operation" /> that
+        /// does not yield a result into an <see cref="std::future" />.
+        /// </summary>
+        template<class TOperation, class... TArgs>
+        static std::future<void> invoke_async(TOperation&& operation,
             dataverse_connection& that, TArgs&&... arguments);
 
         /// <summary>

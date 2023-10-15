@@ -573,7 +573,7 @@ void visus::dataverse::dataverse_connection::delete_resource(
     _CHECK_ON_RESPONSE;
     _CHECK_ON_ERROR;
 
-    auto &i = this->check_not_disposed();
+    auto& i = this->check_not_disposed();
 
     // Prepare the request.
     auto ctx = detail::io_context::create(i.make_url(resource), on_response,

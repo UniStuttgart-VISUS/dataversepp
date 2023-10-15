@@ -48,6 +48,43 @@ std::future<TResult> visus::dataverse::dataverse_connection::invoke_async(
 
 
 /*
+ * visus::dataverse::dataverse_connection::invoke_async
+ */
+template<class TOperation, class... TArgs>
+std::future<void> visus::dataverse::dataverse_connection::invoke_async(
+        TOperation&& operation, dataverse_connection& that,
+        TArgs&&... arguments) {
+    auto promise = new std::promise<void>();
+    auto retval = promise->get_future();
+
+    try {
+        (that.*operation)(std::forward<TArgs>(arguments)...,
+                [](const blob& r, void *f) {
+            auto promise = static_cast<std::promise<void> *>(f);
+            promise->set_value();
+            delete promise;
+
+        }, [](const int e, const char *m, const char *c,
+                const narrow_string::code_page_type p, void *f) {
+            auto promise = static_cast<std::promise<void> *>(f);
+            try {
+                throw std::runtime_error(m);
+            } catch (...) {
+                promise->set_exception(std::current_exception());
+            }
+            delete promise;
+        }, promise);
+
+    } catch (...) {
+        promise->set_exception(std::current_exception());
+        delete promise;
+    }
+
+    return retval;
+}
+
+
+/*
  * visus::dataverse::dataverse_connection::translate_api_reponse
  */
 template<class TJson>

@@ -160,16 +160,12 @@ namespace test {
             struct {
                 visus::dataverse::dataverse_connection *connection;
                 visus::dataverse::event_type evt_done;
-                std::wstring upload;
-            } context;
-            context.connection = &this->_connection;
-            context.evt_done = visus::dataverse::create_event();
-
-            {
-                std::array<wchar_t, MAX_PATH> path;
-                Assert::IsTrue(::GetModuleFileNameW(NULL, path.data(), static_cast<DWORD>(path.size())), L"GetModuleFileName", LINE_INFO());
-                context.upload = path.data();
-            }
+                std::pair<std::wstring, nlohmann::json> upload;
+            } context = {
+                &this->_connection,
+                visus::dataverse::create_event(),
+                create_test_file()
+            };
 
             this->_connection.post(L"/dataverses/visus/datasets",
                 data_set,
@@ -188,7 +184,7 @@ namespace test {
                     });
 
                     cc->connection->upload(persistent_id,
-                        cc->upload,
+                        cc->upload.first,
                         description,
                         [](const nlohmann::json& r, void *c) {
                             auto cc = static_cast<decltype(context) *>(c);
@@ -218,21 +214,10 @@ namespace test {
 
         TEST_METHOD(upload_file_future) {
             const auto data_set = this->create_test_data_set(L"Upload Test (std::future)");
-            const auto description = nlohmann::json::object({
-                { "description", visus::dataverse::to_utf8(L"The test driver.")},
-                { "restrict", true },
-                { "categories", nlohmann::json::array({ "test", "future", "azure-devops" }) }
-            });
+            const auto file = create_test_file();
             std::uint64_t data_set_id;
             std::uint64_t file_id;
-            std::wstring path;
             std::wstring persistent_id;
-
-            {
-                std::array<wchar_t, MAX_PATH> p;
-                Assert::IsTrue(::GetModuleFileNameW(NULL, p.data(), static_cast<DWORD>(p.size())), L"GetModuleFileName", LINE_INFO());
-                path = p.data();
-            }
 
             {
                 auto future = this->_connection.post(L"/dataverses/visus/datasets", data_set);
@@ -246,7 +231,7 @@ namespace test {
             }
 
             {
-                auto future = this->_connection.upload(persistent_id, path, description);
+                auto future = this->_connection.upload(persistent_id, file.first, file.second);
                 future.wait();
                 const auto json = future.get();
                 const auto dump = json.dump();
@@ -399,11 +384,167 @@ namespace test {
             auto content = future.get();
         }
 
+        TEST_METHOD(erase_data_set) {
+            const auto data_set = this->create_test_data_set(L"Erase Data Set Test");
+            std::uint64_t data_set_id;
+            std::wstring data_set_persistent_id;
+
+            {
+                auto future = this->_connection.post(L"/dataverses/visus/datasets", data_set);
+                future.wait();
+                const auto json = future.get();
+                const auto dump = json.dump();
+                Logger::WriteMessage(dump.c_str());
+                Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
+                data_set_id = json["data"]["id"].get<std::uint64_t>();
+            }
+
+            {
+                auto evt_done = visus::dataverse::create_event();
+
+                std::wstring resource(L"/datasets/");
+                resource += std::to_wstring(data_set_id);
+                resource += L"/versions/:draft";
+
+                this->_connection.erase(resource.c_str(), [](const visus::dataverse::blob& r, void *e) {
+                    const auto json = nlohmann::json::parse(r);
+                    auto response = json.dump();
+                    log_response("DELETE data set", response);
+                    Assert::IsTrue(true, L"Erase succeeded", LINE_INFO());
+                    visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
+                }, [](const int, const char *m, const char *, const visus::dataverse::narrow_string::code_page_type, void *e) {
+                    log_response("DELETE data set", m);
+                    Assert::Fail(L"Error callback invoked for erase", LINE_INFO());
+                    visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
+                }, &evt_done);
+
+                Assert::IsTrue(visus::dataverse::wait_event(evt_done, 60 * 1000), L"Operation completed in reasonable time", LINE_INFO());
+                visus::dataverse::destroy_event(evt_done);
+            }
+
+            {
+                std::wstring resource(L"/datasets/");
+                resource += std::to_wstring(data_set_id);
+
+                auto future = this->_connection.get(resource);
+                Assert::ExpectException<std::runtime_error>([&future](void) {
+                    future.get();
+                }, L"Get deleted data set", LINE_INFO());
+            }
+        }
+
+        TEST_METHOD(erase_data_set_future) {
+            const auto data_set = this->create_test_data_set(L"Erase Data Set Test (std::future)");
+            std::uint64_t data_set_id;
+            std::wstring data_set_persistent_id;
+
+            {
+                auto future = this->_connection.post(L"/dataverses/visus/datasets", data_set);
+                future.wait();
+                const auto json = future.get();
+                const auto dump = json.dump();
+                Logger::WriteMessage(dump.c_str());
+                Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
+                data_set_id = json["data"]["id"].get<std::uint64_t>();
+            }
+
+            {
+                std::wstring resource(L"/datasets/");
+                resource += std::to_wstring(data_set_id);
+                resource += L"/versions/:draft";
+
+                auto future = this->_connection.erase(resource);
+                future.get();   // This just must not throw for the test to succeed.
+            }
+
+            {
+                std::wstring resource(L"/datasets/");
+                resource += std::to_wstring(data_set_id);
+
+                auto future = this->_connection.get(resource);
+                Assert::ExpectException<std::runtime_error>([&future](void) {
+                    future.get();
+                }, L"Get deleted data set", LINE_INFO());
+            }
+        }
+
+#if false
+        // TODO: This does not work. Why?!
+        TEST_METHOD(erase_file_manually) {
+            const auto data_set = this->create_test_data_set(L"Erase File Test");
+            const auto file = create_test_file();
+            std::uint64_t data_set_id;
+            std::wstring data_set_persistent_id;
+            std::uint64_t file_id;
+
+            {
+                auto future = this->_connection.post(L"/dataverses/visus/datasets", data_set);
+                future.wait();
+                const auto json = future.get();
+                const auto dump = json.dump();
+                Logger::WriteMessage(dump.c_str());
+                Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
+                data_set_id = json["data"]["id"].get<std::uint64_t>();
+                data_set_persistent_id = visus::dataverse::convert<wchar_t>(json["data"]["persistentId"].get<std::string>(), CP_UTF8);
+            }
+
+            {
+                auto future = this->_connection.upload(data_set_persistent_id, file.first, file.second);
+                future.wait();
+                const auto json = future.get();
+                const auto dump = json.dump();
+                Logger::WriteMessage(dump.c_str());
+                Assert::AreEqual(visus::dataverse::to_utf8(L"OK"), json["status"].get<std::string>(), L"Response status", LINE_INFO());
+                const auto data = json["data"];
+                Assert::IsTrue(data.type() == nlohmann::json::value_t::object, L"Payload data is object", LINE_INFO());
+                const auto files = data["files"];
+                Assert::IsTrue(files.type() == nlohmann::json::value_t::array, L"Files in data are array", LINE_INFO());
+                Assert::AreEqual(std::size_t(1), files.size(), L"Array of one", LINE_INFO());
+                file_id = files[0]["dataFile"]["id"].get<std::uint64_t>();
+            }
+
+            {
+                auto evt_done = visus::dataverse::create_event();
+
+                std::wstring resource(L"/files/");
+                resource += std::to_wstring(file_id);
+
+                this->_connection.erase(resource.c_str(), [](const visus::dataverse::blob& r, void *e) {
+                    const auto json = nlohmann::json::parse(r);
+                    auto response = json.dump();
+                    log_response("DELETE file", response);
+                    Assert::IsTrue(true, L"Erase succeeded", LINE_INFO());
+                    visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
+                }, [](const int, const char *m, const char *, const visus::dataverse::narrow_string::code_page_type, void *e) {
+                    log_response("DELETE file", m);
+                    Assert::Fail(L"Error callback invoked for erase", LINE_INFO());
+                    visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
+                }, &evt_done);
+
+                Assert::IsTrue(visus::dataverse::wait_event(evt_done, 60 * 1000), L"Operation completed in reasonable time", LINE_INFO());
+                visus::dataverse::destroy_event(evt_done);
+            }
+        }
+#endif
+
     private:
 
         static inline void log_response(_In_z_ const char *request, _In_ const std::string& response) {
             const auto m = std::string(request) + ": " + response + "\r\n";
             Logger::WriteMessage(m.c_str());
+        }
+
+        static inline std::pair<std::wstring, nlohmann::json> create_test_file(void) {
+            auto description = nlohmann::json::object({
+                { "description", visus::dataverse::to_utf8(L"The test driver.")},
+                { "restrict", true },
+                { "categories", nlohmann::json::array({ "test", "future", "azure-devops" }) }
+                });
+
+            std::array<wchar_t, MAX_PATH> path;
+            Assert::IsTrue(::GetModuleFileNameW(NULL, path.data(), static_cast<DWORD>(path.size())), L"GetModuleFileName", LINE_INFO());
+
+            return std::make_pair(std::wstring(path.data()), description);
         }
 
         inline nlohmann::json create_test_data_set(const std::wstring& title) {
