@@ -621,6 +621,29 @@ namespace test {
             //}
         }
 
+        TEST_METHOD(error_callback) {
+            auto evt_done = visus::dataverse::create_event();
+
+            this->_connection.get(L"__bla_bla_bla__",
+                [](const visus::dataverse::blob &r, void *e) {
+                    visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
+                    Assert::Fail(L"Data callback invoked on invalid URL", LINE_INFO());
+                }, [](const int c, const char *m, const char *t, const visus::dataverse::narrow_string::code_page_type p, void *e) {
+                    Assert::IsTrue(true, L"Error callback invoked", LINE_INFO());
+                    visus::dataverse::set_event(*static_cast<visus::dataverse::event_type *>(e));
+                }, &evt_done);
+
+            Assert::IsTrue(visus::dataverse::wait_event(evt_done, 60 * 1000), L"Operation completed in reasonable time", LINE_INFO());
+            visus::dataverse::destroy_event(evt_done);
+        }
+
+        TEST_METHOD(error_future) {
+            auto future = this->_connection.get(L"__bla_bla_bla__");
+            Assert::ExpectException<std::runtime_error>([&future](void) {
+                future.get();
+            }, L"Exception thrown in future", LINE_INFO());
+        }
+
     private:
 
         static inline void log_response(_In_z_ const char *request, _In_ const std::string& response) {
