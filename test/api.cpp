@@ -638,10 +638,25 @@ namespace test {
         }
 
         TEST_METHOD(error_future) {
-            auto future = this->_connection.get(L"__bla_bla_bla__");
-            Assert::ExpectException<std::runtime_error>([&future](void) {
-                future.get();
-            }, L"Exception thrown in future", LINE_INFO());
+            {
+                auto future = this->_connection.get(L"__bla_bla_bla__");
+                Assert::ExpectException<std::runtime_error>([&future](void) {
+                    future.get();
+                }, L"Exception thrown in future", LINE_INFO());
+            }
+
+            {
+                std::array<std::future<visus::dataverse::blob>, 4> futures;
+                for (auto& f : futures) {
+                    f = this->_connection.get(L"__bla_bla_bla__");
+                }
+
+                for (auto& f : futures) {
+                    Assert::ExpectException<std::runtime_error>([&f](void) {
+                        f.get();
+                    }, L"Exception thrown in future", LINE_INFO());
+                }
+            }
         }
 
     private:
