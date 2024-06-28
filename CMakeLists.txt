@@ -22,7 +22,9 @@ if (DATAVERSE_DownloadThirdParty)
 else ()
     find_package(CURL REQUIRED)
     find_package(nlohmann_json REQUIRED)
-    find_package(wil REQUIRED)
+    if (WIN32)
+        find_package(wil REQUIRED)
+    endif ()
 endif ()
 
 # The library
