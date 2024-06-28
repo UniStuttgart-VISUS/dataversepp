@@ -53,7 +53,7 @@ else ()
     add_compile_definitions(OpenSSL_FOUND)
 
     set(ICU_DEBUG ON)
-    find_package(ICU REQUIRED COMPONENTS uc data)
+    find_package(ICU REQUIRED COMPONENTS uc)
 
     target_link_libraries(${PROJECT_NAME}
         PUBLIC ${CMAKE_DL_LIBS} Threads::Threads
