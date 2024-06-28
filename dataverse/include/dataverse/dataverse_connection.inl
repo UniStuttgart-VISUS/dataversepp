@@ -101,23 +101,13 @@ void visus::dataverse::dataverse_connection::translate_api_reponse(
         const auto r = std::string(response.as<char>(), response.size());
         const TJson json = TJson::parse(r);
 
-        // TODO: this should not be necessary according to https://json.nlohmann.me/api/basic_json/get/
-        std::string status;
-        nlohmann::adl_serializer<std::string>::from_json(json, status);
-
-        if (status == "ERROR") {
-            report_api_error(context, status.c_str());
+        if (json["status"].template get<std::string>() == "ERROR") {
+            // TODO: this (content of 'message') seems to be wrong ...
+            auto message = json["status"].template get<std::string>();
+            report_api_error(context, message.c_str());
         } else {
             on_api_response(json, context);
         }
-
-        //if (json["status"].get<std::string>() == "ERROR") {
-        //    // TODO: this (content of 'message') seems to be wrong ...
-        //    auto message = json["status"].get<std::string>();
-        //    report_api_error(context, message.c_str());
-        //} else {
-        //    on_api_response(json, context);
-        //}
     } catch (...) {
         // This should never happen unless an invalid end point was invoked.
         get_on_error(client_data)(0, "The translation of an API response "
