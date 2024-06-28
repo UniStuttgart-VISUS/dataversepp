@@ -117,5 +117,6 @@ mark_as_advanced(FORCE
 
 # libicu for conversion on Linux
 if (NOT WIN32)
-    find_package(ICU COMPONENTS uc REQUIRED)
+    set(ICU_DEBUG ON)
+    find_package(ICU REQUIRED COMPONENTS uc data)
 endif()

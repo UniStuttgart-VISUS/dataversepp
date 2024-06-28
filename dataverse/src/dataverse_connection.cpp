@@ -349,6 +349,45 @@ visus::dataverse::form_data visus::dataverse::dataverse_connection::make_form(
 
 
 /*
+ * visus::dataverse::dataverse_connection::replace
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::replace(_In_ const std::uint64_t id,
+        _In_z_ const wchar_t *path,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto url = std::wstring(L"/files/") + std::to_wstring(id)
+        + L"/replace";
+    return this->post(url.c_str(),
+        std::move(this->make_form().add_file(L"file", path)),
+        on_response,
+        on_error,
+        context);
+}
+
+
+/*
+ * visus::dataverse::dataverse_connection::replace
+ */
+visus::dataverse::dataverse_connection&
+visus::dataverse::dataverse_connection::replace(_In_ const std::uint64_t id,
+        _In_ const const_narrow_string& path,
+        _In_ const on_response_type on_response,
+        _In_ const on_error_type on_error,
+        _In_opt_ void *context) {
+    const auto url = std::wstring(L"/files/") + std::to_wstring(id)
+        + L"/replace";
+    const auto f = narrow_string("file", dataversepp_code_page);
+    return this->post(url.c_str(),
+        std::move(this->make_form().add_file(f, path)),
+        on_response,
+        on_error,
+        context);
+}
+
+
+/*
  * visus::dataverse::dataverse_connection::upload
  */
 visus::dataverse::dataverse_connection&
@@ -380,14 +419,9 @@ visus::dataverse::dataverse_connection::upload(
         _In_opt_ void *context) {
     const auto url = std::string("/datasets/:persistentId/add?"
         "persistentId=") + to_ascii(persistent_id);
+    const auto f = narrow_string("file", dataversepp_code_page);
     return this->post(const_narrow_string(url.c_str(), CP_ACP),
-#if defined(_WIN32)
-        std::move(this->make_form().add_file(narrow_string("file", CP_OEMCP),
-            path)),
-#else /* defined(_WIN32) */
-        std::move(this->make_form().add_file(narrow_string("file", nullptr),
-            path)),
-#endif /* defined(_WIN32) */
+        std::move(this->make_form().add_file(f, path)),
         on_response,
         on_error,
         context);

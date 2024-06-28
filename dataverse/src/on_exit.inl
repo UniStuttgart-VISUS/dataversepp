@@ -5,7 +5,7 @@
 
 
 /*
- * visus::dataverse::detail::on_exit_guard<TExitHandler>::Invoke
+ * visus::dataverse::detail::on_exit_guard<TExitHandler>::invoke
  */
 template<class TExitHandler>
 void visus::dataverse::detail::on_exit_guard<TExitHandler>::invoke(

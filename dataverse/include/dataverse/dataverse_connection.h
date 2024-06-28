@@ -2133,7 +2133,6 @@ namespace dataverse {
             return *this;
         }
 
-
         /// <summary>
         /// Deletes the specified resource.
         /// </summary>
@@ -2220,6 +2219,108 @@ namespace dataverse {
         inline std::future<void> remove(
                 _In_ const const_narrow_string& resource) {
             return this->erase(resource);
+        }
+
+        /// <summary>
+        /// Replaces the file with the sepcified database identifier with the
+        /// content of the file at the specified location.
+        /// </summary>
+        /// <param name="id">The database ID of the file to be replaced.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& replace(_In_ const std::uint64_t id,
+            _In_z_ const wchar_t *path,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Replaces the file with the sepcified database identifier with the
+        /// content of the file at the specified location.
+        /// </summary>
+        /// <param name="id">The database ID of the file to be replaced.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <param name="on_response">A callback to be invoked if the response
+        /// to the request was received.</param>
+        /// <param name="on_error">A callback to be invoked if the request
+        /// failed asynchronously.</param>
+        /// <param name="context">A user-defined context pointer passed to the
+        /// callbacks.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        dataverse_connection& replace(_In_ const std::uint64_t id,
+            _In_ const const_narrow_string& path,
+            _In_ const on_response_type on_response,
+            _In_ const on_error_type on_error,
+            _In_opt_ void *context = nullptr);
+
+        /// <summary>
+        /// Replaces the file with the sepcified database identifier with the
+        /// content of the file at the specified location.
+        /// </summary>
+        /// <param name="id">The database ID of the file to be replaced.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<blob> replace(_In_ const std::uint64_t id,
+                _In_ const std::wstring& path) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const std::uint64_t,
+                const wchar_t *,
+                const on_response_type, const on_error_type, void *);
+            return invoke_async<blob>(
+                static_cast<actual_type>(&dataverse_connection::replace), *this,
+                id, path.c_str());
+        }
+
+        /// <summary>
+        /// Replaces the file with the sepcified database identifier with the
+        /// content of the file at the specified location.
+        /// </summary>
+        /// <param name="id">The database ID of the file to be replaced.</param>
+        /// <param name="path">The path to the file to be uploaded.</param>
+        /// <returns><c>*this</c>.</returns>
+        /// <exception cref="std::system_error">If the method was called on an
+        /// object that has been moved.</exception>
+        /// <exception cref="std::system_error">If the request failed right away.
+        /// Note that even if the request initially succeeded, it might still
+        /// fail and call <paramref name="on_error" /> later.</exception>
+        /// <exception cref="std::bad_alloc">If the memory required to build the
+        /// request could not be alloctated.</exception>
+        inline std::future<blob> replace(_In_ const std::uint64_t id,
+                _In_ const const_narrow_string& path) {
+            typedef dataverse_connection& (dataverse_connection:: *actual_type)(
+                const std::uint64_t,
+                const const_narrow_string&,
+                const on_response_type, const on_error_type, void *);
+            return invoke_async<blob>(
+                static_cast<actual_type>(&dataverse_connection::replace), *this,
+                id, path);
         }
 
         /// <summary>

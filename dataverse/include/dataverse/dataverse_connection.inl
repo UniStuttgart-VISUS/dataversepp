@@ -84,6 +84,7 @@ std::future<void> visus::dataverse::dataverse_connection::invoke_async(
 }
 
 
+#if defined(DATAVERSE_WITH_JSON)
 /*
  * visus::dataverse::dataverse_connection::translate_api_reponse
  */
@@ -113,3 +114,4 @@ void visus::dataverse::dataverse_connection::translate_api_reponse(
             dataversepp_code_page, context);
     }
 }
+#endif /* defined(DATAVERSE_WITH_JSON) */
