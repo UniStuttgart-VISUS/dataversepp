@@ -54,6 +54,7 @@ jobs:
       platform: '$(buildPlatform)'
       configuration: '$(buildConfiguration)'
     env:
+      ApiEndPoint: $(ApiEndPoint)
       ApiKey: $(ApiKey)
       TestID: '$(Build.BuildNumber) Unicode'
 
