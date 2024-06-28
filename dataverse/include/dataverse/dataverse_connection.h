@@ -295,7 +295,7 @@ namespace dataverse {
                 L"persistentId=") + convert<wchar_t>(persistent_id);
             this->get(url.c_str(),
                 translate_api_reponse<nlohmann::json>,
-                static_cast<const void *>(on_response),
+                reinterpret_cast<const void *>(on_response),
                 on_error,
                 context);
             return *this;
@@ -1228,7 +1228,7 @@ namespace dataverse {
                 + std::wstring(L"/files");
             this->get(url.c_str(),
                 translate_api_reponse<nlohmann::json>,
-                static_cast<const void *>(on_response),
+                reinterpret_cast<const void *>(on_response),
                 on_error,
                 context);
             return *this;
@@ -1267,7 +1267,7 @@ namespace dataverse {
                 + std::wstring(L"/files");
             this->get(url.c_str(),
                 translate_api_reponse<nlohmann::json>,
-                static_cast<const void *>(on_response), 
+                reinterpret_cast<const void *>(on_response),
                 on_error,
                 context);
             return *this;
@@ -1936,7 +1936,7 @@ namespace dataverse {
                 octets, dump.size(), deleter,
                 L"application/json",
                 translate_api_reponse<nlohmann::json>,
-                static_cast<const void *>(on_response),
+                reinterpret_cast<const void *>(on_response),
                 on_error,
                 context);
             return *this;
@@ -1981,7 +1981,7 @@ namespace dataverse {
                 octets, dump.size(), deleter,
                 const_narrow_string("application/json", dataversepp_code_page),
                 translate_api_reponse<nlohmann::json>,
-                static_cast<const void *>(on_response),
+                reinterpret_cast<const void *>(on_response),
                 on_error,
                 context);
             return *this;
@@ -2626,7 +2626,7 @@ namespace dataverse {
                     .add_file(L"file", path.c_str())
                     .add_field(L"jsonData", d, s)),
                 translate_api_reponse<nlohmann::json>,
-                static_cast<const void *>(on_response),
+                reinterpret_cast<const void *>(on_response),
                 on_error,
                 context);
             return *this;
@@ -2676,7 +2676,7 @@ namespace dataverse {
                     .add_file(L"file", p.c_str())
                     .add_field(L"jsonData", d, s)),
                 translate_api_reponse<nlohmann::json>,
-                static_cast<const void *>(on_response),
+                reinterpret_cast<const void *>(on_response),
                 on_error,
                 context);
             return *this;

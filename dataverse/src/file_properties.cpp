@@ -247,7 +247,7 @@ nlohmann::json visus::dataverse::detail::get_file_properties(
             }
         } while (cnt_read > 0);
 
-        if (!::MD5_Final(hash.data(), &context)) {
+        if (!::MD5_Final(hash.data(), &ctx)) {
             throw "TODO";
         }
 

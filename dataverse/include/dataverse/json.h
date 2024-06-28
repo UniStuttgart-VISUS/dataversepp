@@ -57,14 +57,24 @@ namespace json {
             _In_z_ const wchar_t *clazz,
             _In_ const bool multiple,
             _In_ TValue&& value) {
-        return nlohmann::json({
-            { "value", multiple
-                ? nlohmann::json::array({ value })
-                : value },
-            { "typeClass", to_utf8(clazz) },
-            { "typeName", to_utf8(name) },
-            { "multiple", multiple }
+        if (multiple) {
+            // Note: GCC does not implicitly cast json::array and he value to
+            // a compatible JSON type, so we cannot use the ternary here.
+            return nlohmann::json({
+                { "value", nlohmann::json::array({ value }) },
+                { "typeClass", to_utf8(clazz) },
+                { "typeName", to_utf8(name) },
+                { "multiple", multiple }
             });
+
+        } else {
+            return nlohmann::json({
+                { "value", value },
+                { "typeClass", to_utf8(clazz) },
+                { "typeName", to_utf8(name) },
+                { "multiple", multiple }
+            });
+        }
     }
 
     /// <summary>

@@ -7,8 +7,9 @@
 
 #include <string>
 
-#if defined(ICU_FOUND)
-//#include <unicode/umsg.h>
+#if !defined(_WIN32)
+#include <unicode/errorcode.h>
+#include <unicode/umsg.h>
 
 
 /*
@@ -48,4 +49,4 @@ visus::dataverse::detail::icu_category(void) noexcept {
     return retval;
 }
 
-#endif /* defined(ICU_FOUND) */
+#endif /* !defined(_WIN32) */

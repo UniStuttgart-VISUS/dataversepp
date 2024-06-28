@@ -13,7 +13,7 @@
 #include <vector>
 
 
-#if defined(ICU_FOUND)
+#if !defined(_WIN32)
 #include <unicode/ucnv.h>
 #include <unicode/unistr.h>
 #include <unicode/ustring.h>
@@ -21,7 +21,7 @@
 
 #include "errors.h"
 #include "icu_error_category.h"
-#endif /* !defined(ICU_FOUND) */
+#endif /* !defined(_WIN32) */
 
 
 /*

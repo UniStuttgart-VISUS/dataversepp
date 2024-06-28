@@ -7,7 +7,7 @@
 
 #include <system_error>
 
-#if defined(ICU_FOUND)
+#if !defined(_WIN32)
 #include <unicode/utypes.h>
 
 #include "dataverse/api.h"
@@ -83,4 +83,4 @@ namespace std {
     }
 }
 
-#endif /* defined(ICU_FOUND) */
+#endif /* !defined(_WIN32) */

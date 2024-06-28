@@ -54,7 +54,6 @@ else ()
 
     set(ICU_DEBUG ON)
     find_package(ICU REQUIRED COMPONENTS uc data)
-    add_compile_definitions(ICU_FOUND)
 
     target_link_libraries(${PROJECT_NAME}
         PUBLIC ${CMAKE_DL_LIBS} Threads::Threads
