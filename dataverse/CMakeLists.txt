@@ -53,11 +53,11 @@ else ()
     add_compile_definitions(OpenSSL_FOUND)
 
     set(ICU_DEBUG ON)
-    find_package(ICU REQUIRED COMPONENTS uc)
+    find_package(ICU REQUIRED COMPONENTS uc data)
 
     target_link_libraries(${PROJECT_NAME}
         PUBLIC ${CMAKE_DL_LIBS} Threads::Threads
-        PRIVATE ICU::uc OpenSSL::Crypto)
+        PRIVATE ICU::uc ICU::data OpenSSL::Crypto)
     set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif ()
 
