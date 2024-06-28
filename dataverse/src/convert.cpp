@@ -100,7 +100,9 @@ std::size_t visus::dataverse::convert(
             break;
 
         default:
-            throw std::system_error(status, detail::icu_category());
+            if (U_FAILURE(status)) {
+                throw std::system_error(status, detail::icu_category());
+            }
     }
 
     return retval;
@@ -189,7 +191,9 @@ std::size_t visus::dataverse::convert(
             break;
 
         default:
-            throw std::system_error(status, detail::icu_category());
+            if (U_FAILURE(status)) {
+                throw std::system_error(status, detail::icu_category());
+            }
     }
 
     return retval;

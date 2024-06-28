@@ -121,8 +121,9 @@ namespace dataverse {
         auto cnt = convert(buffer.data(), buffer.size(),
             src, cnt_src,
             code_page);
-        return std::basic_string<TDstChar>(buffer.data(),
-            buffer.data() + cnt - 1);
+        return (cnt > 0)
+            ? std::basic_string<TDstChar>(buffer.data(), buffer.data() + cnt)
+            : std::basic_string<TDstChar>();
     }
 
     /// <summary>
@@ -242,7 +243,7 @@ namespace dataverse {
             _In_ const narrow_string::code_page_type code_page) {
         std::vector<char> buffer(to_ascii(nullptr, 0, src, 0, code_page));
         auto cnt = to_ascii(buffer.data(), buffer.size(), src, 0, code_page);
-        return std::string(buffer.data(), buffer.data() + cnt - 1);
+        return std::string(buffer.data(), buffer.data() + cnt);
     }
 
     /// <summary>
@@ -293,7 +294,7 @@ namespace dataverse {
     inline std::string to_ascii(_In_z_ const wchar_t *src) {
         std::vector<char> buffer(to_ascii(nullptr, 0, src, 0));
         auto cnt = to_ascii(buffer.data(), buffer.size(), src, 0);
-        return std::string(buffer.data(), buffer.data() + cnt - 1);
+        return std::string(buffer.data(), buffer.data() + cnt);
     }
 
     /// <summary>
