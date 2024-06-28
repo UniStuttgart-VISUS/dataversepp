@@ -365,3 +365,4 @@ FodyWeavers.xsd
 
 # Build directories for Cmake
 /_build*
+/_out*
