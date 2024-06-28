@@ -13,7 +13,9 @@
 #if defined(_WIN32)
 #include <wil/resource.h>
 #else /* defined(_WIN32) */
+#include <dirent.h>
 #include <unistd.h>
+
 #include <sys/stat.h>
 #endif /* defined(_WIN32) */
 
@@ -90,10 +92,10 @@ std::vector<std::string> get_files(
         _In_ const visus::dataverse::const_narrow_string& path,
         _In_ const bool recurse) {
     std::vector<std::string> retval;
+    std::stack<std::string> stack;
 
 #if defined(_WIN32)
     WIN32_FIND_DATAA data;
-    std::stack<std::string> stack;
 
     // Initialise the stack and make sure that the path is terminated with a
     // path separator to formulate the correct query.
@@ -133,7 +135,37 @@ std::vector<std::string> get_files(
         }
     }
 #else /* defined(_WIN32) */
-    throw "TODO";
+    struct dirent *fd;
+
+    stack.push(path.value());
+
+    while (!stack.empty()) {
+        auto cur = stack.top();
+        stack.pop();
+
+        auto dir = ::opendir(cur.c_str());
+        if (dir == nullptr) {
+            std::error_code ec(errno, std::system_category());
+            throw std::system_error(ec, "opendir failed.");
+        }
+
+        while ((fd = ::readdir(dir)) != nullptr) {
+            auto fn = cur + "/" + fd->d_name;
+
+            if (fd->d_type == DT_DIR) {
+                if (recurse
+                        && (::strcmp(fd->d_name, ".") != 0)
+                        && (::strcmp(fd->d_name, "..") != 0)) {
+                    stack.push(fn);
+                }
+            } else {
+                retval.push_back(fn);
+            }
+        }
+
+        ::closedir(dir);
+    }
+
 #endif /* defined(_WIN32) */
     return retval;
 }
