@@ -173,7 +173,7 @@ namespace dataverse {
     inline std::basic_string<TDstChar> convert(
             _In_ const std::basic_string<TSrcChar, TSrcTraits, TSrcAlloc>& src,
             _In_ const narrow_string::code_page_type code_page) {
-        return convert<TDstChar>(src.c_str(), 0, code_page);
+        return convert<TDstChar, TSrcChar>(src.c_str(), 0, code_page);
     }
 
     /// <summary>
