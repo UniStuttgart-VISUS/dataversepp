@@ -3,11 +3,10 @@
 
 cmake_minimum_required(VERSION 3.15...3.29)
 
+project(dataverse++ LANGUAGES CXX)
+
 include(CMakeDependentOption)
 include(GNUInstallDirs)
-
-
-project(dataverse++)
 
 # User-configurable options.
 option(DATAVERSE_BuildCli "Build CLI tool." ON)
@@ -22,7 +21,9 @@ if (DATAVERSE_DownloadThirdParty)
 else ()
     find_package(CURL REQUIRED)
     find_package(nlohmann_json REQUIRED)
-    find_package(wil REQUIRED)
+    if (WIN32)
+        find_package(wil REQUIRED)
+    endif ()
 endif ()
 
 # The library

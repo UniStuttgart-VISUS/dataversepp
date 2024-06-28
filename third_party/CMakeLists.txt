@@ -13,24 +13,26 @@ mark_as_advanced(FORCE
 #find_package(openssl CONFIG REQUIRED)
 
 # Windows Implementation Library
-FetchContent_Declare(wil
-    URL "https://github.com/microsoft/wil/archive/v1.0.230202.1.tar.gz"
-    URL_HASH SHA256=7bf01e9d93fb93f0fe2614492fac4a423b3a97b435015db74f5ac4a0270ebc8a
-)
-option(FAST_BUILD "" OFF)
-option(WIL_BUILD_PACKAGING "" OFF)
-option(WIL_BUILD_TESTS "" OFF)
-FetchContent_GetProperties(wil)
-if (NOT wil_POPULATED)
-    FetchContent_Populate(wil)
-    add_subdirectory(${wil_SOURCE_DIR} ${wil_BINARY_DIR} EXCLUDE_FROM_ALL)
+if (WIN32)
+    FetchContent_Declare(wil
+        URL "https://github.com/microsoft/wil/archive/v1.0.230202.1.tar.gz"
+        URL_HASH SHA256=7bf01e9d93fb93f0fe2614492fac4a423b3a97b435015db74f5ac4a0270ebc8a
+    )
+    option(FAST_BUILD "" OFF)
+    option(WIL_BUILD_PACKAGING "" OFF)
+    option(WIL_BUILD_TESTS "" OFF)
+    FetchContent_GetProperties(wil)
+    if (NOT wil_POPULATED)
+        FetchContent_Populate(wil)
+        add_subdirectory(${wil_SOURCE_DIR} ${wil_BINARY_DIR} EXCLUDE_FROM_ALL)
+    endif ()
+    mark_as_advanced(FORCE
+        FETCHCONTENT_SOURCE_DIR_WIL
+        FETCHCONTENT_UPDATES_DISCONNECTED_WIL
+        FAST_BUILD
+        WIL_BUILD_PACKAGING
+        WIL_BUILD_TESTS)
 endif ()
-mark_as_advanced(FORCE
-    FETCHCONTENT_SOURCE_DIR_WIL
-    FETCHCONTENT_UPDATES_DISCONNECTED_WIL
-    FAST_BUILD
-    WIL_BUILD_PACKAGING
-    WIL_BUILD_TESTS)
 
 
 # cURL
