@@ -35,7 +35,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
 target_link_directories(${PROJECT_NAME} PRIVATE "${VcInstallDir}/Auxiliary/VS/UnitTest/lib/$(LibrariesArchitecture)")
 target_link_libraries(${PROJECT_NAME} PRIVATE
     Microsoft.VisualStudio.TestTools.CppUnitTestFramework.lib
-    nlohmann_json
+    nlohmann_json::nlohmann_json
     dataverse)
 
 # Grab the DLLs to be tested and copy them to the output directory such that
