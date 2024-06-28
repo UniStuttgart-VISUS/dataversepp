@@ -25,9 +25,9 @@ endif ()
 
 
 # Configure the linker.
-target_link_libraries(${PROJECT_NAME} PRIVATE dataverse nlohmann_json)
+target_link_libraries(${PROJECT_NAME} PRIVATE dataverse nlohmann_json::nlohmann_json)
 if (WIN32)
-    target_link_libraries(${PROJECT_NAME} PRIVATE WIL)
+    target_link_libraries(${PROJECT_NAME} PRIVATE WIL::WIL)
 endif ()
 
 

@@ -15,6 +15,7 @@ mark_as_advanced(FORCE
 # Windows Implementation Library
 FetchContent_Declare(wil
     URL "https://github.com/microsoft/wil/archive/v1.0.230202.1.tar.gz"
+    URL_HASH SHA256=7bf01e9d93fb93f0fe2614492fac4a423b3a97b435015db74f5ac4a0270ebc8a
 )
 option(FAST_BUILD "" OFF)
 option(WIL_BUILD_PACKAGING "" OFF)
@@ -32,16 +33,10 @@ mark_as_advanced(FORCE
     WIL_BUILD_TESTS)
 
 
-## OpenSSL for use with cURL (On Windows, we use SChannel)
-#if (NOT WIN32)
-#    find_package(OpenSSL REQUIRED)
-#    add_compile_definitions(OpenSSL_FOUND)
-#endif ()
-
-
 # cURL
 FetchContent_Declare(curl
-    URL "https://github.com/curl/curl/archive/refs/tags/curl-8_2_1.zip"
+    URL "https://github.com/curl/curl/archive/curl-8_2_1.tar.gz"
+    URL_HASH SHA256=230d61a4b1eb3346930f2d601cc8fe5237957163e16befbe15e0ef40c56767a2
 )
 option(BUILD_CURL_EXE "" OFF)
 option(CURL_ENABLE_SSL "" ON)
@@ -98,7 +93,8 @@ mark_as_advanced(FORCE
 
 # JSON library
 FetchContent_Declare(nlohmann_json
-    URL "https://github.com/nlohmann/json/archive/v3.11.2.tar.gz"
+    URL "https://github.com/nlohmann/json/archive/v3.11.3.tar.gz"
+    URL_HASH SHA256=0d8ef5af7f9794e3263480193c491549b2ba6cc74bb018906202ada498a79406
 )
 FetchContent_MakeAvailable(nlohmann_json)
 mark_as_advanced(FORCE
@@ -114,10 +110,3 @@ mark_as_advanced(FORCE
     JSON_LegacyDiscardedValueComparison
     JSON_MultipleHeaders
     JSON_SystemInclude)
-
-
-#if (NOT WIN32)
-#    set(ICU_DEBUG ON)
-#    find_package(ICU REQUIRED COMPONENTS uc data)
-#    add_compile_definitions(ICU_FOUND)
-#endif ()
