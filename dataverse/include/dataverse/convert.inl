@@ -18,13 +18,21 @@ std::size_t visus::dataverse::convert(
         throw std::invalid_argument("The string to convert cannot be null.");
     }
 
-    if (cnt_src == 0) {
-        cnt_src = std::char_traits<TChar>::length(src) + 1;
+    auto retval = cnt_src;
+    auto len = cnt_src;
+
+    if (len == 0) {
+        retval = std::char_traits<TChar>::length(src);
+        len = retval + 1;
+    }
+
+    if (len > cnt_dst) {
+        len = cnt_dst;
     }
 
     if (dst != nullptr) {
-        ::memcpy(dst, src, (std::min)(cnt_dst, cnt_src));
+        ::memcpy(dst, src, len * sizeof(TChar));
     }
 
-    return cnt_src;
+    return retval;
 }
