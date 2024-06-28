@@ -100,7 +100,6 @@ void visus::dataverse::dataverse_connection::translate_api_reponse(
     try {
         const auto r = std::string(response.as<char>(), response.size());
         const auto json = TJson::parse(r);
-
         if (json["status"].get<std::string>() == "ERROR") {
             // TODO: this (content of 'message') seems to be wrong ...
             auto message = json["status"].get<std::string>();

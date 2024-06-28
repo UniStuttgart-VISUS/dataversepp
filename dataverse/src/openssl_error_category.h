@@ -64,24 +64,24 @@ namespace detail {
 } /* namespace visus */
 
 
-namespace std {
-
-    /// <summary>
-    /// Tell STL that OpenSSL error codes are error codes.
-    /// </summary>
-    template<> struct is_error_code_enum<unsigned long> : public true_type { };
-
-    /// <summary>
-    /// Allow STL to convert an OpenSSL error code into a generic error
-    /// code.
-    /// </summary>
-    /// <param name="e">The OpenSSL error to be converted.</param>
-    /// <returns>The generic error code.</returns>
-    inline std::error_code make_error_code(
-            _In_ const unsigned long e) noexcept {
-        return std::error_code(static_cast<int>(e),
-            visus::dataverse::detail::openssl_category());
-    }
-}
+//namespace std {
+//
+//    /// <summary>
+//    /// Tell STL that OpenSSL error codes are error codes.
+//    /// </summary>
+//    template<> struct is_error_code_enum<unsigned long> : public true_type { };
+//
+//    /// <summary>
+//    /// Allow STL to convert an OpenSSL error code into a generic error
+//    /// code.
+//    /// </summary>
+//    /// <param name="e">The OpenSSL error to be converted.</param>
+//    /// <returns>The generic error code.</returns>
+//    inline std::error_code make_error_code(
+//            _In_ const unsigned long e) noexcept {
+//        return std::error_code(static_cast<int>(e),
+//            visus::dataverse::detail::openssl_category());
+//    }
+//}
 
 #endif /* defined(OpenSSL_FOUND) */

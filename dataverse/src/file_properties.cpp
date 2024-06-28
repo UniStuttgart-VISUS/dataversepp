@@ -36,7 +36,7 @@
 #include "dataverse/convert.h"
 
 #include "ntstatus_error_category.h"
-//#include "openssl_e"
+#include "openssl_error_category.h"
 #include "posix_handle.h"
 
 
@@ -233,7 +233,7 @@ nlohmann::json visus::dataverse::detail::get_file_properties(
         }
 
         if (!::MD5_Init(&ctx)) {
-            throw "TODO";
+            throw std::system_error(::ERR_get_error(), openssl_category());
         }
 
         do {
@@ -243,12 +243,12 @@ nlohmann::json visus::dataverse::detail::get_file_properties(
             }
 
             if (!::MD5_Update(&ctx, buffer.data(), cnt_read)) {
-                throw "TODO";
+                throw std::system_error(::ERR_get_error(), openssl_category());
             }
         } while (cnt_read > 0);
 
         if (!::MD5_Final(hash.data(), &ctx)) {
-            throw "TODO";
+            throw std::system_error(::ERR_get_error(), openssl_category());
         }
 
         for (auto c : buffer) {
