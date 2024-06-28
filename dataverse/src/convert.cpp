@@ -222,7 +222,7 @@ std::size_t DATAVERSE_API visus::dataverse::to_ascii(
 
 
 /*
- *
+ * visus::dataverse::to_ascii
  */
 std::size_t visus::dataverse::to_ascii(
         _Out_writes_to_opt_(cnt_dst, return) char *dst,

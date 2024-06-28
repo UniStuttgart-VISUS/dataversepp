@@ -48,7 +48,7 @@ if (WIN32)
 #    target_link_libraries(${PROJECT_NAME} )
 else ()
     find_package(Threads REQUIRED)
-    find_package(ICU REQUIRED)
+    find_package(ICU REQUIRED COMPONENTS uc data)
     target_link_libraries(${PROJECT_NAME}
         PUBLIC ${CMAKE_DL_LIBS} Threads::Threads
         PRIVATE ICU::uc)

@@ -113,10 +113,3 @@ mark_as_advanced(FORCE
     JSON_LegacyDiscardedValueComparison
     JSON_MultipleHeaders
     JSON_SystemInclude)
-
-
-# libicu for conversion on Linux
-if (NOT WIN32)
-    set(ICU_DEBUG ON)
-    find_package(ICU REQUIRED COMPONENTS uc data)
-endif()
