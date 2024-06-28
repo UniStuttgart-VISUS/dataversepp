@@ -10,6 +10,8 @@
 #if defined(ICU_FOUND)
 #include <unicode/utypes.h>
 
+#include "dataverse/api.h"
+
 
 namespace visus {
 namespace dataverse {

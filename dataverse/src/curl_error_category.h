@@ -9,6 +9,8 @@
 
 #include <curl/curl.h>
 
+#include "dataverse/api.h"
+
 
 namespace visus {
 namespace dataverse {

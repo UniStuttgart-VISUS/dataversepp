@@ -32,10 +32,11 @@ mark_as_advanced(FORCE
     WIL_BUILD_TESTS)
 
 
-# OpenSSL for use with cURL (On Windows, we use SChannel)
-if (NOT WIN32)
-    find_package(OpenSSL REQUIRED)
-endif ()
+## OpenSSL for use with cURL (On Windows, we use SChannel)
+#if (NOT WIN32)
+#    find_package(OpenSSL REQUIRED)
+#    add_compile_definitions(OpenSSL_FOUND)
+#endif ()
 
 
 # cURL
@@ -113,3 +114,10 @@ mark_as_advanced(FORCE
     JSON_LegacyDiscardedValueComparison
     JSON_MultipleHeaders
     JSON_SystemInclude)
+
+
+#if (NOT WIN32)
+#    set(ICU_DEBUG ON)
+#    find_package(ICU REQUIRED COMPONENTS uc data)
+#    add_compile_definitions(ICU_FOUND)
+#endif ()

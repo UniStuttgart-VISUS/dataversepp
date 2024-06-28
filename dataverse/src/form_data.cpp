@@ -11,7 +11,12 @@
 #include <system_error>
 
 #include <fcntl.h>
+
+#if defined(_WIN32)
 #include <io.h>
+#else  /* defined(_WIN32) */
+#include <unistd.h>
+#endif /* defined(_WIN32) */
 
 #include <curl/curl.h>
 

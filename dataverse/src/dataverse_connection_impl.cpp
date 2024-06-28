@@ -94,7 +94,7 @@ void visus::dataverse::detail::dataverse_connection_impl::secure_zero(
 #if defined(_WIN32)
             ::SecureZeroMemory(cur->data, ::strlen(cur->data));
 #else /* defined(_WIN32) */
-            ::memset(cur->data, ::strlen(cur->data));
+            ::memset(cur->data, 0, ::strlen(cur->data));
 #endif /* defined(_WIN32) */
         }
 

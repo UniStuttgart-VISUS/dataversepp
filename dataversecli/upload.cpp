@@ -26,7 +26,7 @@ void print_error(_In_ const int cone,
 #if defined(_WIN32)
     auto mm = convert<char>(convert<wchar_t>(message, 0, code_page), CP_OEMCP);
 #else /* defined(_WIN32) */
-    auto mm = m;
+    auto mm = message;
 #endif /* defined(_WIN32) */
     std::cerr << mm << std::endl;
 }

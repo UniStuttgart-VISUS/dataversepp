@@ -260,7 +260,7 @@ namespace dataverse {
                 L"persistentId=") + persistent_id;
             this->get(url.c_str(),
                 translate_api_reponse<nlohmann::json>,
-                static_cast<const void *>(on_response),
+                reinterpret_cast<const void *>(on_response),
                 on_error,
                 context);
             return *this;
@@ -775,7 +775,7 @@ namespace dataverse {
                 const const_narrow_string&,
                 const const_narrow_string&,
                 const const_narrow_string&,
-                const std::vector<const_narrow_string, TVAlloc>&,
+                const std::vector<const_narrow_string, TAlloc>&,
                 const bool,
                 const on_response_type, const on_error_type, void *);
             return invoke_async<blob>(

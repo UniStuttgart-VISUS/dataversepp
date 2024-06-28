@@ -5,13 +5,36 @@
 
 #pragma once
 
-#include "dataverse/convert.h"
-
-
 // Enable JSON helper if the JSON library has been included before this header.
 #if defined(NLOHMANN_JSON_NAMESPACE_BEGIN)
 #define DATAVERSE_WITH_JSON (1)
 #endif /* defined(NLOHMANN_JSON_NAMESPACE_BEGIN) */
+
+
+#include "dataverse/convert.h"
+
+
+#if defined(DATAVERSE_WITH_JSON)
+namespace nlohmann {
+
+    /// <summary>
+    /// Allow for automatic conversion of <see cref="std::wstring" /> to JSON.
+    /// </summary>
+    template<> struct adl_serializer<std::wstring> {
+
+        static inline void to_json(_Inout_ nlohmann::json &dst,
+            _In_ const std::wstring &src) {
+            dst = visus::dataverse::to_utf8(src);
+        }
+
+        static inline void from_json(_In_ const nlohmann::json &src,
+            _Inout_ std::wstring &dst) {
+            dst = visus::dataverse::from_utf8<wchar_t>(src.get<std::string>());
+        }
+    };
+
+} /* namespace nlohmann */
+#endif /* defined(DATAVERSE_WITH_JSON) */
 
 
 namespace visus {

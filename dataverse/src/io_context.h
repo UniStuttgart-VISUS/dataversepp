@@ -24,6 +24,7 @@
 #include "dataverse/dataverse_connection.h"
 
 #include "dataverse_connection_impl.h"
+#include "invoke_handler.h"
 #include "posix_handle.h"
 
 

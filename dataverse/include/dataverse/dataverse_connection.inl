@@ -93,7 +93,7 @@ void visus::dataverse::dataverse_connection::translate_api_reponse(
         _In_ const blob& response, _In_ void *client_data) {
     _Analysis_assume_(client_data != nullptr);
     const auto callback = get_on_api_response(client_data);
-    const auto on_api_response = static_cast<on_api_response_type>(callback);
+    const auto on_api_response = reinterpret_cast<on_api_response_type>(callback);
     _Analysis_assume_(on_api_response != nullptr);
     auto context = get_api_response_client_data(client_data);
 

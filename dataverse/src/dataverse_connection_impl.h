@@ -75,7 +75,7 @@ namespace detail {
 #if defined(_WIN32)
             ::SecureZeroMemory(vector.data(), vector.size() * sizeof(TElement));
 #else /* defined(_WIN32) */
-            ::memset(vector.data(), vector.size() * sizeof(TElement));
+            ::memset(vector.data(), 0, vector.size() * sizeof(TElement));
 #endif /* defined(_WIN32) */
         }
 

@@ -4,7 +4,10 @@
 // <author>Christoph Müller</author>
 
 #include <fcntl.h>
+
+#if defined(_WIN32)
 #include <io.h>
+#endif /* _WIN32 */
 
 #include "dataverse/api.h"
 
@@ -25,6 +28,10 @@ namespace detail {
         posix_handle(_Inout_ posix_handle&& rhs) noexcept;
 
         ~posix_handle(void) noexcept;
+
+        inline int get(void) noexcept {
+            return this->_handle;
+        }
 
         inline int release(void) noexcept {
             auto retval = this->_handle;

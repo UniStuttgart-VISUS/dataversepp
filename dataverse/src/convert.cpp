@@ -19,6 +19,7 @@
 #include <unicode/ustring.h>
 #include <unicode/utypes.h>
 
+#include "errors.h"
 #include "icu_error_category.h"
 #endif /* !defined(ICU_FOUND) */
 

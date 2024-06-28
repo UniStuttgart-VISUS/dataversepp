@@ -26,7 +26,11 @@
 
 #include <wil/resource.h>
 #else /* defined(_WIN32) */
+#include <unistd.h>
+
 #include <openssl/md5.h>
+
+#include <sys/stat.h>
 #endif /* defined(_WIN32) */
 
 #include "dataverse/convert.h"
@@ -269,11 +273,11 @@ nlohmann::json visus::dataverse::detail::get_file_properties(
 
     // Determine the name of the file.
     {
-        auto p = to_utf8(path.value());
+        auto p = to_utf8(path.value(), path.code_page());
 
         auto begin = std::find(p.rbegin(), p.rend(), '/');
         if (begin != p.rend()) {
-            p.erase(p.begin(), p.base());
+            p.erase(p.begin(), begin.base());
         }
 
         retval["fileName"] = p;

@@ -48,10 +48,17 @@ if (WIN32)
 #    target_link_libraries(${PROJECT_NAME} )
 else ()
     find_package(Threads REQUIRED)
+
+    find_package(OpenSSL REQUIRED)
+    add_compile_definitions(OpenSSL_FOUND)
+
+    set(ICU_DEBUG ON)
     find_package(ICU REQUIRED COMPONENTS uc data)
+    add_compile_definitions(ICU_FOUND)
+
     target_link_libraries(${PROJECT_NAME}
         PUBLIC ${CMAKE_DL_LIBS} Threads::Threads
-        PRIVATE ICU::uc)
+        PRIVATE ICU::uc OpenSSL::Crypto)
     set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif ()
 

@@ -420,7 +420,12 @@ visus::dataverse::dataverse_connection::upload(
     const auto url = std::string("/datasets/:persistentId/add?"
         "persistentId=") + to_ascii(persistent_id);
     const auto f = narrow_string("file", dataversepp_code_page);
-    return this->post(const_narrow_string(url.c_str(), CP_ACP),
+#if defined(_WIN32)
+    auto cp = CP_ACP;
+#else /* defined(_WIN32) */
+    auto cp = static_cast<const char *>(nullptr);
+#endif /* defined(_WIN32) */
+    return this->post(const_narrow_string(url.c_str(), cp),
         std::move(this->make_form().add_file(f, path)),
         on_response,
         on_error,

@@ -12,6 +12,9 @@
 
 #if defined(_WIN32)
 #include <wil/resource.h>
+#else /* defined(_WIN32) */
+#include <unistd.h>
+#include <sys/stat.h>
 #endif /* defined(_WIN32) */
 
 #include "dataverse/convert.h"
@@ -66,8 +69,9 @@ std::vector<std::wstring> get_files(_In_ const std::wstring& path,
         }
     }
 #else /* defined(_WIN32) */
-    auto p = visus::dataverse::convert(path, nullptr);
-    auto r =  ::get_files(visus::dataverse::make_narrow_string(p, nullptr));
+    auto p = visus::dataverse::convert<char>(path, nullptr);
+    auto r =  ::get_files(visus::dataverse::make_narrow_string(p, nullptr),
+        recurse);
     retval.resize(r.size());
     std::transform(r.begin(), r.end(), retval.begin(),
             [](const std::string& s) {
@@ -145,7 +149,7 @@ bool is_directory(_In_ const std::wstring& path) {
     }
     return ((attribs & FILE_ATTRIBUTE_DIRECTORY) != 0);
 #else /* defined(_WIN32) */
-    auto p = visus::dataverse::convert(path, nullptr);
+    auto p = visus::dataverse::convert<char>(path, nullptr);
     return is_directory(visus::dataverse::make_narrow_string(p, nullptr));
 #endif /* defined(_WIN32) */
 }
@@ -164,8 +168,8 @@ bool is_directory(_In_ const visus::dataverse::const_narrow_string& path) {
 #else /* defined(_WIN32) */
     struct stat stat;
     if (::stat(path, &stat) != 0) {
-        throw std::system_error(errno, std::system_category);
+        throw std::system_error(errno, std::system_category());
     }
-    return ((s.st_mode & S_IFDIR) != 0);
+    return ((stat.st_mode & S_IFDIR) != 0);
 #endif /* defined(_WIN32) */
 }
