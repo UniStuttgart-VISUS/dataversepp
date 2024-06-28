@@ -75,7 +75,7 @@ std::vector<std::wstring> get_files(_In_ const std::wstring& path,
     retval.resize(r.size());
     std::transform(r.begin(), r.end(), retval.begin(),
             [](const std::string& s) {
-        return visus::dataverse::convert<char>(s, nullptr);
+        return visus::dataverse::convert<wchar_t>(s, nullptr);
     });
 #endif /* defined(_WIN32) */
 
