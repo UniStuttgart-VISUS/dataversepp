@@ -28,7 +28,7 @@
 #else /* defined(_WIN32) */
 #include <unistd.h>
 
-#include <openssl/md5.h>
+#include <openssl/evp.h>
 
 #include <sys/stat.h>
 #endif /* defined(_WIN32) */
@@ -36,6 +36,7 @@
 #include "dataverse/convert.h"
 
 #include "ntstatus_error_category.h"
+#include "on_exit.h"
 #include "openssl_error_category.h"
 #include "posix_handle.h"
 
@@ -221,10 +222,11 @@ nlohmann::json visus::dataverse::detail::get_file_properties(
 
     // Compute the hash.
     {
-        std::array<unsigned char, 8 * MD5_DIGEST_LENGTH> buffer;
+        std::array<unsigned char, 8 * EVP_MAX_MD_SIZE> buffer;
         int cnt_read = 0;
-        MD5_CTX ctx;
-        std::array<unsigned char, MD5_DIGEST_LENGTH> hash;
+        EVP_MD_CTX *ctx;
+        std::array<unsigned char, EVP_MAX_MD_SIZE> hash;
+        unsigned int hash_length = hash.size();
         std::stringstream ss;
 
         posix_handle file(::open(path.value(), O_RDONLY));
@@ -232,7 +234,18 @@ nlohmann::json visus::dataverse::detail::get_file_properties(
             throw std::system_error(errno, std::system_category());
         }
 
-        if (!::MD5_Init(&ctx)) {
+        auto md = ::EVP_get_digestbyname("MD5");
+        if (md == nullptr) {
+            throw std::system_error(::ERR_get_error(), openssl_category());
+        }
+
+        if (!::EVP_MD_CTX_init(ctx)) {
+            throw std::system_error(::ERR_get_error(), openssl_category());
+        }
+
+        on_exit([ctx](void) { ::EVP_MD_CTX_free(ctx); });
+
+        if (!::EVP_DigestInit_ex(ctx, md, nullptr)) {
             throw std::system_error(::ERR_get_error(), openssl_category());
         }
 
@@ -242,20 +255,20 @@ nlohmann::json visus::dataverse::detail::get_file_properties(
                 throw std::system_error(errno, std::system_category());
             }
 
-            if (!::MD5_Update(&ctx, buffer.data(), cnt_read)) {
+            if (!::EVP_DigestUpdate(ctx, buffer.data(), cnt_read)) {
                 throw std::system_error(::ERR_get_error(), openssl_category());
             }
         } while (cnt_read > 0);
 
-        if (!::MD5_Final(hash.data(), &ctx)) {
+        if (!::EVP_DigestFinal_ex(ctx, hash.data(), &hash_length)) {
             throw std::system_error(::ERR_get_error(), openssl_category());
         }
 
-        for (auto c : buffer) {
+        for (decltype(hash_length) i = 0; i < hash_length; ++i) {
             ss << std::hex
                 << std::setw(2)
                 << std::setfill('0')
-                << static_cast<int>(c);
+                << static_cast<int>(hash[i]);
         }
 
         retval["md5Hash"] = ss.str();
