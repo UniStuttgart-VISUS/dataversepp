@@ -158,7 +158,7 @@ namespace dataverse {
             _In_ const narrow_string::code_page_type) {
         typedef std::basic_string<TDstChar> retval_type;
         return (cnt_src >= 0)
-            ? retval_type(src, src + cnt_src)
+            ? retval_type(src, src + cnt_src - 1)
             : retval_type(src);
     }
 
@@ -245,7 +245,7 @@ namespace dataverse {
             _In_ const narrow_string::code_page_type code_page) {
         std::vector<char> buffer(to_ascii(nullptr, 0, src, -1, code_page));
         auto cnt = to_ascii(buffer.data(), buffer.size(), src, -1, code_page);
-        return std::string(buffer.data(), buffer.data() + cnt);
+        return std::string(buffer.data(), buffer.data() + cnt - 1);
     }
 
     /// <summary>
@@ -296,7 +296,7 @@ namespace dataverse {
     inline std::string to_ascii(_In_z_ const wchar_t *src) {
         std::vector<char> buffer(to_ascii(nullptr, 0, src, -1));
         auto cnt = to_ascii(buffer.data(), buffer.size(), src, -1);
-        return std::string(buffer.data(), buffer.data() + cnt);
+        return std::string(buffer.data(), buffer.data() + cnt - 1);
     }
 
     /// <summary>
