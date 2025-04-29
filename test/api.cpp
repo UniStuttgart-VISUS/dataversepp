@@ -551,7 +551,7 @@ namespace test {
             }
 
             {
-                const std::size_t expected = 16;
+                const std::size_t expected = 32;
 
                 struct context_type {
                     visus::dataverse::event_type event;

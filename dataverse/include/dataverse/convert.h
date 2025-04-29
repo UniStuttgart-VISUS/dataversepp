@@ -33,7 +33,7 @@ namespace dataverse {
     /// <param name="cnt_dst">The number of elements that can be stored to
     /// <paramref name="dst" />.</param>
     /// <param name="src">The source string.</param>
-    /// <param name="cnt_src">The length of the source string, which can be zero
+    /// <param name="cnt_src">The length of the source string, which can be -1
     /// if <paramref name="src" /> is null-terminated.</param>
     /// <param name="code_page">The code page used for the narrow string.</param>
     /// <returns>The number of characters required for the output string,
@@ -46,7 +46,7 @@ namespace dataverse {
         _Out_writes_to_opt_(cnt_dst, return) wchar_t *dst,
         _In_ std::size_t cnt_dst,
         _In_reads_or_z_(cnt_src) const char *src,
-        _In_ const std::size_t cnt_src,
+        _In_ const int cnt_src,
         _In_ const narrow_string::code_page_type code_page);
 
     /// <summary>
@@ -58,7 +58,7 @@ namespace dataverse {
     /// <param name="cnt_dst">The number of elements that can be stored to
     /// <paramref name="dst" />.</param>
     /// <param name="src">The source string.</param>
-    /// <param name="cnt_src">The length of the source string, which can be zero
+    /// <param name="cnt_src">The length of the source string, which can be -1
     /// if <paramref name="src" /> is null-terminated.</param>
     /// <param name="code_page">The code page used for the narrow string.</param>
     /// <returns>The number of characters required for the output string,
@@ -71,7 +71,7 @@ namespace dataverse {
         _Out_writes_to_opt_(cnt_dst, return) char *dst,
         _In_ std::size_t cnt_dst,
         _In_reads_or_z_(cnt_src) const wchar_t *src,
-        _In_ const std::size_t cnt_src,
+        _In_ const int cnt_src,
         _In_ const narrow_string::code_page_type code_page);
 
     /// <summary>
@@ -84,7 +84,7 @@ namespace dataverse {
     /// <param name="cnt_dst">The number of elements that can be stored to
     /// <paramref name="dst" />.</param>
     /// <param name="src">The source string.</param>
-    /// <param name="cnt_src">The length of the source string, which can be zero
+    /// <param name="cnt_src">The length of the source string, which can be -1
     /// if <paramref name="src" /> is null-terminated.</param>
     /// <param name="code_page">This parameter is ignored.</param>
     /// <returns>The number of characters required for the output string,
@@ -97,7 +97,7 @@ namespace dataverse {
         _Out_writes_to_opt_(cnt_dst, return) TChar *dst,
         _In_ const std::size_t cnt_dst,
         _In_reads_or_z_(cnt_src) const TChar *src,
-        _In_ std::size_t cnt_src,
+        _In_ int cnt_src,
         _In_ const narrow_string::code_page_type code_page);
 
     /// <summary>
@@ -112,8 +112,9 @@ namespace dataverse {
     template<class TDstChar, class TSrcChar>
     inline std::basic_string<TDstChar> convert(
             _In_reads_or_z_(cnt_src) const TSrcChar *src,
-            _In_ const std::size_t cnt_src,
+            _In_ const int cnt_src,
             _In_ const narrow_string::code_page_type code_page) {
+        typedef std::basic_string<TDstChar> retval_type;
         std::vector<TDstChar> buffer(convert(
             static_cast<TDstChar *>(nullptr), 0,
             src, cnt_src,
@@ -122,8 +123,8 @@ namespace dataverse {
             src, cnt_src,
             code_page);
         return (cnt > 0)
-            ? std::basic_string<TDstChar>(buffer.data(), buffer.data() + cnt)
-            : std::basic_string<TDstChar>();
+            ? retval_type(buffer.data(), buffer.data() + cnt - 1)
+            : retval_type();
     }
 
     /// <summary>
@@ -137,7 +138,7 @@ namespace dataverse {
     template<class TDstChar>
     inline std::basic_string<TDstChar> convert(
             _In_ const const_narrow_string& src,
-            _In_ const std::size_t cnt_src = 0) {
+            _In_ const std::size_t cnt_src = -1) {
         return convert<TDstChar>(src.value(), cnt_src, src.code_page());
     }
 
@@ -155,9 +156,10 @@ namespace dataverse {
             _In_reads_or_z_(cnt_src) const TChar *src,
             _In_ const std::size_t cnt_src,
             _In_ const narrow_string::code_page_type) {
-        return (cnt_src > 0)
-            ? std::basic_string<TChar>(src, src + cnt_src)
-            : std::basic_string<TChar>(src);
+        typedef std::basic_string<TDstChar> retval_type;
+        return (cnt_src >= 0)
+            ? retval_type(src, src + cnt_src)
+            : retval_type(src);
     }
 
     /// <summary>
@@ -174,7 +176,7 @@ namespace dataverse {
     inline std::basic_string<TDstChar> convert(
             _In_ const std::basic_string<TSrcChar, TSrcTraits, TSrcAlloc>& src,
             _In_ const narrow_string::code_page_type code_page) {
-        return convert<TDstChar, TSrcChar>(src.c_str(), 0, code_page);
+        return convert<TDstChar, TSrcChar>(src.c_str(), -1, code_page);
     }
 
     /// <summary>
@@ -185,7 +187,7 @@ namespace dataverse {
     /// <returns></returns>
     template<class TDstChar>
     inline std::basic_string<TDstChar> from_utf8(_In_z_ const char *src) {
-        return convert<TDstChar>(src, 0, utf8_code_page);
+        return convert<TDstChar>(src, -1, utf8_code_page);
     }
 
     /// <summary>
@@ -212,7 +214,7 @@ namespace dataverse {
     /// <param name="cnt_dst">The number of elements that can be stored to
     /// <paramref name="dst" />.</param>
     /// <param name="src">The source string.</param>
-    /// <param name="cnt_src">The length of the source string, which can be zero
+    /// <param name="cnt_src">The length of the source string, which can be -1
     /// if <paramref name="src" /> is null-terminated.</param>
     /// <param name="code_page">The code page used for the narrow string.</param>
     /// <returns>The number of characters required for the output string,
@@ -225,7 +227,7 @@ namespace dataverse {
         _Out_writes_to_opt_(cnt_dst, return) char *dst,
         _In_ const std::size_t cnt_dst,
         _In_reads_or_z_(cnt_src) const char *src,
-        _In_ const std::size_t cnt_src,
+        _In_ int cnt_src,
         _In_ const narrow_string::code_page_type code_page);
 
     /// <summary>
@@ -241,8 +243,8 @@ namespace dataverse {
     /// </exception>
     inline std::string to_ascii(_In_z_ const char *src,
             _In_ const narrow_string::code_page_type code_page) {
-        std::vector<char> buffer(to_ascii(nullptr, 0, src, 0, code_page));
-        auto cnt = to_ascii(buffer.data(), buffer.size(), src, 0, code_page);
+        std::vector<char> buffer(to_ascii(nullptr, 0, src, -1, code_page));
+        auto cnt = to_ascii(buffer.data(), buffer.size(), src, -1, code_page);
         return std::string(buffer.data(), buffer.data() + cnt);
     }
 
@@ -268,7 +270,7 @@ namespace dataverse {
     /// <param name="cnt_dst">The number of elements that can be stored to
     /// <paramref name="dst" />.</param>
     /// <param name="src">The source string.</param>
-    /// <param name="cnt_src">The length of the source string, which can be zero
+    /// <param name="cnt_src">The length of the source string, which can be -1
     /// if <paramref name="src" /> is null-terminated.</param>
     /// <returns>The number of characters required for the output string,
     /// not including the terminating zero.</returns>
@@ -280,7 +282,7 @@ namespace dataverse {
         _Out_writes_to_opt_(cnt_dst, return) char *dst,
         _In_ const std::size_t cnt_dst,
         _In_reads_or_z_(cnt_src) const wchar_t *src,
-        _In_ const std::size_t cnt_src);
+        _In_ const int cnt_src);
 
     /// <summary>
     /// Converts a wide string using the platform's default code page.
@@ -292,8 +294,8 @@ namespace dataverse {
     /// <exception cref="std::system_error">If the conversion failed.
     /// </exception>
     inline std::string to_ascii(_In_z_ const wchar_t *src) {
-        std::vector<char> buffer(to_ascii(nullptr, 0, src, 0));
-        auto cnt = to_ascii(buffer.data(), buffer.size(), src, 0);
+        std::vector<char> buffer(to_ascii(nullptr, 0, src, -1));
+        auto cnt = to_ascii(buffer.data(), buffer.size(), src, -1);
         return std::string(buffer.data(), buffer.data() + cnt);
     }
 
@@ -326,7 +328,7 @@ namespace dataverse {
     /// </exception>
     inline std::string to_ansi(_In_z_ const char *src,
             _In_ const narrow_string::code_page_type code_page) {
-        return convert<char>(convert<wchar_t>(src, 0, code_page),
+        return convert<char>(convert<wchar_t>(src, -1, code_page),
             ansi_code_page);
     }
 
@@ -353,7 +355,7 @@ namespace dataverse {
     /// <exception cref="std::system_error">If the conversion failed.
     /// </exception>
     inline std::string to_ansi(_In_z_ const wchar_t *src) {
-        return convert<char>(src, 0, ansi_code_page);
+        return convert<char>(src, -1, ansi_code_page);
     }
 
     /// <summary>
@@ -393,7 +395,7 @@ namespace dataverse {
     /// <returns></returns>
     inline std::string to_utf8(_In_z_ const char *src,
             _In_ const narrow_string::code_page_type code_page) {
-        return convert<char>(convert<wchar_t>(src, 0, code_page),
+        return convert<char>(convert<wchar_t>(src, -1, code_page),
             utf8_code_page);
     }
 
@@ -416,7 +418,7 @@ namespace dataverse {
     /// <param name="cnt_dst">The number of elements that can be stored to
     /// <paramref name="dst" />.</param>
     /// <param name="src">The source string.</param>
-    /// <param name="cnt_src">The length of the source string, which can be zero
+    /// <param name="cnt_src">The length of the source string, which can be -1
     /// if <paramref name="src" /> is null-terminated.</param>
     /// <returns>The number of characters required for the output string,
     /// including the terminating zero.</returns>
@@ -427,7 +429,7 @@ namespace dataverse {
     inline std::size_t to_utf8(_Out_writes_to_opt_(cnt_dst, return) char *dst,
             _In_ std::size_t cnt_dst,
             _In_reads_or_z_(cnt_src) const wchar_t *src,
-            _In_ const std::size_t cnt_src) {
+            _In_ const int cnt_src) {
         return convert(dst, cnt_dst, src, cnt_src, utf8_code_page);
     }
 
@@ -437,7 +439,7 @@ namespace dataverse {
     /// <param name="src"></param>
     /// <returns></returns>
     inline std::string to_utf8(_In_z_ const wchar_t *src) {
-        return convert<char>(src, 0, utf8_code_page);
+        return convert<char>(src, -1, utf8_code_page);
     }
 
     /// <summary>
